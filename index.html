@@ -5,206 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>premCall</title>
     <style>
-        /* ─── Reset & Base ─── */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            background: #0a0e1a;
-            color: #e2e8f0;
-            display: flex;
-            justify-content: center;
-            padding: 1.5rem 1rem 3rem;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 680px;
-            width: 100%;
-        }
-        h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.25rem;
-        }
-        h1 .logo-svg {
-            width: 36px;
-            height: 36px;
-            display: inline-block;
-        }
-        .subhead {
-            color: #8892b0;
-            margin-bottom: 1.5rem;
-            font-size: 0.95rem;
-        }
-
-        .card {
-            background: #141b2b;
-            border-radius: 20px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid #23304a;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-        }
-        .card-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        textarea {
-            width: 100%;
-            padding: 0.75rem;
-            background: #0f1629;
-            border: 1px solid #2a3a5a;
-            border-radius: 12px;
-            color: #b0c7e0;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-size: 0.8rem;
-            resize: vertical;
-            min-height: 80px;
-            transition: border 0.2s;
-        }
-        textarea:focus {
-            outline: none;
-            border-color: #4f8cf7;
-        }
-        textarea:disabled {
-            opacity: 0.5;
-        }
-
-        .flex-row {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 0.6rem;
-            margin: 0.5rem 0 0.8rem;
-        }
-
-        /* ─── Buttons ─── */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.4rem;
-            padding: 0.6rem 1.2rem;
-            border: none;
-            border-radius: 40px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: #2a3a5a;
-            color: #e2e8f0;
-            min-width: 100px;
-        }
-        .btn svg {
-            width: 18px;
-            height: 18px;
-            fill: none;
-            stroke: currentColor;
-            stroke-width: 2;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            flex-shrink: 0;
-        }
-        .btn:disabled {
-            opacity: 0.4;
-            pointer-events: none;
-            filter: grayscale(0.6);
-        }
-
-        .btn-green {
-            background: #1a7a4a;
-            color: #fff;
-        }
-        .btn-green:hover:not(:disabled) {
-            background: #1f9b5e;
-        }
-        .btn-blue {
-            background: #1a4a8a;
-            color: #fff;
-        }
-        .btn-blue:hover:not(:disabled) {
-            background: #2563d6;
-        }
-        .btn-yellow {
-            background: #a67c1a;
-            color: #fff;
-        }
-        .btn-yellow:hover:not(:disabled) {
-            background: #ca9a2a;
-        }
-        .btn-red {
-            background: #8a1a2a;
-            color: #fff;
-        }
-        .btn-red:hover:not(:disabled) {
-            background: #b52238;
-        }
-        .btn-outline {
-            background: transparent;
-            border: 1px solid #4a5a7a;
-        }
-        .btn-outline:hover:not(:disabled) {
-            background: #1a2a4a;
-        }
-
-        .status {
-            padding: 0.5rem 0.8rem;
-            border-radius: 40px;
-            background: #1a2338;
-            font-size: 0.85rem;
-            color: #94a3b8;
-            margin: 0.5rem 0;
-            display: inline-block;
-        }
-        .status-success {
-            color: #4ade80;
-        }
-        .status-error {
-            color: #f87171;
-        }
-        .status-warning {
-            color: #fbbf24;
-        }
-
-        .section-divider {
-            border: none;
-            border-top: 1px solid #23304a;
-            margin: 1.2rem 0;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        /* responsive tweaks */
-        @media (max-width: 480px) {
-            .btn {
-                min-width: 70px;
-                padding: 0.5rem 1rem;
-                font-size: 0.8rem;
-            }
-            .flex-row {
-                gap: 0.4rem;
-            }
-        }
+        /* same as before – keep it */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: #0a0e1a; color: #e2e8f0; display: flex; justify-content: center; padding: 1.5rem 1rem 3rem; min-height: 100vh; }
+        .container { max-width: 680px; width: 100%; }
+        h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; }
+        h1 .logo-svg { width: 36px; height: 36px; display: inline-block; }
+        .subhead { color: #8892b0; margin-bottom: 1.5rem; font-size: 0.95rem; }
+        .card { background: #141b2b; border-radius: 20px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid #23304a; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+        .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        textarea { width: 100%; padding: 0.75rem; background: #0f1629; border: 1px solid #2a3a5a; border-radius: 12px; color: #b0c7e0; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.8rem; resize: vertical; min-height: 80px; transition: border 0.2s; }
+        textarea:focus { outline: none; border-color: #4f8cf7; }
+        textarea:disabled { opacity: 0.5; }
+        .flex-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; margin: 0.5rem 0 0.8rem; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.6rem 1.2rem; border: none; border-radius: 40px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; background: #2a3a5a; color: #e2e8f0; min-width: 100px; }
+        .btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+        .btn:disabled { opacity: 0.4; pointer-events: none; filter: grayscale(0.6); }
+        .btn-green { background: #1a7a4a; color: #fff; }
+        .btn-green:hover:not(:disabled) { background: #1f9b5e; }
+        .btn-blue { background: #1a4a8a; color: #fff; }
+        .btn-blue:hover:not(:disabled) { background: #2563d6; }
+        .btn-yellow { background: #a67c1a; color: #fff; }
+        .btn-yellow:hover:not(:disabled) { background: #ca9a2a; }
+        .btn-red { background: #8a1a2a; color: #fff; }
+        .btn-red:hover:not(:disabled) { background: #b52238; }
+        .btn-outline { background: transparent; border: 1px solid #4a5a7a; }
+        .btn-outline:hover:not(:disabled) { background: #1a2a4a; }
+        .status { padding: 0.5rem 0.8rem; border-radius: 40px; background: #1a2338; font-size: 0.85rem; color: #94a3b8; margin: 0.5rem 0; display: inline-block; }
+        .status-success { color: #4ade80; }
+        .status-error { color: #f87171; }
+        .status-warning { color: #fbbf24; }
+        .section-divider { border: none; border-top: 1px solid #23304a; margin: 1.2rem 0; }
+        .hidden { display: none !important; }
+        @media (max-width: 480px) { .btn { min-width: 70px; padding: 0.5rem 1rem; font-size: 0.8rem; } .flex-row { gap: 0.4rem; } }
+        .copy-hint { font-size: 0.8rem; color: #4a6a8a; margin-top: 0.2rem; }
     </style>
 </head>
 <body>
 <div class="container">
 
-    <!-- ─── HEADER ─── -->
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <h1>
             <svg class="logo-svg" viewBox="0 0 24 24" fill="none" stroke="#4f8cf7" stroke-width="2">
@@ -216,7 +55,7 @@
     </div>
     <p class="subhead">Peer-to-peer audio calls via WebRTC – no servers, just copy-paste.</p>
 
-    <!-- ─── CALLER ─── -->
+    <!-- Caller -->
     <div class="card" id="callerCard">
         <div class="card-title">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2">
@@ -226,7 +65,6 @@
             </svg>
             Caller
         </div>
-
         <div class="flex-row">
             <button class="btn btn-green" id="startBtn">
                 <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
@@ -238,6 +76,7 @@
             </button>
         </div>
         <div class="status" id="callerStatus">Not started</div>
+        <div class="copy-hint">Copy the exact text below – do not add extra spaces.</div>
         <textarea id="offerBox" placeholder="Your offer SDP will appear here..." readonly></textarea>
 
         <hr class="section-divider" />
@@ -257,7 +96,7 @@
         </div>
     </div>
 
-    <!-- ─── CALLEE ─── -->
+    <!-- Callee -->
     <div class="card" id="calleeCard">
         <div class="card-title">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2">
@@ -265,12 +104,10 @@
             </svg>
             Callee
         </div>
-
         <div class="card-title" style="font-size:0.9rem; font-weight:400; color:#94a3b8; margin-bottom:0.3rem;">
             Paste offer from caller:
         </div>
         <textarea id="pasteOfferBox" placeholder="Paste the offer SDP here..."></textarea>
-
         <div class="flex-row">
             <button class="btn btn-yellow" id="answerBtn">
                 <svg viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M8 12l3 3 5-5"/></svg>
@@ -282,10 +119,11 @@
             </button>
         </div>
         <div class="status" id="calleeStatus">Waiting for offer...</div>
+        <div class="copy-hint">Copy the exact answer text – do not add extra spaces.</div>
         <textarea id="generatedAnswerBox" placeholder="Your answer SDP will appear here..." readonly></textarea>
     </div>
 
-    <!-- ─── CALL CONTROLS (hidden until connected) ─── -->
+    <!-- Call Controls -->
     <div class="card hidden" id="callControls">
         <div class="card-title">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2">
@@ -306,7 +144,6 @@
         </div>
     </div>
 
-    <!-- ─── FOOTER NOTE ─── -->
     <p style="font-size:0.75rem; color:#4a5a7a; text-align:center; margin-top:1rem;">
         All audio is peer-to-peer. No data is stored or relayed.
     </p>
@@ -323,13 +160,11 @@
         const offerBox = document.getElementById('offerBox');
         const answerBox = document.getElementById('answerBox');
         const connectBtn = document.getElementById('connectBtn');
-
         const pasteOfferBox = document.getElementById('pasteOfferBox');
         const answerBtn = document.getElementById('answerBtn');
         const copyAnswerBtn = document.getElementById('copyAnswerBtn');
         const calleeStatus = document.getElementById('calleeStatus');
         const generatedAnswerBox = document.getElementById('generatedAnswerBox');
-
         const callControls = document.getElementById('callControls');
         const muteBtn = document.getElementById('muteBtn');
         const hangupBtn = document.getElementById('hangupBtn');
@@ -352,6 +187,23 @@
 
         function showError(msg) {
             alert('Error: ' + msg);
+        }
+
+        // ─── SDP Sanitizer (FIX) ───
+        function cleanSdp(sdp) {
+            // Remove leading/trailing whitespace and normalize line endings
+            let cleaned = sdp.trim().replace(/\r\n/g, '\n');
+            // Ensure it starts with "v=0"
+            if (!cleaned.startsWith('v=0')) {
+                // Try to find the first line that looks like v=0
+                const match = cleaned.match(/v=0\n/);
+                if (match) {
+                    cleaned = cleaned.substring(match.index);
+                } else {
+                    throw new Error('Invalid SDP: missing v=0 line');
+                }
+            }
+            return cleaned;
         }
 
         async function getLocalStream() {
@@ -416,7 +268,6 @@
             setStatus(callStatus, 'Disconnected', 'error');
             setStatus(connectionStatus, 'offline', 'error');
 
-            // Reset UI
             startBtn.disabled = false;
             startBtn.innerHTML = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg> Start`;
             answerBtn.disabled = false;
@@ -430,7 +281,6 @@
             generatedAnswerBox.value = '';
             setStatus(callerStatus, 'Ended', 'error');
             setStatus(calleeStatus, 'Ended', 'error');
-            // Re-enable connect after hangup
             connectBtn.disabled = false;
             connectBtn.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Connect`;
         }
@@ -483,7 +333,9 @@
                 answerBtn.innerHTML = '<span style="display:inline-block;width:18px;height:18px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;"></span> Processing...';
                 await getLocalStream();
                 pc = createPeerConnection();
-                await pc.setRemoteDescription({ type: 'offer', sdp: offer });
+                // --- FIX: clean SDP ---
+                const cleanedOffer = cleanSdp(offer);
+                await pc.setRemoteDescription({ type: 'offer', sdp: cleanedOffer });
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
                 const answerSdp = pc.localDescription.sdp;
@@ -513,7 +365,7 @@
             }
         });
 
-        // ─── CONNECT (Caller pastes answer) ───
+        // ─── CONNECT (Caller) ───
         connectBtn.addEventListener('click', async () => {
             const answer = answerBox.value.trim();
             if (!answer) {
@@ -524,19 +376,19 @@
                 connectBtn.disabled = true;
                 connectBtn.innerHTML = '<span style="display:inline-block;width:18px;height:18px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;"></span> Connecting...';
                 if (!pc) {
-                    // If caller hasn't started the call yet (shouldn't happen)
                     await getLocalStream();
                     pc = createPeerConnection();
                     if (!offerSdp) throw new Error('No offer generated. Please click Start first.');
                     await pc.setLocalDescription({ type: 'offer', sdp: offerSdp });
                 }
-                await pc.setRemoteDescription({ type: 'answer', sdp: answer });
+                // --- FIX: clean SDP ---
+                const cleanedAnswer = cleanSdp(answer);
+                await pc.setRemoteDescription({ type: 'answer', sdp: cleanedAnswer });
                 isCallActive = true;
                 callControls.classList.remove('hidden');
                 setStatus(callStatus, 'Connected!', 'success');
                 setStatus(connectionStatus, 'connected', 'success');
                 connectBtn.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Connected`;
-                // Disable further changes
                 startBtn.disabled = true;
                 answerBtn.disabled = true;
                 copyOfferBtn.disabled = true;
@@ -562,7 +414,7 @@
         // ─── HANGUP ───
         hangupBtn.addEventListener('click', hangUp);
 
-        // ─── Auto-load offer from URL (if present) ───
+        // ─── Auto-load offer from URL ───
         (function autoLoad() {
             const params = new URLSearchParams(window.location.search);
             const offer = params.get('offer');
@@ -572,15 +424,13 @@
             }
         })();
 
-        // ─── Add a tiny spin animation ───
+        // ─── Spin animation style ───
         const style = document.createElement('style');
         style.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
         document.head.appendChild(style);
 
-        // ─── Initial status ───
         setStatus(connectionStatus, 'offline', 'error');
-
-        console.log('premCall loaded. Ready for manual WebRTC signaling.');
+        console.log('premCall loaded with SDP sanitization fix.');
     })();
 </script>
 </body>
