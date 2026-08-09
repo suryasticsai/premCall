@@ -662,409 +662,403 @@
   <!-- ═══ REMOTE AUDIO ═══ -->
   <audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
 
-  <script>
-    (function() {
-      'use strict';
+  ──────────────────
+    <script>
+  (function() {
+    'use strict';
 
-      // ─── Check if PremCall is available ──────────────────────────
-      if (typeof PremCall === 'undefined') {
-        document.getElementById('logArea').innerHTML =
-          '<div class="log-entry error"><i class="fas fa-triangle-exclamation"></i> Error: PremCall library not loaded. Make sure premcall.js is in the same folder.</div>';
+    if (typeof PremCall === 'undefined') {
+      document.getElementById('logArea').innerHTML =
+        '<div class="log-entry error"><i class="fas fa-triangle-exclamation"></i> Error: PremCall library not loaded.</div>';
+      return;
+    }
+
+    // ─── DOM refs ────────────────────────────────────────────────
+    const dialDisplay = document.getElementById('dialDisplay');
+    const dialPad = document.getElementById('dialPad');
+    const dialCallBtn = document.getElementById('dialCallBtn');
+    const checkStatusBtn = document.getElementById('checkStatusBtn');
+    const statusResult = document.getElementById('statusResult');
+    const logArea = document.getElementById('logArea');
+    const incomingOverlay = document.getElementById('incomingOverlay');
+    const incomingName = document.getElementById('incomingName');
+    const incomingNumber = document.getElementById('incomingNumber');
+    const incomingAvatar = document.getElementById('incomingAvatar');
+    const answerBtn = document.getElementById('answerBtn');
+    const rejectBtn = document.getElementById('rejectBtn');
+    const callScreen = document.getElementById('callScreen');
+    const callName = document.getElementById('callName');
+    const callNumber = document.getElementById('callNumber');
+    const callAvatar = document.getElementById('callAvatar');
+    const callTimer = document.getElementById('callTimer');
+    const callSubstatus = document.getElementById('callSubstatus');
+    const hangupCallBtn = document.getElementById('hangupCallBtn');
+    const muteBtn = document.getElementById('muteBtn');
+    const speakerBtn = document.getElementById('speakerBtn');
+    const myNumberDisplay = document.getElementById('myNumberDisplay');
+    const headerStatusDot = document.getElementById('headerStatusDot');
+    const remoteAudio = document.getElementById('remoteAudio');
+    const toast = document.getElementById('toast');
+    const historyList = document.getElementById('historyList');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
+    // ─── State ──────────────────────────────────────────────────
+    let dialedNumber = '';
+    let callTimerInterval = null;
+    let toastTimeout = null;
+    let pendingCallDirection = null;   // 'outgoing' or 'incoming'
+
+    // ─── Call History (stored in localStorage) ──────────────────
+    function getHistory() {
+      try { return JSON.parse(localStorage.getItem('premCallHistory')) || []; }
+      catch { return []; }
+    }
+    function saveHistory(history) { localStorage.setItem('premCallHistory', JSON.stringify(history)); }
+
+    function addHistoryEntry(number, direction, duration) {
+      const history = getHistory();
+      history.unshift({ number, direction, duration: duration || '—', timestamp: Date.now() });
+      if (history.length > 50) history.length = 50;
+      saveHistory(history);
+      renderHistory();
+    }
+
+    function renderHistory() {
+      historyList.innerHTML = '';
+      const history = getHistory();
+      if (history.length === 0) {
+        historyList.innerHTML = '<li style="color:#4a5a6a;font-style:italic;">No calls yet</li>';
+        return;
+      }
+      history.forEach(entry => {
+        const li = document.createElement('li');
+        const dirIcon = entry.direction === 'incoming' ? 'fa-arrow-down' : entry.direction === 'outgoing' ? 'fa-arrow-up' : 'fa-phone-slash';
+        const dirClass = entry.direction === 'incoming' ? 'incoming' : entry.direction === 'outgoing' ? 'outgoing' : 'missed';
+        const date = new Date(entry.timestamp);
+        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        li.innerHTML = `<span class="direction ${dirClass}"><i class="fas ${dirIcon}"></i> ${entry.number}</span><span class="time">${entry.duration} · ${timeStr}</span>`;
+        historyList.appendChild(li);
+      });
+    }
+
+    clearHistoryBtn.addEventListener('click', () => {
+      saveHistory([]);
+      renderHistory();
+      showToast('History cleared');
+    });
+
+    // ─── Toast ──────────────────────────────────────────────────
+    function showToast(msg, duration = 2500) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => toast.classList.remove('show'), duration);
+    }
+
+    // ─── Log ──────────────────────────────────────────────────
+    function log(msg, type) {
+      const now = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = 'log-entry' + (type ? ' ' + type : '');
+      entry.textContent = now + ' ' + msg;
+      logArea.prepend(entry);
+      if (logArea.children.length > 50) logArea.removeChild(logArea.lastChild);
+    }
+
+    // ─── Status Dot ──────────────────────────────────────────
+    function setStatusDot(state) {
+      headerStatusDot.className = 'status-dot ' + state;
+    }
+
+    // ─── Get stored number ──────────────────────────────────
+    function getStoredNumber() {
+      return localStorage.getItem('premCallNumber') || null;
+    }
+
+    // ─── Timer ──────────────────────────────────────────────
+    function startTimer() {
+      if (callTimerInterval) clearInterval(callTimerInterval);
+      let seconds = 0;
+      callTimerInterval = setInterval(() => {
+        seconds++;
+        const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const s = String(seconds % 60).padStart(2, '0');
+        callTimer.textContent = m + ':' + s;
+      }, 1000);
+      return () => {
+        clearInterval(callTimerInterval);
+        callTimerInterval = null;
+        return seconds;
+      };
+    }
+    let getCallDuration = null;
+
+    // ─── Show / hide incoming overlay (forcefully) ────────────
+    function showIncomingOverlay(callerId) {
+      console.log('[UI] showIncomingOverlay called for:', callerId);
+      if (!incomingOverlay) {
+        console.error('[UI] incomingOverlay element not found!');
+        return;
+      }
+      incomingName.textContent = callerId;
+      incomingNumber.textContent = callerId;
+      incomingAvatar.innerHTML = `<img src="premCall-logo.png" alt="caller" />`;
+      incomingOverlay.style.display = 'flex';          // force show
+      incomingOverlay.classList.add('active');         // keep CSS compatibility
+      showToast('Incoming call from ' + callerId);
+      log('Incoming call from ' + callerId, 'warning');
+    }
+
+    function hideIncomingOverlay() {
+      if (!incomingOverlay) return;
+      incomingOverlay.style.display = 'none';
+      incomingOverlay.classList.remove('active');
+    }
+
+    function showCallScreen(name, isCaller) {
+      console.log('[UI] showCallScreen:', name, isCaller ? 'outgoing' : 'incoming');
+      callName.textContent = name;
+      callNumber.textContent = name;
+      callAvatar.innerHTML = `<img src="premCall-logo.png" alt="call" />`;
+      callSubstatus.textContent = isCaller ? 'Ringing...' : 'Connecting...';
+      callTimer.textContent = '00:00';
+      callScreen.style.display = 'flex';
+      callScreen.classList.add('active');
+      hideIncomingOverlay();
+      if (callTimerInterval) clearInterval(callTimerInterval);
+      getCallDuration = null;
+    }
+
+    function hideCallScreen() {
+      callScreen.style.display = 'none';
+      callScreen.classList.remove('active');
+      if (callTimerInterval) clearInterval(callTimerInterval);
+      callTimer.textContent = '00:00';
+      remoteAudio.srcObject = null;
+      dialCallBtn.classList.remove('disabled');
+    }
+
+    // ─── Init PremCall ──────────────────────────────────────────
+    function initPremCall() {
+      const number = getStoredNumber();
+      if (!number) {
+        myNumberDisplay.textContent = 'Not set';
+        setStatusDot('offline');
+        log('No number set. Go to settings.', 'warning');
+        return;
+      }
+      if (!/^\d{10}$/.test(number)) {
+        myNumberDisplay.textContent = 'Invalid';
+        setStatusDot('offline');
+        log('Stored number is not 10 digits.', 'error');
         return;
       }
 
-      // ─── DOM refs ────────────────────────────────────────────────
-      const dialDisplay = document.getElementById('dialDisplay');
-      const dialPad = document.getElementById('dialPad');
-      const dialCallBtn = document.getElementById('dialCallBtn');
-      const checkStatusBtn = document.getElementById('checkStatusBtn');
-      const statusResult = document.getElementById('statusResult');
-      const logArea = document.getElementById('logArea');
-      const incomingOverlay = document.getElementById('incomingOverlay');
-      const incomingName = document.getElementById('incomingName');
-      const incomingNumber = document.getElementById('incomingNumber');
-      const incomingAvatar = document.getElementById('incomingAvatar');
-      const answerBtn = document.getElementById('answerBtn');
-      const rejectBtn = document.getElementById('rejectBtn');
-      const callScreen = document.getElementById('callScreen');
-      const callName = document.getElementById('callName');
-      const callNumber = document.getElementById('callNumber');
-      const callAvatar = document.getElementById('callAvatar');
-      const callTimer = document.getElementById('callTimer');
-      const callSubstatus = document.getElementById('callSubstatus');
-      const hangupCallBtn = document.getElementById('hangupCallBtn');
-      const muteBtn = document.getElementById('muteBtn');
-      const speakerBtn = document.getElementById('speakerBtn');
-      const myNumberDisplay = document.getElementById('myNumberDisplay');
-      const headerStatusDot = document.getElementById('headerStatusDot');
-      const remoteAudio = document.getElementById('remoteAudio');
-      const toast = document.getElementById('toast');
-      const historyList = document.getElementById('historyList');
-      const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+      myNumberDisplay.textContent = number;
+      setStatusDot('connecting');
+      log('Initializing with number: ' + number, 'info');
 
-      // ─── State ──────────────────────────────────────────────────
-      let dialedNumber = '';
-      let callTimerInterval = null;
-      let toastTimeout = null;
-      let isMuted = false;
-      let isSpeakerOn = false;
-
-      // ─── Call History (stored in localStorage) ──────────────────
-      function getHistory() {
-        try {
-          return JSON.parse(localStorage.getItem('premCallHistory')) || [];
-        } catch { return []; }
-      }
-
-      function saveHistory(history) {
-        localStorage.setItem('premCallHistory', JSON.stringify(history));
-      }
-
-      function addHistoryEntry(number, direction, duration) {
-        const history = getHistory();
-        history.unshift({
-          number,
-          direction, // 'incoming', 'outgoing', 'missed'
-          duration: duration || '—',
-          timestamp: Date.now()
-        });
-        // Keep last 50 entries
-        if (history.length > 50) history.length = 50;
-        saveHistory(history);
-        renderHistory();
-      }
-
-      function renderHistory() {
-        const history = getHistory();
-        historyList.innerHTML = '';
-        if (history.length === 0) {
-          historyList.innerHTML = '<li style="color:#4a5a6a;font-style:italic;">No calls yet</li>';
-          return;
-        }
-        history.forEach(entry => {
-          const li = document.createElement('li');
-          const dirIcon = entry.direction === 'incoming' ? 'fa-arrow-down' :
-            entry.direction === 'outgoing' ? 'fa-arrow-up' : 'fa-phone-slash';
-          const dirClass = entry.direction === 'incoming' ? 'incoming' :
-            entry.direction === 'outgoing' ? 'outgoing' : 'missed';
-          const date = new Date(entry.timestamp);
-          const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          li.innerHTML = `
-            <span class="direction ${dirClass}">
-              <i class="fas ${dirIcon}"></i> ${entry.number}
-            </span>
-            <span class="time">${entry.duration} · ${timeStr}</span>
-          `;
-          historyList.appendChild(li);
-        });
-      }
-
-      clearHistoryBtn.addEventListener('click', () => {
-        saveHistory([]);
-        renderHistory();
-        showToast('History cleared');
-      });
-
-      // ─── Toast ──────────────────────────────────────────────────
-      function showToast(msg, duration) {
-        toast.textContent = msg;
-        toast.classList.add('show');
-        clearTimeout(toastTimeout);
-        toastTimeout = setTimeout(() => toast.classList.remove('show'), duration || 2500);
-      }
-
-      // ─── Log ──────────────────────────────────────────────────
-      function log(msg, type) {
-        const now = new Date().toLocaleTimeString();
-        const entry = document.createElement('div');
-        entry.className = 'log-entry' + (type ? ' ' + type : '');
-        entry.textContent = now + ' ' + msg;
-        logArea.prepend(entry);
-        while (logArea.children.length > 50) {
-          logArea.removeChild(logArea.lastChild);
-        }
-      }
-
-      // ─── Status Dot ──────────────────────────────────────────
-      function setStatusDot(state) {
-        headerStatusDot.className = 'status-dot ' + state;
-      }
-
-      // ─── Get stored number ──────────────────────────────────
-      function getStoredNumber() {
-        return localStorage.getItem('premCallNumber') || null;
-      }
-
-      // ─── Timer ──────────────────────────────────────────────
-      function startTimer() {
-        if (callTimerInterval) clearInterval(callTimerInterval);
-        let seconds = 0;
-        callTimerInterval = setInterval(() => {
-          seconds++;
-          const m = String(Math.floor(seconds / 60)).padStart(2, '0');
-          const s = String(seconds % 60).padStart(2, '0');
-          callTimer.textContent = m + ':' + s;
-        }, 1000);
-        return () => {
-          clearInterval(callTimerInterval);
-          callTimerInterval = null;
-          return seconds;
-        };
-      }
-
-      let getCallDuration = null;
-
-      // ─── Init PremCall ──────────────────────────────────────────
-      function initPremCall() {
-        const number = getStoredNumber();
-        if (!number) {
-          myNumberDisplay.textContent = 'Not set';
-          setStatusDot('offline');
-          log('No number set. Go to settings.', 'warning');
-          return;
-        }
-        if (!/^\d{10}$/.test(number)) {
-          myNumberDisplay.textContent = 'Invalid';
-          setStatusDot('offline');
-          log('Stored number is not 10 digits. Fix in settings.', 'error');
-          return;
-        }
-
-        myNumberDisplay.textContent = number;
-        setStatusDot('connecting');
-        log('Initializing with number: ' + number, 'info');
-
-        try {
-          PremCall.init(number, {
-            onIncoming: (callerId) => {
-              incomingName.textContent = callerId;
-              incomingNumber.textContent = callerId;
-              incomingAvatar.innerHTML = `<img src="premCall-logo.png" alt="caller" />`;
-              incomingOverlay.classList.add('active');
-              showToast('Incoming call from ' + callerId);
-              // Play ringtone effect (optional)
-            },
-            onConnected: () => {
-              setStatusDot('online');
-              log('Connected', 'success');
-              callSubstatus.textContent = 'Connected';
-              if (!callTimerInterval) {
-                getCallDuration = startTimer();
-              }
-            },
-            onDisconnected: () => {
-              setStatusDot('offline');
-              log('Disconnected', 'error');
-            },
-            onRemoteStream: (stream) => {
-              log('Remote stream received', 'success');
-              remoteAudio.srcObject = stream;
-              remoteAudio.muted = false;
-              remoteAudio.play().catch(() => {
-                document.addEventListener('click', () => remoteAudio.play(), { once: true });
-                document.addEventListener('touchstart', () => remoteAudio.play(), { once: true });
-              });
-              callSubstatus.textContent = 'Connected';
-            },
-            onCallStarted: (data) => {
-              const name = data.target;
-              callName.textContent = name;
-              callNumber.textContent = name;
-              callAvatar.innerHTML = `<img src="premCall-logo.png" alt="call" />`;
-              callSubstatus.textContent = data.isCaller ? 'Ringing...' : 'Connecting...';
-              callTimer.textContent = '00:00';
-              callScreen.classList.add('active');
-              incomingOverlay.classList.remove('active');
-              if (callTimerInterval) {
-                clearInterval(callTimerInterval);
-                callTimerInterval = null;
-              }
+      try {
+        PremCall.init(number, {
+          onIncoming: (callerId) => {
+            console.log('[UI] onIncoming callback fired with:', callerId);
+            showIncomingOverlay(callerId);
+          },
+          onConnected: () => {
+            console.log('[UI] onConnected');
+            setStatusDot('online');
+            callSubstatus.textContent = 'Connected';
+            if (!callTimerInterval) {
+              getCallDuration = startTimer();
+            }
+          },
+          onDisconnected: () => {
+            console.log('[UI] onDisconnected');
+            setStatusDot('offline');
+          },
+          onRemoteStream: (stream) => {
+            console.log('[UI] onRemoteStream');
+            remoteAudio.srcObject = stream;
+            remoteAudio.muted = false;
+            remoteAudio.play().catch(() => {
+              document.addEventListener('click', () => remoteAudio.play(), { once: true });
+              document.addEventListener('touchstart', () => remoteAudio.play(), { once: true });
+            });
+            callSubstatus.textContent = 'Connected';
+          },
+          onCallStarted: (data) => {
+            console.log('[UI] onCallStarted:', data);
+            pendingCallDirection = data.isCaller ? 'outgoing' : 'incoming';
+            showCallScreen(data.target, data.isCaller);
+          },
+          onCallEnded: () => {
+            console.log('[UI] onCallEnded');
+            // Calculate duration
+            let duration = '—';
+            if (getCallDuration) {
+              const secs = getCallDuration();
+              const m = String(Math.floor(secs / 60)).padStart(2, '0');
+              const s = String(secs % 60).padStart(2, '0');
+              duration = m + ':' + s;
               getCallDuration = null;
-            },
-            onCallEnded: () => {
-              // Calculate duration
-              let duration = '—';
-              if (getCallDuration) {
-                const secs = getCallDuration();
-                const m = String(Math.floor(secs / 60)).padStart(2, '0');
-                const s = String(secs % 60).padStart(2, '0');
-                duration = m + ':' + s;
-                getCallDuration = null;
-              }
-              // Add to history (if we have a number)
-              const currentNumber = callNumber.textContent;
-              if (currentNumber && currentNumber !== 'Calling...' && currentNumber !== '+1234567890') {
-                // Determine direction: if we were the caller, it's outgoing; otherwise incoming
-                // We'll use a simple heuristic: if we have a pending outgoing flag
-                const isOutgoing = dialCallBtn.classList.contains('disabled'); // rough
-                const dir = isOutgoing ? 'outgoing' : 'incoming';
-                addHistoryEntry(currentNumber, dir, duration);
-              }
-              callScreen.classList.remove('active');
-              incomingOverlay.classList.remove('active');
-              if (callTimerInterval) {
-                clearInterval(callTimerInterval);
-                callTimerInterval = null;
-              }
-              callTimer.textContent = '00:00';
-              remoteAudio.srcObject = null;
-              dialCallBtn.classList.remove('disabled');
-              showToast('Call ended');
-            },
-            onError: (err) => {
-              log('Error: ' + err.message, 'error');
-              showToast('Error: ' + err.message);
-              setStatusDot('offline');
-            },
-            onLog: (msg, level) => {
-              log(msg, level);
             }
-          });
-          setStatusDot('online');
-        } catch (err) {
-          log('Init failed: ' + err.message, 'error');
-          setStatusDot('offline');
-          showToast('Init failed: ' + err.message);
-        }
+            const currentNumber = callNumber.textContent;
+            if (currentNumber && currentNumber !== 'Calling...' && currentNumber !== '+1234567890') {
+              const dir = pendingCallDirection || 'incoming';
+              addHistoryEntry(currentNumber, dir, duration);
+            }
+            pendingCallDirection = null;
+            hideCallScreen();
+            hideIncomingOverlay();
+            showToast('Call ended');
+          },
+          onError: (err) => {
+            console.error('[UI] onError:', err);
+            log('Error: ' + err.message, 'error');
+            showToast('Error: ' + err.message);
+            setStatusDot('offline');
+          },
+          onLog: (msg, level) => {
+            log(msg, level);
+          }
+        });
+        setStatusDot('online');
+      } catch (err) {
+        log('Init failed: ' + err.message, 'error');
+        setStatusDot('offline');
+        showToast('Init failed: ' + err.message);
       }
+    }
 
-      // ─── Dialer ──────────────────────────────────────────────────
-      dialPad.addEventListener('click', (e) => {
-        const key = e.target.closest('.key');
-        if (!key) return;
-        const digit = key.dataset.digit;
-        const action = key.dataset.action;
-
-        if (digit) {
-          if (dialedNumber.length < 15) {
-            dialedNumber += digit;
-            dialDisplay.textContent = dialedNumber;
-          }
-        } else if (action === 'delete') {
-          dialedNumber = dialedNumber.slice(0, -1);
-          dialDisplay.textContent = dialedNumber || 'Enter number';
-          if (!dialedNumber) dialDisplay.innerHTML = '<span class="hint"><i class="fas fa-phone"></i> Enter 10-digit number</span>';
-        } else if (action === 'clear') {
-          dialedNumber = '';
-          dialDisplay.innerHTML = '<span class="hint"><i class="fas fa-phone"></i> Enter 10-digit number</span>';
-        } else if (action === 'call') {
-          if (dialedNumber) {
-            if (!/^\d{10}$/.test(dialedNumber)) {
-              showToast('Enter exactly 10 digits');
-              return;
-            }
-            dialCallBtn.classList.add('disabled');
-            try {
-              PremCall.call(dialedNumber);
-              // Add to history as outgoing (will be updated on end)
-              // We'll store the number for history on end
-            } catch (err) {
-              showToast('Call failed: ' + err.message);
-              dialCallBtn.classList.remove('disabled');
-            }
-          }
+    // ─── Dialer ──────────────────────────────────────────────────
+    dialPad.addEventListener('click', (e) => {
+      const key = e.target.closest('.key');
+      if (!key) return;
+      const digit = key.dataset.digit;
+      const action = key.dataset.action;
+      if (digit) {
+        if (dialedNumber.length < 15) {
+          dialedNumber += digit;
+          dialDisplay.textContent = dialedNumber;
         }
-      });
-
-      // Keyboard support
-      document.addEventListener('keydown', (e) => {
-        if (e.key >= '0' && e.key <= '9') {
-          if (dialedNumber.length < 15) {
-            dialedNumber += e.key;
-            dialDisplay.textContent = dialedNumber;
-          }
-        } else if (e.key === 'Backspace') {
-          dialedNumber = dialedNumber.slice(0, -1);
-          dialDisplay.textContent = dialedNumber || 'Enter number';
-          if (!dialedNumber) dialDisplay.innerHTML = '<span class="hint"><i class="fas fa-phone"></i> Enter 10-digit number</span>';
-        } else if (e.key === 'Enter') {
-          if (dialedNumber && /^\d{10}$/.test(dialedNumber)) {
-            PremCall.call(dialedNumber);
-          }
-        }
-      });
-
-      // ─── Call Screen Controls ──────────────────────────────────
-      hangupCallBtn.addEventListener('click', () => {
-        PremCall.hangup();
-        dialCallBtn.classList.remove('disabled');
-      });
-
-      muteBtn.addEventListener('click', () => {
-        const muted = PremCall.mute();
-        muteBtn.innerHTML = muted ?
-          '<i class="fas fa-microphone-slash"></i>' :
-          '<i class="fas fa-microphone"></i>';
-        muteBtn.className = muted ? 'mute active' : 'mute';
-        showToast(muted ? 'Muted' : 'Unmuted');
-      });
-
-      speakerBtn.addEventListener('click', () => {
-        const on = PremCall.speaker();
-        speakerBtn.className = on ? 'speaker active' : 'speaker';
-        speakerBtn.innerHTML = on ?
-          '<i class="fas fa-volume-high"></i>' :
-          '<i class="fas fa-volume-xmark"></i>';
-        showToast(on ? 'Speaker on' : 'Earpiece');
-      });
-
-      // ─── Incoming Overlay ──────────────────────────────────────
-      answerBtn.addEventListener('click', async () => {
-        try {
-          await PremCall.answer();
-          incomingOverlay.classList.remove('active');
-          // Will be added to history on end
-        } catch (err) {
-          showToast('Answer failed: ' + err.message);
-        }
-      });
-
-      rejectBtn.addEventListener('click', () => {
-        const caller = incomingName.textContent;
-        PremCall.hangup();
-        incomingOverlay.classList.remove('active');
-        if (caller && caller !== 'Unknown') {
-          addHistoryEntry(caller, 'missed', '—');
-        }
-        showToast('Call rejected');
-      });
-
-      // ─── Check Status ──────────────────────────────────────────
-      checkStatusBtn.addEventListener('click', async () => {
-        const num = dialedNumber || prompt('Enter 10-digit number to check:');
-        if (!num) return;
-        if (!/^\d{10}$/.test(num)) {
-          statusResult.textContent = 'Invalid number';
+      } else if (action === 'delete') {
+        dialedNumber = dialedNumber.slice(0, -1);
+        dialDisplay.textContent = dialedNumber || 'Enter number';
+        if (!dialedNumber) dialDisplay.innerHTML = '<span class="hint"><i class="fas fa-phone"></i> Enter 10-digit number</span>';
+      } else if (action === 'clear') {
+        dialedNumber = '';
+        dialDisplay.innerHTML = '<span class="hint"><i class="fas fa-phone"></i> Enter 10-digit number</span>';
+      } else if (action === 'call') {
+        if (!dialedNumber || !/^\d{10}$/.test(dialedNumber)) {
+          showToast('Enter exactly 10 digits');
           return;
         }
-        statusResult.textContent = 'Checking...';
+        dialCallBtn.classList.add('disabled');
         try {
-          const online = await PremCall.checkStatus(num);
-          statusResult.textContent = online ? '✅ Online' : '❌ Offline';
+          PremCall.call(dialedNumber);
         } catch (err) {
-          statusResult.textContent = 'Error';
+          showToast('Call failed: ' + err.message);
+          dialCallBtn.classList.remove('disabled');
         }
-      });
+      }
+    });
 
-      // ─── Auto‑init ──────────────────────────────────────────────
-      initPremCall();
-      renderHistory();
-
-      // Auto‑load dial from URL ?number=...
-      (function autoLoad() {
-        const params = new URLSearchParams(window.location.search);
-        const num = params.get('number');
-        if (num && /^\d{10}$/.test(num)) {
-          dialedNumber = num;
-          dialDisplay.textContent = num;
-          setTimeout(() => {
-            try { PremCall.call(num); } catch (e) {}
-          }, 1500);
+    // Keyboard support
+    document.addEventListener('keydown', (e) => {
+      if (e.key >= '0' && e.key <= '9') {
+        if (dialedNumber.length < 15) {
+          dialedNumber += e.key;
+          dialDisplay.textContent = dialedNumber;
         }
-      })();
+      } else if (e.key === 'Backspace') {
+        dialedNumber = dialedNumber.slice(0, -1);
+        dialDisplay.textContent = dialedNumber || 'Enter number';
+        if (!dialedNumber) dialDisplay.innerHTML = '<span class="hint"><i class="fas fa-phone"></i> Enter 10-digit number</span>';
+      } else if (e.key === 'Enter') {
+        if (dialedNumber && /^\d{10}$/.test(dialedNumber)) {
+          PremCall.call(dialedNumber);
+        }
+      }
+    });
 
-      log('UI ready.', 'success');
+    // ─── Call Screen Controls ──────────────────────────────────
+    hangupCallBtn.addEventListener('click', () => {
+      PremCall.hangup();
+      dialCallBtn.classList.remove('disabled');
+    });
+
+    muteBtn.addEventListener('click', () => {
+      const muted = PremCall.mute();
+      muteBtn.innerHTML = muted ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>';
+      muteBtn.className = muted ? 'mute active' : 'mute';
+      showToast(muted ? 'Muted' : 'Unmuted');
+    });
+
+    speakerBtn.addEventListener('click', () => {
+      const on = PremCall.speaker();
+      speakerBtn.className = on ? 'speaker active' : 'speaker';
+      speakerBtn.innerHTML = on ? '<i class="fas fa-volume-high"></i>' : '<i class="fas fa-volume-xmark"></i>';
+      showToast(on ? 'Speaker on' : 'Earpiece');
+    });
+
+    // ─── Incoming Overlay Buttons ──────────────────────────────
+    answerBtn.addEventListener('click', async () => {
+      try {
+        await PremCall.answer();
+        hideIncomingOverlay();
+      } catch (err) {
+        showToast('Answer failed: ' + err.message);
+      }
+    });
+
+    rejectBtn.addEventListener('click', () => {
+      const caller = incomingName.textContent;
+      PremCall.hangup();
+      hideIncomingOverlay();
+      if (caller && caller !== 'Unknown') {
+        addHistoryEntry(caller, 'missed', '—');
+      }
+      showToast('Call rejected');
+    });
+
+    // ─── Check Status ──────────────────────────────────────────
+    checkStatusBtn.addEventListener('click', async () => {
+      const num = dialedNumber || prompt('Enter 10-digit number to check:');
+      if (!num) return;
+      if (!/^\d{10}$/.test(num)) {
+        statusResult.textContent = 'Invalid number';
+        return;
+      }
+      statusResult.textContent = 'Checking...';
+      try {
+        const online = await PremCall.checkStatus(num);
+        statusResult.textContent = online ? '✅ Online' : '❌ Offline';
+      } catch (err) {
+        statusResult.textContent = 'Error';
+      }
+    });
+
+    // ─── Auto‑init ──────────────────────────────────────────────
+    initPremCall();
+    renderHistory();
+
+    // Auto‑load dial from URL ?number=...
+    (function autoLoad() {
+      const params = new URLSearchParams(window.location.search);
+      const num = params.get('number');
+      if (num && /^\d{10}$/.test(num)) {
+        dialedNumber = num;
+        dialDisplay.textContent = num;
+        setTimeout(() => {
+          try { PremCall.call(num); } catch (e) {}
+        }, 1500);
+      }
     })();
-  </script>
+
+    log('UI ready.', 'success');
+  })();
+</script>
+
+      
 </body>
 </html>
