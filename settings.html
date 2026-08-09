@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings – PremCall</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0b0e17;
+      color: #e8edf5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 1rem;
+    }
+    .settings-card {
+      max-width: 400px;
+      width: 100%;
+      background: #131a26;
+      padding: 2rem 1.5rem;
+      border-radius: 28px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+      color: #4f8cf7;
+    }
+    p {
+      color: #8892b0;
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 0.4rem;
+      color: #94a3b8;
+    }
+    .input-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+    input {
+      flex: 1;
+      padding: 0.6rem 1rem;
+      border-radius: 40px;
+      border: 1px solid #2a3a5a;
+      background: #0b0e17;
+      color: #e8edf5;
+      font-size: 1rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+    input:focus { border-color: #4f8cf7; }
+    input::placeholder { color: #4a5a6a; }
+    .btn {
+      padding: 0.6rem 1.4rem;
+      border: none;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #1a4a8a;
+      color: #fff;
+    }
+    .btn:hover { background: #2563d6; }
+    .btn-success { background: #1a7a4a; }
+    .btn-success:hover { background: #1f9b5e; }
+    .btn-danger { background: #8a1a2a; }
+    .btn-danger:hover { background: #b52238; }
+    .status {
+      margin-top: 0.8rem;
+      font-size: 0.9rem;
+      color: #8892b0;
+      min-height: 1.5rem;
+    }
+    .status.success { color: #4ade80; }
+    .status.error { color: #f87171; }
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    .actions a {
+      color: #4f8cf7;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.4rem 1rem;
+      border-radius: 40px;
+      background: #1a2338;
+    }
+    .actions a:hover { background: #2a3a5a; }
+  </style>
+</head>
+<body>
+  <div class="settings-card">
+    <h1>⚙️ Settings</h1>
+    <p>Change your 10‑digit phone number.</p>
+
+    <label for="phoneInput">Your Number (10 digits)</label>
+    <div class="input-group">
+      <input type="tel" id="phoneInput" placeholder="e.g. 1234567890" maxlength="10" inputmode="numeric" />
+      <button class="btn" id="saveBtn">Save</button>
+    </div>
+    <div class="status" id="statusMsg"></div>
+
+    <div class="actions">
+      <button class="btn btn-danger" id="clearBtn">Clear saved</button>
+      <a href="index.html">← Back to dialer</a>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const input = document.getElementById('phoneInput');
+      const saveBtn = document.getElementById('saveBtn');
+      const clearBtn = document.getElementById('clearBtn');
+      const status = document.getElementById('statusMsg');
+
+      function loadNumber() {
+        const num = localStorage.getItem('premCallNumber');
+        if (num) {
+          input.value = num;
+          status.textContent = 'Current number: ' + num;
+          status.className = 'status success';
+        } else {
+          status.textContent = 'No number saved.';
+          status.className = 'status';
+        }
+      }
+
+      function saveNumber() {
+        const val = input.value.trim();
+        if (!/^\d{10}$/.test(val)) {
+          status.textContent = 'Enter exactly 10 digits.';
+          status.className = 'status error';
+          return;
+        }
+        localStorage.setItem('premCallNumber', val);
+        status.textContent = 'Saved! Number: ' + val;
+        status.className = 'status success';
+        // Optionally reload the main page or show success
+        setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+      }
+
+      function clearNumber() {
+        localStorage.removeItem('premCallNumber');
+        input.value = '';
+        status.textContent = 'Cleared.';
+        status.className = 'status';
+        // reload to reflect changes
+        setTimeout(() => { window.location.href = 'index.html'; }, 1000);
+      }
+
+      saveBtn.addEventListener('click', saveNumber);
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveNumber(); });
+      clearBtn.addEventListener('click', clearNumber);
+
+      loadNumber();
+    })();
+  </script>
+</body>
+</html>
