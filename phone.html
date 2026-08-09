@@ -6,7 +6,7 @@
   <title>PremCall</title>
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
-    /* ─── Global Reset ─── */
+    /* Reset & Base */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -31,34 +31,32 @@
       max-height: 900px;
     }
 
-    /* ─── Header ─── */
+    /* Header */
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1rem 1.2rem 0.5rem;
+      padding: 0.8rem 1rem;
       background: #0b0e17;
       border-bottom: 1px solid #1e2a3a;
+      flex-shrink: 0;
     }
     .logo {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.4rem;
     }
-    .logo svg {
-      width: 32px;
-      height: 32px;
-    }
+    .logo svg { width: 28px; height: 28px; }
     .logo-text {
       font-weight: 700;
-      font-size: 1.4rem;
-      letter-spacing: -0.5px;
+      font-size: 1.2rem;
       color: #4f8cf7;
     }
     .header-right {
       display: flex;
       align-items: center;
-      gap: 0.8rem;
+      gap: 0.6rem;
+      font-size: 0.8rem;
     }
     .status-dot {
       width: 10px;
@@ -69,7 +67,7 @@
     .status-dot.online { background: #4ade80; }
     .status-dot.offline { background: #f87171; }
 
-    /* ─── Tabs ─── */
+    /* Tabs */
     .tabs {
       display: flex;
       background: #0b0e17;
@@ -78,7 +76,7 @@
     }
     .tab {
       flex: 1;
-      padding: 0.7rem 0;
+      padding: 0.6rem 0;
       text-align: center;
       font-weight: 600;
       color: #6a7a8e;
@@ -90,19 +88,10 @@
       justify-content: center;
       gap: 0.3rem;
     }
-    .tab.active {
-      color: #4f8cf7;
-      border-bottom-color: #4f8cf7;
-    }
-    .tab svg {
-      width: 20px;
-      height: 20px;
-      stroke: currentColor;
-      stroke-width: 1.8;
-      fill: none;
-    }
+    .tab.active { color: #4f8cf7; border-bottom-color: #4f8cf7; }
+    .tab svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 1.8; fill: none; }
 
-    /* ─── Tab Content ─── */
+    /* Tab Content */
     .tab-content {
       display: none;
       flex: 1;
@@ -112,18 +101,18 @@
     }
     .tab-content.active { display: block; }
 
-    /* ─── Dialer ─── */
+    /* Dialer */
     .dialer-display {
       background: #0b0e17;
       border-radius: 16px;
-      padding: 1rem;
-      font-size: 2rem;
+      padding: 0.8rem;
+      font-size: 1.8rem;
       font-weight: 300;
       text-align: center;
       letter-spacing: 2px;
       color: #e8edf5;
       margin-bottom: 1.5rem;
-      min-height: 5rem;
+      min-height: 4.5rem;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -132,7 +121,7 @@
     .dialer-pad {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 0.8rem;
+      gap: 0.6rem;
       max-width: 320px;
       margin: 0 auto;
     }
@@ -143,7 +132,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.8rem;
+      font-size: 1.6rem;
       font-weight: 500;
       cursor: pointer;
       transition: 0.1s;
@@ -153,59 +142,39 @@
       outline: none;
     }
     .dialer-pad .key:active { background: #2a3a5a; }
-    .dialer-pad .key.call {
-      background: #1a7a4a;
-      color: #fff;
-    }
+    .dialer-pad .key.call { background: #1a7a4a; color: #fff; }
     .dialer-pad .key.call:active { background: #1f9b5e; }
-    .dialer-pad .key.hangup {
-      background: #8a1a2a;
-      color: #fff;
-    }
+    .dialer-pad .key.hangup { background: #8a1a2a; color: #fff; }
     .dialer-pad .key.hangup:active { background: #b52238; }
-    .dialer-pad .key svg {
-      width: 28px;
-      height: 28px;
-      stroke: currentColor;
-      stroke-width: 2;
-      fill: none;
-    }
+    .dialer-pad .key svg { width: 28px; height: 28px; stroke: currentColor; stroke-width: 2; fill: none; }
 
-    /* ─── Contacts ─── */
+    /* Contacts */
     .contact-item {
       display: flex;
       align-items: center;
       gap: 0.8rem;
-      padding: 0.7rem 0;
+      padding: 0.6rem 0;
       border-bottom: 1px solid #1e2a3a;
       cursor: pointer;
       transition: 0.1s;
     }
     .contact-item:hover { background: #1a2338; }
     .contact-avatar {
-      width: 44px;
-      height: 44px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       background: #2a3a5a;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 1.2rem;
+      font-size: 1rem;
       color: #fff;
       flex-shrink: 0;
     }
-    .contact-info {
-      flex: 1;
-    }
-    .contact-info .name {
-      font-weight: 600;
-      font-size: 1rem;
-    }
-    .contact-info .number {
-      font-size: 0.8rem;
-      color: #8892b0;
-    }
+    .contact-info { flex: 1; }
+    .contact-info .name { font-weight: 600; font-size: 1rem; }
+    .contact-info .number { font-size: 0.8rem; color: #8892b0; }
     .contact-status {
       width: 10px;
       height: 10px;
@@ -215,7 +184,35 @@
     .contact-status.online { background: #4ade80; }
     .contact-status.offline { background: #f87171; }
 
-    /* ─── Incoming Call Overlay ─── */
+    /* Buttons & Inputs */
+    .btn {
+      padding: 0.4rem 1rem;
+      border: none;
+      border-radius: 30px;
+      font-weight: 600;
+      cursor: pointer;
+      background: #1a4a8a;
+      color: #fff;
+      font-size: 0.9rem;
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #2a3a5a;
+      color: #e8edf5;
+    }
+    .btn-sm { padding: 0.2rem 0.8rem; font-size: 0.75rem; }
+    input {
+      padding: 0.5rem;
+      border-radius: 30px;
+      border: 1px solid #2a3a5a;
+      background: #0b0e17;
+      color: #e8edf5;
+      outline: none;
+      font-size: 0.9rem;
+    }
+    input:focus { border-color: #4f8cf7; }
+
+    /* Incoming Overlay */
     #incomingOverlay {
       display: none;
       position: absolute;
@@ -230,27 +227,27 @@
     }
     #incomingOverlay.active { display: flex; }
     #incomingOverlay .caller-avatar {
-      width: 100px;
-      height: 100px;
+      width: 80px;
+      height: 80px;
       border-radius: 50%;
       background: #2a3a5a;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 3rem;
+      font-size: 2.5rem;
       font-weight: 700;
       color: #fff;
-      margin-bottom: 1rem;
+      margin-bottom: 0.8rem;
     }
-    #incomingOverlay .caller-name { font-size: 2rem; font-weight: 700; }
-    #incomingOverlay .caller-number { color: #8892b0; margin-bottom: 2rem; }
+    #incomingOverlay .caller-name { font-size: 1.6rem; font-weight: 700; }
+    #incomingOverlay .caller-number { color: #8892b0; margin-bottom: 1.5rem; }
     #incomingOverlay .actions {
       display: flex;
       gap: 2rem;
     }
     #incomingOverlay .actions button {
-      width: 70px;
-      height: 70px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
       border: none;
       cursor: pointer;
@@ -260,15 +257,9 @@
     }
     #incomingOverlay .actions .answer { background: #1a7a4a; }
     #incomingOverlay .actions .reject { background: #8a1a2a; }
-    #incomingOverlay .actions button svg {
-      width: 32px;
-      height: 32px;
-      stroke: #fff;
-      stroke-width: 2;
-      fill: none;
-    }
+    #incomingOverlay .actions button svg { width: 30px; height: 30px; stroke: #fff; stroke-width: 2; fill: none; }
 
-    /* ─── Call Screen ─── */
+    /* Call Screen */
     #callScreen {
       display: none;
       position: absolute;
@@ -282,19 +273,19 @@
     }
     #callScreen.active { display: flex; }
     #callScreen .caller-avatar {
-      width: 100px;
-      height: 100px;
+      width: 80px;
+      height: 80px;
       border-radius: 50%;
       background: #2a3a5a;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 3rem;
+      font-size: 2.5rem;
       font-weight: 700;
       color: #fff;
-      margin-bottom: 1rem;
+      margin-bottom: 0.8rem;
     }
-    #callScreen .caller-name { font-size: 2rem; font-weight: 700; }
+    #callScreen .caller-name { font-size: 1.6rem; font-weight: 700; }
     #callScreen .caller-number { color: #8892b0; margin-bottom: 1.5rem; }
     #callScreen .call-timer { font-size: 1.5rem; color: #4ade80; margin-bottom: 2rem; }
     #callScreen .call-actions {
@@ -302,8 +293,8 @@
       gap: 1.5rem;
     }
     #callScreen .call-actions button {
-      width: 60px;
-      height: 60px;
+      width: 56px;
+      height: 56px;
       border-radius: 50%;
       border: none;
       background: #1e2a3a;
@@ -312,84 +303,58 @@
       align-items: center;
       justify-content: center;
     }
-    #callScreen .call-actions button svg {
-      width: 28px;
-      height: 28px;
-      stroke: #e8edf5;
-      stroke-width: 2;
-      fill: none;
-    }
+    #callScreen .call-actions button svg { width: 26px; height: 26px; stroke: #e8edf5; stroke-width: 2; fill: none; }
     #callScreen .call-actions .hangup { background: #8a1a2a; }
     #callScreen .call-actions .mute { background: #a67c1a; }
     #callScreen .call-actions .speaker { background: #1a4a8a; }
 
-    /* ─── Messaging ─── */
+    /* Chat */
     .chat-messages {
       flex: 1;
       overflow-y: auto;
       padding: 0.5rem 0;
+      max-height: 60vh;
     }
     .message {
-      padding: 0.5rem 0.8rem;
-      margin: 0.3rem 0;
+      padding: 0.4rem 0.8rem;
+      margin: 0.2rem 0;
       border-radius: 12px;
       max-width: 80%;
       word-wrap: break-word;
     }
-    .message.sent {
-      background: #1a4a8a;
-      margin-left: auto;
-      color: #fff;
-    }
-    .message.received {
-      background: #1e2a3a;
-      color: #e8edf5;
-    }
+    .message.sent { background: #1a4a8a; margin-left: auto; color: #fff; }
+    .message.received { background: #1e2a3a; color: #e8edf5; }
     .chat-input-area {
       display: flex;
       gap: 0.5rem;
       padding: 0.5rem 0;
       border-top: 1px solid #1e2a3a;
     }
-    .chat-input-area input {
-      flex: 1;
-      padding: 0.6rem 1rem;
-      border-radius: 30px;
-      border: 1px solid #2a3a5a;
-      background: #0b0e17;
-      color: #e8edf5;
-      outline: none;
-    }
-    .chat-input-area button {
-      background: #1a4a8a;
-      border: none;
-      border-radius: 30px;
-      padding: 0 1.2rem;
-      color: #fff;
-      font-weight: 600;
-      cursor: pointer;
-    }
+    .chat-input-area input { flex: 1; }
+    .chat-input-area button { background: #1a4a8a; border: none; border-radius: 30px; padding: 0 1.2rem; color: #fff; font-weight: 600; cursor: pointer; }
 
-    /* ─── Buttons ─── */
-    .btn {
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 30px;
-      font-weight: 600;
-      cursor: pointer;
-      background: #1a4a8a;
-      color: #fff;
-    }
-    .btn-outline {
-      background: transparent;
-      border: 1px solid #2a3a5a;
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e2a3a;
       color: #e8edf5;
+      padding: 0.6rem 1.2rem;
+      border-radius: 30px;
+      font-size: 0.9rem;
+      z-index: 2000;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
     }
+    .toast.show { opacity: 1; }
 
-    /* ─── Responsive ─── */
+    /* Responsive */
     @media (max-width: 480px) {
-      .dialer-pad { gap: 0.6rem; }
-      .dialer-pad .key { font-size: 1.5rem; }
+      .dialer-pad { gap: 0.5rem; }
+      .dialer-pad .key { font-size: 1.4rem; }
     }
     .hidden { display: none !important; }
 
@@ -405,7 +370,6 @@
   <!-- Header -->
   <div class="header">
     <div class="logo">
-      <!-- PremCall Logo SVG -->
       <svg viewBox="0 0 24 24" fill="none" stroke="#4f8cf7" stroke-width="2">
         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
         <circle cx="12" cy="12" r="10"/>
@@ -414,7 +378,7 @@
       <span class="logo-text">PremCall</span>
     </div>
     <div class="header-right">
-      <span id="myNumberDisplay" style="font-size:0.8rem;color:#8892b0;"></span>
+      <span id="myNumberDisplay" style="color:#8892b0;">---</span>
       <span class="status-dot online" id="headerStatusDot"></span>
     </div>
   </div>
@@ -465,18 +429,18 @@
         <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </div>
     </div>
-    <div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-      <button class="btn btn-outline" id="checkStatusBtn">Check Status</button>
-      <button class="btn btn-outline" id="refreshContactsBtn">Refresh All</button>
-      <span id="statusResult" style="color:#8892b0;"></span>
+    <div style="display:flex;gap:0.5rem;margin-top:1rem;flex-wrap:wrap;">
+      <button class="btn btn-outline btn-sm" id="checkStatusBtn">Check Status</button>
+      <button class="btn btn-outline btn-sm" id="refreshStatusBtn">Refresh All</button>
+      <span id="statusResult" style="color:#8892b0;font-size:0.8rem;"></span>
     </div>
   </div>
 
   <!-- Contacts Tab -->
   <div class="tab-content" id="tabContacts">
     <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
-      <input type="tel" id="contactInput" placeholder="Number" inputmode="numeric" style="flex:1;padding:0.5rem;border-radius:30px;border:1px solid #2a3a5a;background:#0b0e17;color:#e8edf5;" />
-      <input type="text" id="contactNameInput" placeholder="Name" style="flex:1;padding:0.5rem;border-radius:30px;border:1px solid #2a3a5a;background:#0b0e17;color:#e8edf5;" />
+      <input type="tel" id="contactInput" placeholder="Number" inputmode="numeric" style="flex:1;min-width:100px;" />
+      <input type="text" id="contactNameInput" placeholder="Name" style="flex:1;min-width:100px;" />
       <button class="btn" id="addContactBtn">Add</button>
     </div>
     <div id="contactList"></div>
@@ -486,7 +450,7 @@
   <div class="tab-content" id="tabMessages">
     <div style="margin-bottom:0.5rem;font-weight:600;">Chat with: <span id="chatPartnerDisplay">None</span></div>
     <div class="chat-messages" id="chatMessages">
-      <p style="color:#8892b0;">Select a contact to start messaging.</p>
+      <p style="color:#8892b0;">Double‑click a contact to start chatting.</p>
     </div>
     <div class="chat-input-area" id="chatInputArea">
       <input type="text" id="chatInput" placeholder="Type a message..." />
@@ -499,7 +463,7 @@
     <div id="callHistoryList">
       <p style="color:#8892b0;">No calls yet.</p>
     </div>
-    <button class="btn btn-outline" id="clearHistoryBtn" style="margin-top:1rem;">Clear History</button>
+    <button class="btn btn-outline btn-sm" id="clearHistoryBtn" style="margin-top:0.5rem;">Clear History</button>
   </div>
 
   <!-- Incoming Call Overlay -->
@@ -536,6 +500,9 @@
     </div>
   </div>
 
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
 </div>
 
 <script>
@@ -546,7 +513,7 @@
     const dialDisplay = document.getElementById('dialDisplay');
     const dialPad = document.getElementById('dialPad');
     const checkStatusBtn = document.getElementById('checkStatusBtn');
-    const refreshContactsBtn = document.getElementById('refreshContactsBtn');
+    const refreshStatusBtn = document.getElementById('refreshStatusBtn');
     const statusResult = document.getElementById('statusResult');
     const contactList = document.getElementById('contactList');
     const contactInput = document.getElementById('contactInput');
@@ -574,18 +541,18 @@
     const speakerBtn = document.getElementById('speakerBtn');
     const myNumberDisplay = document.getElementById('myNumberDisplay');
     const headerStatusDot = document.getElementById('headerStatusDot');
+    const toast = document.getElementById('toast');
 
     // ─── State ──────────────────────────────────────────────────
     let myNumber = localStorage.getItem('premCallNumber') || null;
-    let myCountryCode = localStorage.getItem('premCallCountry') || '+91';
     let peer = null;
-    let currentCall = null;
+    let currentCall = null;         // PeerJS MediaConnection
     let localStream = null;
     let remoteStream = null;
     let isMuted = false;
     let isInCall = false;
     let isCaller = false;
-    let incomingCall = null;
+    let incomingCall = null;        // incoming MediaConnection
     let ringtoneInterval = null;
     let remoteAudioElement = null;
     let callHistory = JSON.parse(localStorage.getItem('premCallHistory') || '[]');
@@ -595,8 +562,9 @@
     let dialedNumber = '';
     let isAnswering = false;
     let activeChatPartner = null;
-    let dataConnections = {}; // number -> DataConnection
-    let onlineStatus = {}; // number -> true/false (cached from last check)
+    let dataConnections = {};       // number -> DataConnection
+    let onlineStatus = {};          // number -> boolean
+    let toastTimeout = null;
 
     // ─── ICE Servers ──────────────────────────────────────────────
     function getIceServers() {
@@ -616,6 +584,14 @@
       };
     }
 
+    // ─── Toast ──────────────────────────────────────────────────────
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────
     function setStatusDot(el, online) {
       el.className = 'status-dot ' + (online ? 'online' : 'offline');
@@ -631,8 +607,10 @@
       return name.charAt(0).toUpperCase();
     }
 
+    // ─── Call History ──────────────────────────────────────────────
     function addCallHistory(number, direction, status, duration) {
-      callHistory.unshift({ number, direction, status, duration, timestamp: Date.now() });
+      const entry = { number, direction, status, duration, timestamp: Date.now() };
+      callHistory.unshift(entry);
       if (callHistory.length > 100) callHistory.pop();
       localStorage.setItem('premCallHistory', JSON.stringify(callHistory));
       renderHistory();
@@ -660,6 +638,7 @@
       callHistoryList.innerHTML = html;
     }
 
+    // ─── Contacts ──────────────────────────────────────────────────
     function renderContacts() {
       if (!contacts.length) {
         contactList.innerHTML = '<p style="color:#8892b0;">No contacts saved.</p>';
@@ -678,7 +657,7 @@
         </div>`;
       });
       contactList.innerHTML = html;
-      // Click to dial or open chat
+      // Click → dial, double‑click → chat
       contactList.querySelectorAll('.contact-item').forEach(el => {
         el.addEventListener('click', () => {
           const number = el.dataset.number;
@@ -693,33 +672,33 @@
       });
     }
 
-    // ─── Check online status for a single number ────────────────
+    // ─── Online Status Check ──────────────────────────────────────
     function checkSingleOnline(number, callback) {
       if (!peer) { callback(false); return; }
       const conn = peer.connect(number);
       let opened = false;
+      const timeout = setTimeout(() => {
+        if (!opened) {
+          conn.close();
+          callback(false);
+        }
+      }, 3000);
       conn.on('open', () => {
         opened = true;
+        clearTimeout(timeout);
         conn.close();
         callback(true);
       });
       conn.on('error', () => {
         if (!opened) callback(false);
       });
-      setTimeout(() => {
-        if (!opened) {
-          conn.close();
-          callback(false);
-        }
-      }, 3000);
     }
 
-    // ─── Refresh all contacts' status ────────────────────────────
     function refreshAllStatus() {
+      if (!contacts.length) return;
       statusResult.textContent = 'Checking...';
       let checked = 0;
       const total = contacts.length;
-      if (total === 0) { statusResult.textContent = 'No contacts'; return; }
       contacts.forEach(c => {
         checkSingleOnline(c.number, (online) => {
           onlineStatus[c.number] = online;
@@ -754,6 +733,8 @@
             <option value="+1">+1</option>
             <option value="+44">+44</option>
             <option value="+61">+61</option>
+            <option value="+81">+81</option>
+            <option value="+86">+86</option>
           </select>
           <input type="tel" id="phoneInput" placeholder="10 digits" maxlength="10" inputmode="numeric" style="padding:0.5rem;border-radius:30px;border:1px solid #2a3a5a;background:#0b0e17;color:#e8edf5;" />
         </div>
@@ -778,48 +759,59 @@
         return;
       }
       myNumber = full;
-      myCountryCode = cc;
       localStorage.setItem('premCallNumber', myNumber);
-      localStorage.setItem('premCallCountry', myCountryCode);
       document.getElementById('registrationScreen').remove();
       myNumberDisplay.textContent = myNumber;
       initPeer();
       renderContacts();
       renderHistory();
-      // Start periodic refresh of contacts status every 30s
+      // Periodic refresh
       setInterval(() => { if (contacts.length) refreshAllStatus(); }, 30000);
     }
 
     // ─── PeerJS init ──────────────────────────────────────────────
     function initPeer() {
-      if (peer) { peer.destroy(); }
+      if (peer) { peer.destroy(); peer = null; }
       if (!myNumber) return;
+
       peer = new Peer(myNumber, { debug: 2, config: getIceServers() });
 
       peer.on('open', () => {
         console.log('Peer online:', myNumber);
         setStatusDot(headerStatusDot, true);
-        // Refresh contacts status on open
+        showToast('Connected');
         if (contacts.length) refreshAllStatus();
       });
 
       peer.on('error', (err) => {
-        console.error(err);
-        if (err.type === 'unavailable-id') alert('Number already taken');
-        setStatusDot(headerStatusDot, false);
+        console.error('Peer error:', err);
+        if (err.type === 'unavailable-id') {
+          showToast('Number already taken');
+          setStatusDot(headerStatusDot, false);
+        } else {
+          showToast('Peer error: ' + err.message);
+        }
       });
 
       peer.on('close', () => {
         setStatusDot(headerStatusDot, false);
+        showToast('Disconnected');
+        if (isInCall) endCall();
       });
 
       peer.on('disconnected', () => {
         setStatusDot(headerStatusDot, false);
+        showToast('Reconnecting...');
         setTimeout(() => { if (peer) peer.reconnect(); }, 3000);
       });
 
+      // Incoming call
       peer.on('call', (call) => {
-        if (isInCall) { call.close(); return; }
+        if (isInCall) {
+          call.close();
+          showToast('Busy, rejecting call');
+          return;
+        }
         incomingCall = call;
         const name = getContactName(call.peer);
         incomingName.textContent = name;
@@ -827,23 +819,27 @@
         incomingAvatar.textContent = getInitials(name);
         incomingOverlay.classList.add('active');
         playRingtone();
+        // Auto‑miss after 20s
         setTimeout(() => {
           if (incomingCall && incomingOverlay.classList.contains('active')) {
             addCallHistory(call.peer, 'incoming', 'missed');
             rejectIncomingCall();
+            showToast('Missed call from ' + name);
           }
         }, 20000);
       });
 
-      // Data connections for messaging
+      // Data connections (messaging)
       peer.on('connection', (conn) => {
         const peerId = conn.peer;
         dataConnections[peerId] = conn;
-        onlineStatus[peerId] = true; // connection means online
+        onlineStatus[peerId] = true;
         conn.on('data', (data) => {
           if (data.type === 'message') {
             if (activeChatPartner === peerId) {
               appendMessage(data.text, 'received');
+            } else {
+              // If not in chat, we could store unread count later
             }
           }
         });
@@ -865,25 +861,34 @@
       let count = 0;
       ringtoneInterval = setInterval(() => {
         if (count >= 12 || !incomingOverlay.classList.contains('active')) {
-          stopRingtone(); return;
+          stopRingtone();
+          return;
         }
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
         osc.frequency.value = count % 2 === 0 ? 440 : 330;
+        osc.type = 'sine';
         gain.gain.setValueAtTime(0.15, ctx.currentTime);
-        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.3);
         count++;
       }, 400);
     }
     function stopRingtone() {
-      if (ringtoneInterval) { clearInterval(ringtoneInterval); ringtoneInterval = null; }
+      if (ringtoneInterval) {
+        clearInterval(ringtoneInterval);
+        ringtoneInterval = null;
+      }
     }
 
-    // ─── Microphone ──────────────────────────────────────────────
+    // ─── Microphone & Remote Audio ──────────────────────────────
     async function getLocalStream() {
       if (!localStream) {
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+        localStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true }
+        });
         localStream.addEventListener('inactive', () => { localStream = null; });
       }
       return localStream;
@@ -908,16 +913,27 @@
       audio.play().catch(() => {});
       stream.onremovetrack = () => {
         if (stream.getTracks().length === 0) {
-          audio.pause(); audio.srcObject = null; remoteStream = null;
+          audio.pause();
+          audio.srcObject = null;
+          remoteStream = null;
         }
       };
     }
 
-    // ─── Make Call ──────────────────────────────────────────────────
+    // ─── Call Functions ────────────────────────────────────────────
     async function makeCall(targetNumber) {
-      if (isInCall) { alert('Already in a call'); return; }
-      if (!peer) { alert('Peer not ready'); return; }
-      if (targetNumber === myNumber) { alert('Cannot call yourself'); return; }
+      if (isInCall) {
+        showToast('Already in a call');
+        return;
+      }
+      if (!peer) {
+        showToast('Not connected');
+        return;
+      }
+      if (targetNumber === myNumber) {
+        showToast('Cannot call yourself');
+        return;
+      }
       try {
         await getLocalStream();
         const call = peer.call(targetNumber, localStream);
@@ -926,24 +942,39 @@
         isInCall = true;
         callStartTime = Date.now();
         showCallScreen(targetNumber);
+        showToast('Calling...');
 
         call.on('stream', (stream) => {
           attachRemoteStream(stream);
           addCallHistory(targetNumber, 'outgoing', 'answered');
           startTimer();
+          showToast('Connected');
         });
 
-        call.on('close', () => { endCall(); });
-        call.on('error', (err) => { console.error(err); endCall(); });
+        call.on('close', () => {
+          endCall();
+        });
 
+        call.on('error', (err) => {
+          console.error('Call error:', err);
+          showToast('Call error: ' + err.message);
+          endCall();
+        });
+
+        // ICE monitoring
         const pc = call.peerConnection;
         if (pc) {
           pc.oniceconnectionstatechange = () => {
-            if (pc.iceConnectionState === 'failed') endCall();
+            const state = pc.iceConnectionState;
+            console.log('ICE state:', state);
+            if (state === 'failed' || state === 'disconnected') {
+              showToast('Connection lost');
+              endCall();
+            }
           };
         }
       } catch (err) {
-        alert('Call failed: ' + err.message);
+        showToast('Call failed: ' + err.message);
         endCall();
       }
     }
@@ -988,12 +1019,17 @@
         currentCall.on('stream', (stream) => {
           attachRemoteStream(stream);
           startTimer();
+          showToast('Connected');
         });
         currentCall.on('close', () => { endCall(); });
-        currentCall.on('error', (err) => { console.error(err); endCall(); });
+        currentCall.on('error', (err) => {
+          console.error('Call error:', err);
+          showToast('Call error: ' + err.message);
+          endCall();
+        });
         incomingCall = null;
       } catch (err) {
-        alert('Answer failed: ' + err.message);
+        showToast('Answer failed: ' + err.message);
         if (incomingCall) incomingCall.close();
         incomingCall = null;
         incomingOverlay.classList.remove('active');
@@ -1002,25 +1038,39 @@
     }
 
     function rejectIncomingCall() {
-      if (incomingCall) { incomingCall.close(); incomingCall = null; }
+      if (incomingCall) {
+        incomingCall.close();
+        incomingCall = null;
+      }
       stopRingtone();
       incomingOverlay.classList.remove('active');
     }
 
     // ─── End Call ──────────────────────────────────────────────────
     function endCall() {
-      if (currentCall) { currentCall.close(); currentCall = null; }
-      if (remoteStream) { remoteStream.getTracks().forEach(t => t.stop()); remoteStream = null; }
+      if (currentCall) {
+        currentCall.close();
+        currentCall = null;
+      }
+      if (remoteStream) {
+        remoteStream.getTracks().forEach(t => t.stop());
+        remoteStream = null;
+      }
       const audio = getRemoteAudioElement();
-      audio.pause(); audio.srcObject = null;
+      audio.pause();
+      audio.srcObject = null;
       isInCall = false;
       isCaller = false;
       stopRingtone();
       incomingOverlay.classList.remove('active');
       callScreen.classList.remove('active');
-      if (callTimerInterval) clearInterval(callTimerInterval);
+      if (callTimerInterval) {
+        clearInterval(callTimerInterval);
+        callTimerInterval = null;
+      }
       callTimer.textContent = '00:00';
       callStartTime = null;
+      // If we were in a call, we might want to log it if not already logged (but we log on stream)
     }
 
     // ─── Messaging ──────────────────────────────────────────────────
@@ -1028,7 +1078,7 @@
       activeChatPartner = number;
       chatPartnerDisplay.textContent = getContactName(number);
       chatMessages.innerHTML = '';
-      // Establish data connection if not already
+      // Establish data connection if not existing
       if (!dataConnections[number] && peer) {
         const conn = peer.connect(number);
         dataConnections[number] = conn;
@@ -1036,6 +1086,7 @@
           onlineStatus[number] = true;
           renderContacts();
           updateChatPartnerStatus();
+          showToast('Connected to chat');
         });
         conn.on('data', (data) => {
           if (data.type === 'message') {
@@ -1047,9 +1098,9 @@
           onlineStatus[number] = false;
           renderContacts();
           updateChatPartnerStatus();
+          showToast('Chat disconnected');
         });
       } else if (dataConnections[number]) {
-        // already connected
         onlineStatus[number] = true;
         updateChatPartnerStatus();
       }
@@ -1057,10 +1108,13 @@
     }
 
     function sendMessage(text) {
-      if (!activeChatPartner) { alert('No chat partner selected'); return; }
+      if (!activeChatPartner) {
+        showToast('No chat partner selected');
+        return;
+      }
       const conn = dataConnections[activeChatPartner];
       if (!conn || conn.readyState !== 'open') {
-        alert('Not connected to ' + activeChatPartner);
+        showToast('Not connected to ' + activeChatPartner);
         return;
       }
       conn.send({ type: 'message', text });
@@ -1090,10 +1144,18 @@
       if (!key) return;
       const digit = key.dataset.digit;
       const action = key.dataset.action;
-      if (digit) { dialedNumber += digit; dialDisplay.textContent = dialedNumber; }
-      else if (action === 'delete') { dialedNumber = dialedNumber.slice(0, -1); dialDisplay.textContent = dialedNumber || 'Enter number'; }
-      else if (action === 'clear') { dialedNumber = ''; dialDisplay.textContent = 'Enter number'; }
-      else if (action === 'call') { if (dialedNumber) makeCall(dialedNumber); }
+      if (digit) {
+        dialedNumber += digit;
+        dialDisplay.textContent = dialedNumber;
+      } else if (action === 'delete') {
+        dialedNumber = dialedNumber.slice(0, -1);
+        dialDisplay.textContent = dialedNumber || 'Enter number';
+      } else if (action === 'clear') {
+        dialedNumber = '';
+        dialDisplay.textContent = 'Enter number';
+      } else if (action === 'call') {
+        if (dialedNumber) makeCall(dialedNumber);
+      }
     });
 
     // Check status
@@ -1107,21 +1169,20 @@
       }
     });
 
-    // Refresh all
-    refreshContactsBtn.addEventListener('click', refreshAllStatus);
+    refreshStatusBtn.addEventListener('click', refreshAllStatus);
 
     // Add contact
     addContactBtn.addEventListener('click', () => {
       const num = contactInput.value.trim();
       const name = contactNameInput.value.trim();
-      if (!/^\d+$/.test(num)) { alert('Enter valid number'); return; }
-      if (!name) { alert('Enter a name'); return; }
+      if (!/^\d+$/.test(num)) { showToast('Enter valid number'); return; }
+      if (!name) { showToast('Enter a name'); return; }
+      if (contacts.some(c => c.number === num)) { showToast('Contact already exists'); return; }
       contacts.push({ number: num, name });
       localStorage.setItem('premCallContacts', JSON.stringify(contacts));
       renderContacts();
       contactInput.value = ''; contactNameInput.value = '';
-      // Refresh status for new contact
-      if (contacts.length) refreshAllStatus();
+      refreshAllStatus();
     });
 
     // Send message
@@ -1148,9 +1209,10 @@
       if (!localStream) return;
       isMuted = !isMuted;
       localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+      muteBtn.style.background = isMuted ? '#4a4a5a' : '#a67c1a';
     });
     speakerBtn.addEventListener('click', () => {
-      alert('Speaker toggle not implemented in this demo');
+      showToast('Speaker toggle not implemented');
     });
 
     // Tabs
@@ -1170,13 +1232,12 @@
       initPeer();
       renderContacts();
       renderHistory();
-      // Refresh contacts status every 30s
       setInterval(() => { if (contacts.length) refreshAllStatus(); }, 30000);
     } else {
       showRegistration();
     }
 
-    console.log('PremCall loaded.');
+    console.log('PremCall loaded with all fixes.');
   })();
 </script>
 </body>
