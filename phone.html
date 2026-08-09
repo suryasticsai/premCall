@@ -1,1306 +1,1311 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>PremCall Pro</title>
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#070a12;color:#e8edf5;display:flex;justify-content:center;min-height:100vh;margin:0;padding:0}
-.app-container{max-width:420px;width:100%;background:#0f1520;position:relative;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,0.9);display:flex;flex-direction:column;height:100vh;max-height:900px}
-.header{display:flex;justify-content:space-between;align-items:center;padding:0.9rem 1.2rem;background:#0b0e17;border-bottom:1px solid #1e2a3a;flex-shrink:0;z-index:10}
-.logo{display:flex;align-items:center;gap:0.5rem}
-.logo svg{width:28px;height:28px;flex-shrink:0}
-.logo-text{font-weight:800;font-size:1.25rem;letter-spacing:-0.5px;color:#4f8cf7}
-.header-right{display:flex;align-items:center;gap:0.7rem}
-.status-dot{width:10px;height:10px;border-radius:50%;display:inline-block;transition:background .3s}
-.status-dot.online{background:#4ade80;box-shadow:0 0 8px #4ade80}
-.status-dot.offline{background:#f87171}
-.status-dot.connecting{background:#fbbf24;animation:pulse 1.5s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>PremCall · Audio</title>
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js">
+  </script>
+  <style>
+    /* ─── Reset ─── */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0b0e17;
+      color: #e8edf5;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1rem;
+      margin: 0;
+    }
+    .container {
+      max-width: 420px;
+      width: 100%;
+      background: #131a26;
+      border-radius: 28px;
+      padding: 1.5rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
 
-.tabs{display:flex;background:#0b0e17;border-bottom:1px solid #1e2a3a;flex-shrink:0;z-index:10}
-.tab{flex:1;padding:.65rem 0;text-align:center;font-weight:600;font-size:.85rem;color:#6a7a8e;cursor:pointer;border-bottom:2px solid transparent;transition:.2s;display:flex;align-items:center;justify-content:center;gap:.25rem;position:relative}
-.tab.active{color:#4f8cf7;border-bottom-color:#4f8cf7}
-.tab svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none}
-.tab-badge{position:absolute;top:4px;right:6px;background:#ef4444;color:#fff;font-size:.6rem;font-weight:700;padding:1px 5px;border-radius:10px;min-width:16px;text-align:center}
+    /* ─── Header ─── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid #1e2a3a;
+      flex-shrink: 0;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #4f8cf7;
+    }
+    .logo svg {
+      width: 28px;
+      height: 28px;
+      stroke: #4f8cf7;
+      stroke-width: 2;
+      fill: none;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: #8892b0;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .status-dot.online {
+      background: #4ade80;
+    }
+    .status-dot.offline {
+      background: #f87171;
+    }
+    .status-dot.connecting {
+      background: #fbbf24;
+    }
 
-.tab-content{display:none;flex:1;overflow-y:auto;padding:1rem;background:#0f1520}
-.tab-content.active{display:flex;flex-direction:column}
+    /* ─── Registration ─── */
+    .reg-section {
+      background: #1a2338;
+      border-radius: 16px;
+      padding: 1.2rem;
+      margin: 1rem 0;
+      flex-shrink: 0;
+    }
+    .reg-section label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 0.4rem;
+      color: #94a3b8;
+    }
+    .reg-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .reg-row input {
+      flex: 1;
+      padding: 0.6rem 1rem;
+      border-radius: 40px;
+      border: 1px solid #2a3a5a;
+      background: #0b0e17;
+      color: #e8edf5;
+      font-size: 1rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .reg-row input:focus {
+      border-color: #4f8cf7;
+    }
+    .reg-row input::placeholder {
+      color: #4a5a6a;
+    }
+    .btn {
+      padding: 0.6rem 1.4rem;
+      border: none;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .btn-primary {
+      background: #1a4a8a;
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #2563d6;
+    }
+    .btn-success {
+      background: #1a7a4a;
+      color: #fff;
+    }
+    .btn-success:hover {
+      background: #1f9b5e;
+    }
+    .btn-danger {
+      background: #8a1a2a;
+      color: #fff;
+    }
+    .btn-danger:hover {
+      background: #b52238;
+    }
+    .btn-warning {
+      background: #a67c1a;
+      color: #fff;
+    }
+    .btn-warning:hover {
+      background: #ca9a2a;
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #2a3a5a;
+      color: #e8edf5;
+    }
+    .btn-outline:hover {
+      background: #1a2338;
+    }
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .reg-status {
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      color: #8892b0;
+      min-height: 1.2rem;
+    }
+    .reg-status.success {
+      color: #4ade80;
+    }
+    .reg-status.error {
+      color: #f87171;
+    }
 
-.dialer-display{background:#0b0e17;border-radius:16px;padding:1rem;font-size:1.7rem;font-weight:300;text-align:center;letter-spacing:2px;color:#e8edf5;margin-bottom:1.2rem;min-height:4.5rem;display:flex;align-items:center;justify-content:center;border:1px solid #1e2a3a;word-break:break-all}
-.dialer-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;max-width:300px;margin:0 auto}
-.dialer-pad .key{background:#1e2a3a;border-radius:50%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:500;cursor:pointer;transition:.1s;user-select:none;color:#e8edf5;border:none;outline:none;-webkit-tap-highlight-color:transparent;position:relative}
-.dialer-pad .key:active{background:#2a3a5a;transform:scale(.95)}
-.dialer-pad .key.call{background:#16a34a;color:#fff}
-.dialer-pad .key.call:active{background:#22c55e}
-.dialer-pad .key svg{width:22px;height:22px;stroke:currentColor;stroke-width:2;fill:none}
-.dialer-pad .key .sub{font-size:.55rem;color:#8892b0;position:absolute;bottom:6px}
+    /* ─── Dialer ─── */
+    .dialer-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0.5rem 0;
+    }
+    .dialer-display {
+      background: #0b0e17;
+      border-radius: 16px;
+      padding: 1rem 1.2rem;
+      font-size: 2rem;
+      font-weight: 300;
+      text-align: center;
+      letter-spacing: 3px;
+      color: #e8edf5;
+      border: 1px solid #1e2a3a;
+      min-height: 4.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      word-break: break-all;
+      margin-bottom: 1.2rem;
+      font-family: 'Courier New', monospace;
+    }
+    .dialer-display .hint {
+      font-size: 0.9rem;
+      color: #4a5a6a;
+      letter-spacing: 0;
+    }
+    .dialer-pad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.7rem;
+      max-width: 300px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .dialer-pad .key {
+      background: #1e2a3a;
+      border-radius: 50%;
+      aspect-ratio: 1/1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.1s;
+      border: none;
+      color: #e8edf5;
+      font-family: inherit;
+    }
+    .dialer-pad .key:active {
+      background: #2a3a5a;
+      transform: scale(0.95);
+    }
+    .dialer-pad .key.call {
+      background: #1a7a4a;
+      color: #fff;
+    }
+    .dialer-pad .key.call:active {
+      background: #1f9b5e;
+    }
+    .dialer-pad .key.call.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    .dialer-pad .key .svg-icon {
+      width: 28px;
+      height: 28px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+    }
 
-.contact-item{display:flex;align-items:center;gap:.8rem;padding:.7rem .5rem;border-bottom:1px solid #1e2a3a;cursor:pointer;transition:.15s;border-radius:12px}
-.contact-item:hover{background:#1a2338}
-.contact-item:active{background:#24304a}
-.contact-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;color:#fff;flex-shrink:0}
-.contact-info{flex:1;min-width:0}
-.contact-info .name{font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.contact-info .number{font-size:.78rem;color:#8892b0}
-.contact-actions{display:flex;gap:.4rem;align-items:center}
-.contact-actions button{background:transparent;border:none;color:#4f8cf7;cursor:pointer;padding:.3rem;border-radius:8px}
-.contact-actions button:hover{background:#1a2338}
-.contact-actions button svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none}
-.contact-status{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.contact-status.online{background:#4ade80;box-shadow:0 0 6px #4ade80}
-.contact-status.offline{background:#f87171}
-.contact-status.unknown{background:#6b7280}
+    /* ─── Action row ─── */
+    .action-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 0.8rem;
+      flex-shrink: 0;
+    }
+    .action-row .btn {
+      font-size: 0.8rem;
+      padding: 0.4rem 1rem;
+    }
+    .action-row .status-badge {
+      font-size: 0.8rem;
+      color: #8892b0;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
 
-#incomingOverlay{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(5,7,12,.95);backdrop-filter:blur(12px);flex-direction:column;justify-content:center;align-items:center;z-index:1000;padding:2rem}
-#incomingOverlay.active{display:flex}
-#incomingOverlay .caller-avatar{width:100px;height:100px;border-radius:50%;background:#2a3a5a;display:flex;align-items:center;justify-content:center;font-size:3rem;font-weight:700;color:#fff;margin-bottom:1rem;animation:ringPulse 1.5s infinite}
-@keyframes ringPulse{0%{box-shadow:0 0 0 0 rgba(79,140,247,.4)}70%{box-shadow:0 0 0 20px rgba(79,140,247,0)}100%{box-shadow:0 0 0 0 rgba(79,140,247,0)}}
-#incomingOverlay .caller-name{font-size:1.8rem;font-weight:700}
-#incomingOverlay .caller-number{color:#8892b0;margin-bottom:2.5rem;font-size:1rem}
-#incomingOverlay .actions{display:flex;gap:2.5rem}
-#incomingOverlay .actions button{width:72px;height:72px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s}
-#incomingOverlay .actions button:active{transform:scale(.92)}
-#incomingOverlay .actions .answer{background:#16a34a}
-#incomingOverlay .actions .reject{background:#dc2626}
-#incomingOverlay .actions button svg{width:30px;height:30px;stroke:#fff;stroke-width:2;fill:none}
+    /* ─── Incoming Overlay ─── */
+    #incomingOverlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(12px);
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 2rem;
+    }
+    #incomingOverlay.active {
+      display: flex;
+    }
+    #incomingOverlay .avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: #2a3a5a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 1rem;
+    }
+    #incomingOverlay .name {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    #incomingOverlay .number {
+      color: #8892b0;
+      margin-bottom: 2rem;
+    }
+    #incomingOverlay .actions {
+      display: flex;
+      gap: 2.5rem;
+    }
+    #incomingOverlay .actions button {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s;
+    }
+    #incomingOverlay .actions button:active {
+      transform: scale(0.9);
+    }
+    #incomingOverlay .actions .answer {
+      background: #1a7a4a;
+      color: #fff;
+    }
+    #incomingOverlay .actions .reject {
+      background: #8a1a2a;
+      color: #fff;
+    }
 
-#callScreen{display:none;position:absolute;top:0;left:0;width:100%;height:100%;background:#070a12;flex-direction:column;justify-content:center;align-items:center;z-index:999;padding:2rem}
-#callScreen.active{display:flex}
-#callScreen .caller-avatar{width:100px;height:100px;border-radius:50%;background:#2a3a5a;display:flex;align-items:center;justify-content:center;font-size:3rem;font-weight:700;color:#fff;margin-bottom:1rem}
-#callScreen .caller-name{font-size:1.8rem;font-weight:700}
-#callScreen .caller-number{color:#8892b0;margin-bottom:.5rem}
-#callScreen .call-status{font-size:.9rem;color:#fbbf24;margin-bottom:1.5rem;min-height:1.4rem}
-#callScreen .call-timer{font-size:1.4rem;color:#4ade80;margin-bottom:2.5rem;font-variant-numeric:tabular-nums}
-#callScreen .call-actions{display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:center}
-#callScreen .call-actions button{width:60px;height:60px;border-radius:50%;border:none;background:#1e2a3a;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
-#callScreen .call-actions button:active{transform:scale(.92)}
-#callScreen .call-actions button.active{background:#4f8cf7}
-#callScreen .call-actions button svg{width:26px;height:26px;stroke:#e8edf5;stroke-width:2;fill:none}
-#callScreen .call-actions .hangup{background:#dc2626}
-#callScreen .call-actions .hangup svg{stroke:#fff}
-#callScreen .call-actions .mute.active{background:#a16207}
-#callScreen .call-actions .speaker.active{background:#1a4a8a}
+    /* ─── Call Screen ─── */
+    #callScreen {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0b0e17;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+      padding: 2rem;
+    }
+    #callScreen.active {
+      display: flex;
+    }
+    #callScreen .avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: #2a3a5a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+    #callScreen .name {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    #callScreen .number {
+      color: #8892b0;
+      margin-bottom: 0.3rem;
+    }
+    #callScreen .substatus {
+      color: #fbbf24;
+      font-size: 0.9rem;
+      min-height: 1.2rem;
+      margin-bottom: 1rem;
+    }
+    #callScreen .timer {
+      font-size: 1.8rem;
+      color: #4ade80;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 2rem;
+      letter-spacing: 2px;
+    }
+    #callScreen .call-actions {
+      display: flex;
+      gap: 1.5rem;
+    }
+    #callScreen .call-actions button {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 1.6rem;
+      background: #1e2a3a;
+      color: #e8edf5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, transform 0.15s;
+    }
+    #callScreen .call-actions button:active {
+      transform: scale(0.9);
+    }
+    #callScreen .call-actions .hangup {
+      background: #8a1a2a;
+    }
+    #callScreen .call-actions .hangup:hover {
+      background: #b52238;
+    }
+    #callScreen .call-actions .mute {
+      background: #a67c1a;
+    }
+    #callScreen .call-actions .mute:hover {
+      background: #ca9a2a;
+    }
+    #callScreen .call-actions .mute.active {
+      background: #4a3a1a;
+      color: #f87171;
+    }
+    #callScreen .call-actions .speaker {
+      background: #1a4a8a;
+    }
+    #callScreen .call-actions .speaker:hover {
+      background: #2563d6;
+    }
+    #callScreen .call-actions .speaker.active {
+      background: #0f3460;
+      box-shadow: 0 0 0 2px #4f8cf7;
+    }
 
-.chat-header{display:flex;align-items:center;gap:.6rem;padding-bottom:.6rem;border-bottom:1px solid #1e2a3a;margin-bottom:.5rem}
-.chat-header .back-btn{background:transparent;border:none;color:#8892b0;cursor:pointer;padding:.3rem}
-.chat-header .back-btn svg{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none}
-.chat-messages{flex:1;overflow-y:auto;padding:.5rem 0;display:flex;flex-direction:column;gap:.3rem}
-.message{padding:.55rem .85rem;border-radius:14px;max-width:80%;word-wrap:break-word;font-size:.92rem;line-height:1.4;animation:msgIn .2s ease}
-@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.message.sent{background:#1a4a8a;margin-left:auto;color:#fff;border-bottom-right-radius:4px}
-.message.received{background:#1e2a3a;color:#e8edf5;border-bottom-left-radius:4px}
-.message .msg-time{font-size:.65rem;color:rgba(255,255,255,.5);margin-top:2px;text-align:right}
-.message.received .msg-time{color:#8892b0;text-align:left}
-.chat-input-area{display:flex;gap:.5rem;padding:.6rem 0 0;border-top:1px solid #1e2a3a}
-.chat-input-area input{flex:1;padding:.6rem 1rem;border-radius:30px;border:1px solid #2a3a5a;background:#0b0e17;color:#e8edf5;outline:none;font-size:.95rem}
-.chat-input-area input:focus{border-color:#4f8cf7}
-.chat-input-area button{background:#1a4a8a;border:none;border-radius:50%;width:44px;height:44px;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
-.chat-input-area button:active{transform:scale(.92)}
-.chat-input-area button svg{width:18px;height:18px;stroke:#fff;stroke-width:2;fill:none}
+    /* ─── Toast ─── */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1e2a3a;
+      border: 1px solid #2a3a5a;
+      color: #e8edf5;
+      padding: 0.7rem 1.4rem;
+      border-radius: 40px;
+      font-size: 0.9rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 4000;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
 
-.history-item{display:flex;align-items:center;gap:.8rem;padding:.7rem .5rem;border-bottom:1px solid #1e2a3a;cursor:pointer;transition:.15s;border-radius:12px}
-.history-item:hover{background:#1a2338}
-.history-item .history-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.history-item .history-icon.incoming{background:rgba(74,222,128,.15);color:#4ade80}
-.history-item .history-icon.outgoing{background:rgba(79,140,247,.15);color:#4f8cf7}
-.history-item .history-icon.missed{background:rgba(248,113,113,.15);color:#f87171}
-.history-item .history-icon svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none}
-.history-info{flex:1;min-width:0}
-.history-info .name{font-weight:600;font-size:.95rem}
-.history-info .detail{font-size:.78rem;color:#8892b0}
-.history-time{font-size:.7rem;color:#6a7a8e;white-space:nowrap}
+    /* ─── Log ─── */
+    .log-area {
+      background: #0b0e17;
+      border-radius: 12px;
+      padding: 0.5rem 0.8rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.65rem;
+      max-height: 80px;
+      overflow-y: auto;
+      color: #4a5a6a;
+      margin-top: 0.8rem;
+      flex-shrink: 0;
+      line-height: 1.6;
+      border: 1px solid #1a2338;
+    }
+    .log-area .log-entry {
+      opacity: 0.8;
+    }
+    .log-area .log-entry.error {
+      color: #f87171;
+      opacity: 1;
+    }
+    .log-area .log-entry.success {
+      color: #4ade80;
+      opacity: 1;
+    }
+    .log-area .log-entry.warning {
+      color: #fbbf24;
+      opacity: 1;
+    }
 
-.btn{padding:.5rem 1.2rem;border:none;border-radius:30px;font-weight:600;cursor:pointer;background:#1a4a8a;color:#fff;font-size:.9rem;transition:.15s}
-.btn:active{transform:scale(.96)}
-.btn-outline{background:transparent;border:1px solid #2a3a5a;color:#e8edf5}
-.btn-outline:hover{background:#1a2338}
-.btn-danger{background:#dc2626}
-.btn-success{background:#16a34a}
-.btn-sm{padding:.35rem .8rem;font-size:.8rem}
+    /* ─── Scrollbar ─── */
+    .log-area::-webkit-scrollbar {
+      width: 3px;
+    }
+    .log-area::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .log-area::-webkit-scrollbar-thumb {
+      background: #2a3a5a;
+      border-radius: 10px;
+    }
 
-#registrationScreen{position:fixed;top:0;left:0;width:100%;height:100%;background:#070a12;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;z-index:2000}
-#registrationScreen h1{font-size:2.2rem;color:#4f8cf7;margin-bottom:.5rem}
-#registrationScreen p{color:#8892b0;margin-bottom:2rem}
-.reg-form{display:flex;flex-direction:column;gap:1rem;width:100%;max-width:320px}
-.reg-form .input-row{display:flex;gap:.5rem}
-.reg-form select,.reg-form input{padding:.7rem 1rem;border-radius:12px;border:1px solid #2a3a5a;background:#0b0e17;color:#e8edf5;font-size:1rem;outline:none}
-.reg-form select{width:90px;flex-shrink:0}
-.reg-form input{flex:1}
-.reg-form input:focus,.reg-form select:focus{border-color:#4f8cf7}
-.reg-status{margin-top:1rem;color:#f87171;font-size:.9rem;min-height:1.4rem}
-
-#toastContainer{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:3000;display:flex;flex-direction:column;gap:.5rem;pointer-events:none;width:90%;max-width:380px}
-.toast{background:#1e2a3a;color:#e8edf5;padding:.7rem 1rem;border-radius:12px;font-size:.9rem;box-shadow:0 4px 20px rgba(0,0,0,.5);animation:toastIn .3s ease;border-left:3px solid #4f8cf7;pointer-events:auto;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
-.toast.success{border-left-color:#4ade80}
-.toast.error{border-left-color:#f87171}
-.toast.warning{border-left-color:#fbbf24}
-@keyframes toastIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
-.toast-close{background:none;border:none;color:#8892b0;cursor:pointer;font-size:1rem}
-
-.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:1500;padding:1rem}
-.modal-overlay.active{display:flex}
-.modal-box{background:#131a26;border-radius:16px;padding:1.5rem;width:100%;max-width:340px;border:1px solid #1e2a3a}
-.modal-box h3{margin-bottom:1rem;color:#e8edf5}
-.modal-box input{width:100%;padding:.6rem 1rem;border-radius:10px;border:1px solid #2a3a5a;background:#0b0e17;color:#e8edf5;margin-bottom:.8rem;font-size:.95rem;outline:none}
-.modal-box input:focus{border-color:#4f8cf7}
-.modal-actions{display:flex;gap:.5rem;justify-content:flex-end}
-
-.empty-state{text-align:center;color:#6a7a8e;padding:2rem 1rem;font-size:.9rem}
-.empty-state svg{width:48px;height:48px;stroke:#2a3a5a;stroke-width:1.5;fill:none;margin-bottom:.5rem}
-
-@media(max-width:480px){.dialer-pad{gap:.5rem}.dialer-pad .key{font-size:1.4rem}.app-container{max-height:100vh}}
-.hidden{display:none!important}
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:#0f1520}
-::-webkit-scrollbar-thumb{background:#2a3a5a;border-radius:10px}
-</style>
+    /* ─── Responsive ─── */
+    @media (max-width: 480px) {
+      .container {
+        padding: 1rem;
+        border-radius: 20px;
+      }
+      .dialer-pad {
+        gap: 0.5rem;
+        max-width: 260px;
+      }
+      .dialer-pad .key {
+        font-size: 1.4rem;
+      }
+      .logo {
+        font-size: 1.2rem;
+      }
+      .dialer-display {
+        font-size: 1.6rem;
+        min-height: 3.8rem;
+        padding: 0.7rem 1rem;
+      }
+      #incomingOverlay .name {
+        font-size: 1.6rem;
+      }
+      #callScreen .name {
+        font-size: 1.6rem;
+      }
+      #callScreen .call-actions button {
+        width: 54px;
+        height: 54px;
+        font-size: 1.3rem;
+      }
+    }
+  </style>
 </head>
 <body>
-<div class="app-container">
-<div class="header">
-<div class="logo">
-<svg viewBox="0 0 24 24" fill="none" stroke="#4f8cf7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-<span class="logo-text">PremCall</span>
-</div>
-<div class="header-right">
-<span id="myNumberDisplay" style="font-size:.75rem;color:#8892b0;font-weight:500"></span>
-<span class="status-dot offline" id="headerStatusDot"></span>
-</div>
-</div>
 
-<div class="tabs">
-<div class="tab active" data-tab="dialer">
-<svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-Dialer
-</div>
-<div class="tab" data-tab="contacts">
-<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-Contacts
-</div>
-<div class="tab" data-tab="messages">
-<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-Messages
-<span class="tab-badge hidden" id="msgBadge">0</span>
-</div>
-<div class="tab" data-tab="history">
-<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-History
-</div>
-</div>
+  <div class="container">
 
-<div class="tab-content active" id="tabDialer">
-<div class="dialer-display" id="dialDisplay">Enter number</div>
-<div class="dialer-pad" id="dialPad">
-<div class="key" data-digit="1">1</div>
-<div class="key" data-digit="2">2<span class="sub">ABC</span></div>
-<div class="key" data-digit="3">3<span class="sub">DEF</span></div>
-<div class="key" data-digit="4">4<span class="sub">GHI</span></div>
-<div class="key" data-digit="5">5<span class="sub">JKL</span></div>
-<div class="key" data-digit="6">6<span class="sub">MNO</span></div>
-<div class="key" data-digit="7">7<span class="sub">PQRS</span></div>
-<div class="key" data-digit="8">8<span class="sub">TUV</span></div>
-<div class="key" data-digit="9">9<span class="sub">WXYZ</span></div>
-<div class="key" data-digit="*">*</div>
-<div class="key" data-digit="0">0<span class="sub">+</span></div>
-<div class="key" data-digit="#">#</div>
-<div class="key" data-action="delete">
-<svg viewBox="0 0 24 24"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
-</div>
-<div class="key call" data-action="call">
-<svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-</div>
-<div class="key" data-action="clear">
-<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-</div>
-</div>
-<div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center">
-<button class="btn btn-outline btn-sm" id="checkStatusBtn">Check Status</button>
-<button class="btn btn-outline btn-sm" id="refreshContactsBtn">Refresh All</button>
-<button class="btn btn-outline btn-sm" id="copyNumberBtn">Copy My #</button>
-</div>
-<div id="statusResult" style="text-align:center;color:#8892b0;font-size:.85rem;margin-top:.5rem;min-height:1.2rem"></div>
-</div>
+    <!-- ═══ HEADER ═══ -->
+    <div class="header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 8v4l3 3"/>
+        </svg>
+        PremCall
+      </div>
+      <div class="header-right">
+        <span id="myNumberDisplay"></span>
+        <span class="status-dot offline" id="headerStatusDot"></span>
+      </div>
+    </div>
 
-<div class="tab-content" id="tabContacts">
-<div style="display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap">
-<input type="tel" id="contactInput" placeholder="Number" inputmode="numeric" style="flex:1;padding:.55rem 1rem;border-radius:30px;border:1px solid #2a3a5a;background:#0b0e17;color:#e8edf5;font-size:.9rem;outline:none" />
-<input type="text" id="contactNameInput" placeholder="Name" style="flex:1;padding:.55rem 1rem;border-radius:30px;border:1px solid #2a3a5a;background:#0b0e17;color:#e8edf5;font-size:.9rem;outline:none" />
-<button class="btn btn-sm" id="addContactBtn">Add</button>
-</div>
-<div id="contactList"></div>
-</div>
+    <!-- ═══ REGISTRATION ═══ -->
+    <div class="reg-section" id="regSection">
+      <label for="phoneInput">Your Number (5 digits)</label>
+      <div class="reg-row">
+        <input type="tel" id="phoneInput" placeholder="e.g. 12345" maxlength="5" inputmode="numeric" />
+        <button class="btn btn-primary" id="registerBtn">Register</button>
+      </div>
+      <div class="reg-status" id="regStatus">Enter a 5-digit number to start.</div>
+    </div>
 
-<div class="tab-content" id="tabMessages">
-<div class="chat-header" id="chatHeader">
-<button class="back-btn hidden" id="chatBackBtn">
-<svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-</button>
-<div style="flex:1">
-<div style="font-weight:700;font-size:1rem" id="chatPartnerName">Select a contact</div>
-<div style="font-size:.75rem;color:#8892b0" id="chatPartnerStatus"></div>
-</div>
-<button class="btn btn-sm btn-outline" id="chatCallBtn" style="display:none">
-<svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-</button>
-</div>
-<div class="chat-messages" id="chatMessages">
-<div class="empty-state">
-<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="12" y1="7" x2="12" y2="13"/></svg>
-<p>Double-tap a contact to start chatting</p>
-</div>
-</div>
-<div class="chat-input-area" id="chatInputArea">
-<input type="text" id="chatInput" placeholder="Type a message..." disabled />
-<button id="sendMsgBtn" disabled>
-<svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22,2 15,22 11,13 2,9 22,2"/></svg>
-</button>
-</div>
-</div>
+    <!-- ═══ DIALER ═══ -->
+    <div class="dialer-section" id="dialerSection">
+      <div class="dialer-display" id="dialDisplay">
+        <span class="hint">Enter number</span>
+      </div>
+      <div class="dialer-pad" id="dialPad">
+        <button class="key" data-digit="1">1</button>
+        <button class="key" data-digit="2">2</button>
+        <button class="key" data-digit="3">3</button>
+        <button class="key" data-digit="4">4</button>
+        <button class="key" data-digit="5">5</button>
+        <button class="key" data-digit="6">6</button>
+        <button class="key" data-digit="7">7</button>
+        <button class="key" data-digit="8">8</button>
+        <button class="key" data-digit="9">9</button>
+        <button class="key" data-digit="*">*</button>
+        <button class="key" data-digit="0">0</button>
+        <button class="key" data-digit="#">#</button>
+        <button class="key" data-action="delete">
+          <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="23 18 17 12 23 6"/><polyline points="17 18 11 12 17 6"/></svg>
+        </button>
+        <button class="key call" id="dialCallBtn" data-action="call">
+          <svg class="svg-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        </button>
+        <button class="key" data-action="clear">
+          <svg class="svg-icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
 
-<div class="tab-content" id="tabHistory">
-<div id="callHistoryList"></div>
-<button class="btn btn-outline btn-sm" id="clearHistoryBtn" style="margin-top:1rem;width:100%">Clear History</button>
-</div>
+      <div class="action-row">
+        <button class="btn btn-outline" id="checkStatusBtn">Check Status</button>
+        <span class="status-badge" id="statusResult"></span>
+      </div>
+    </div>
 
-<div id="incomingOverlay">
-<div class="caller-avatar" id="incomingAvatar">?</div>
-<div class="caller-name" id="incomingName">Unknown</div>
-<div class="caller-number" id="incomingNumber"></div>
-<div class="actions">
-<button class="answer" id="answerOverlayBtn">
-<svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-</button>
-<button class="reject" id="rejectOverlayBtn">
-<svg viewBox="0 0 24 24"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.58 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 0 6.95 0M12 20h.01"/></svg>
-</button>
-</div>
-</div>
+    <!-- ═══ LOG ═══ -->
+    <div class="log-area" id="logArea">
+      <div class="log-entry">Ready. Register a number to start.</div>
+    </div>
 
-<div id="callScreen">
-<div class="caller-avatar" id="callAvatar">?</div>
-<div class="caller-name" id="callName">Calling...</div>
-<div class="caller-number" id="callNumber"></div>
-<div class="call-status" id="callStatus">Connecting...</div>
-<div class="call-timer" id="callTimer">00:00</div>
-<div class="call-actions">
-<button class="mute" id="muteBtn">
-<svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-</button>
-<button class="speaker" id="speakerBtn">
-<svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-</button>
-<button class="hangup" id="hangupCallBtn">
-<svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-</button>
-</div>
-</div>
-</div>
+  </div>
 
-<div id="toastContainer"></div>
+  <!-- ═══ INCOMING OVERLAY ═══ -->
+  <div id="incomingOverlay">
+    <div class="avatar" id="incomingAvatar">📞</div>
+    <div class="name" id="incomingName">Unknown</div>
+    <div class="number" id="incomingNumber">+1234567890</div>
+    <div class="actions">
+      <button class="answer" id="answerBtn">✅</button>
+      <button class="reject" id="rejectBtn">❌</button>
+    </div>
+  </div>
 
-<div class="modal-overlay" id="editModal">
-<div class="modal-box">
-<h3>Edit Contact</h3>
-<input type="text" id="editNameInput" placeholder="Name" />
-<input type="tel" id="editNumberInput" placeholder="Number" readonly style="opacity:.6" />
-<div class="modal-actions">
-<button class="btn btn-outline btn-sm" id="editCancelBtn">Cancel</button>
-<button class="btn btn-sm" id="editSaveBtn">Save</button>
-<button class="btn btn-danger btn-sm" id="editDeleteBtn">Delete</button>
-</div>
-</div>
-</div>
+  <!-- ═══ CALL SCREEN ═══ -->
+  <div id="callScreen">
+    <div class="avatar" id="callAvatar">📞</div>
+    <div class="name" id="callName">Calling...</div>
+    <div class="number" id="callNumber">+1234567890</div>
+    <div class="substatus" id="callSubstatus"></div>
+    <div class="timer" id="callTimer">00:00</div>
+    <div class="call-actions">
+      <button class="mute" id="muteBtn" title="Mute / Unmute">🔇</button>
+      <button class="hangup" id="hangupCallBtn" title="Hang up">📴</button>
+      <button class="speaker" id="speakerBtn" title="Toggle speaker">🔊</button>
+    </div>
+  </div>
 
-<script>
-(function(){
-"use strict";
+  <!-- ═══ TOAST ═══ -->
+  <div id="toast"></div>
 
-// ===== DOM refs =====
-var dialDisplay=document.getElementById('dialDisplay');
-var dialPad=document.getElementById('dialPad');
-var checkStatusBtn=document.getElementById('checkStatusBtn');
-var refreshContactsBtn=document.getElementById('refreshContactsBtn');
-var copyNumberBtn=document.getElementById('copyNumberBtn');
-var statusResult=document.getElementById('statusResult');
-var contactList=document.getElementById('contactList');
-var contactInput=document.getElementById('contactInput');
-var contactNameInput=document.getElementById('contactNameInput');
-var addContactBtn=document.getElementById('addContactBtn');
-var chatMessages=document.getElementById('chatMessages');
-var chatInput=document.getElementById('chatInput');
-var sendMsgBtn=document.getElementById('sendMsgBtn');
-var chatPartnerName=document.getElementById('chatPartnerName');
-var chatPartnerStatus=document.getElementById('chatPartnerStatus');
-var chatCallBtn=document.getElementById('chatCallBtn');
-var chatBackBtn=document.getElementById('chatBackBtn');
-var callHistoryList=document.getElementById('callHistoryList');
-var clearHistoryBtn=document.getElementById('clearHistoryBtn');
-var incomingOverlay=document.getElementById('incomingOverlay');
-var incomingName=document.getElementById('incomingName');
-var incomingNumber=document.getElementById('incomingNumber');
-var incomingAvatar=document.getElementById('incomingAvatar');
-var answerOverlayBtn=document.getElementById('answerOverlayBtn');
-var rejectOverlayBtn=document.getElementById('rejectOverlayBtn');
-var callScreen=document.getElementById('callScreen');
-var callName=document.getElementById('callName');
-var callNumber=document.getElementById('callNumber');
-var callAvatar=document.getElementById('callAvatar');
-var callTimer=document.getElementById('callTimer');
-var callStatus=document.getElementById('callStatus');
-var muteBtn=document.getElementById('muteBtn');
-var hangupCallBtn=document.getElementById('hangupCallBtn');
-var speakerBtn=document.getElementById('speakerBtn');
-var myNumberDisplay=document.getElementById('myNumberDisplay');
-var headerStatusDot=document.getElementById('headerStatusDot');
-var msgBadge=document.getElementById('msgBadge');
-var toastContainer=document.getElementById('toastContainer');
-var editModal=document.getElementById('editModal');
-var editNameInput=document.getElementById('editNameInput');
-var editNumberInput=document.getElementById('editNumberInput');
-var editSaveBtn=document.getElementById('editSaveBtn');
-var editCancelBtn=document.getElementById('editCancelBtn');
-var editDeleteBtn=document.getElementById('editDeleteBtn');
+  <!-- ═══ PERSISTENT AUDIO ═══ -->
+  <audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
 
-// ===== State =====
-var myNumber=localStorage.getItem('premCallNumber')||null;
-var myCountryCode=localStorage.getItem('premCallCountry')||'+91';
-var peer=null;
-var currentCall=null;
-var localStream=null;
-var remoteStream=null;
-var isMuted=false;
-var isSpeakerOn=false;
-var isInCall=false;
-var isCaller=false;
-var incomingCall=null;
-var ringtoneInterval=null;
-var outgoingRingInterval=null;
-var remoteAudioElement=null;
-var callHistory=JSON.parse(localStorage.getItem('premCallHistory')||'[]');
-var contacts=JSON.parse(localStorage.getItem('premCallContacts')||'[]');
-var messages=JSON.parse(localStorage.getItem('premCallMessages')||'{}');
-var callStartTime=null;
-var callTimerInterval=null;
-var dialedNumber='';
-var isAnswering=false;
-var activeChatPartner=null;
-var dataConnections={}; // number -> DataConnection
-var onlineStatus={}; // number -> boolean
-var unreadCounts=JSON.parse(localStorage.getItem('premCallUnread')||'{}');
-var outgoingCallTimeout=null;
-var editTargetNumber=null;
-var audioCtx=null;
-var msgQueue={}; // number -> [text,...]
-var endingCall=false; // guard against double endCall
+  <script>
+    (function() {
+      "use strict";
 
-// ===== ICE Servers =====
-function getIceServers(){
-  return{
-    iceServers:[
-      {urls:'stun:stun.l.google.com:19302'},
-      {urls:'stun:stun1.l.google.com:19302'},
-      {urls:'stun:stun2.l.google.com:19302'},
-      {urls:'stun:stun3.l.google.com:19302'},
-      {urls:'stun:stun4.l.google.com:19302'}
-    ],
-    iceCandidatePoolSize:10
-  };
-}
+      // ─── DOM refs ────────────────────────────────────────────────
+      const phoneInput = document.getElementById('phoneInput');
+      const registerBtn = document.getElementById('registerBtn');
+      const regStatus = document.getElementById('regStatus');
+      const dialDisplay = document.getElementById('dialDisplay');
+      const dialPad = document.getElementById('dialPad');
+      const dialCallBtn = document.getElementById('dialCallBtn');
+      const checkStatusBtn = document.getElementById('checkStatusBtn');
+      const statusResult = document.getElementById('statusResult');
+      const logArea = document.getElementById('logArea');
+      const incomingOverlay = document.getElementById('incomingOverlay');
+      const incomingName = document.getElementById('incomingName');
+      const incomingNumber = document.getElementById('incomingNumber');
+      const incomingAvatar = document.getElementById('incomingAvatar');
+      const answerBtn = document.getElementById('answerBtn');
+      const rejectBtn = document.getElementById('rejectBtn');
+      const callScreen = document.getElementById('callScreen');
+      const callName = document.getElementById('callName');
+      const callNumber = document.getElementById('callNumber');
+      const callAvatar = document.getElementById('callAvatar');
+      const callTimer = document.getElementById('callTimer');
+      const callSubstatus = document.getElementById('callSubstatus');
+      const hangupCallBtn = document.getElementById('hangupCallBtn');
+      const muteBtn = document.getElementById('muteBtn');
+      const speakerBtn = document.getElementById('speakerBtn');
+      const myNumberDisplay = document.getElementById('myNumberDisplay');
+      const headerStatusDot = document.getElementById('headerStatusDot');
+      const remoteAudio = document.getElementById('remoteAudio');
+      const toast = document.getElementById('toast');
 
-// ===== Audio =====
-function getAudioCtx(){
-  if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-  if(audioCtx.state==='suspended') audioCtx.resume();
-  return audioCtx;
-}
-function playTone(freq,dur,type){
-  try{
-    var ctx=getAudioCtx();
-    var osc=ctx.createOscillator();
-    var gain=ctx.createGain();
-    osc.type=type||'sine';
-    osc.frequency.value=freq;
-    gain.gain.setValueAtTime(0.08,ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime+dur);
-  }catch(e){}
-}
-function playDialTone(){ playTone(440,0.12); playTone(350,0.12); }
-function playHangupTone(){ playTone(480,0.25); setTimeout(function(){playTone(620,0.25)},120); }
-function playMessageTone(){ playTone(800,0.08); setTimeout(function(){playTone(1200,0.12)},80); }
-function playOutgoingRing(){
-  stopOutgoingRing();
-  var count=0;
-  outgoingRingInterval=setInterval(function(){
-    if(!isInCall||count>60){stopOutgoingRing();return;}
-    playTone(440,0.35);
-    setTimeout(function(){playTone(440,0.35)},500);
-    count++;
-  },3000);
-}
-function stopOutgoingRing(){
-  if(outgoingRingInterval){clearInterval(outgoingRingInterval);outgoingRingInterval=null;}
-}
-function playRingtone(){
-  stopRingtone();
-  var ctx=new(window.AudioContext||window.webkitAudioContext)();
-  var count=0;
-  ringtoneInterval=setInterval(function(){
-    if(count>=20||!incomingOverlay.classList.contains('active')){stopRingtone();return;}
-    var osc=ctx.createOscillator();
-    var gain=ctx.createGain();
-    osc.connect(gain);gain.connect(ctx.destination);
-    osc.frequency.value=count%2===0?440:330;
-    gain.gain.setValueAtTime(0.12,ctx.currentTime);
-    osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.35);
-    count++;
-  },600);
-}
-function stopRingtone(){
-  if(ringtoneInterval){clearInterval(ringtoneInterval);ringtoneInterval=null;}
-}
+      // ─── State ──────────────────────────────────────────────────
+      let myNumber = localStorage.getItem('premCallNumber') || null;
+      let peer = null;
+      let currentCall = null;
+      let localStream = null;
+      let isInCall = false;
+      let isCaller = false;
+      let incomingCall = null;
+      let ringtoneInterval = null;
+      let callTimerInterval = null;
+      let callStartTime = null;
+      let dialedNumber = '';
+      let isMuted = false;
+      let isSpeakerOn = false;
+      let isAnswering = false;
+      let toastTimeout = null;
 
-// ===== Toast =====
-function showToast(msg,type,dur){
-  type=type||'info';dur=dur||3000;
-  var div=document.createElement('div');
-  div.className='toast '+type;
-  div.innerHTML='<span>'+escapeHtml(msg)+'</span><button class="toast-close">&times;</button>';
-  div.querySelector('.toast-close').addEventListener('click',function(){div.remove();});
-  toastContainer.appendChild(div);
-  if(dur>0)setTimeout(function(){div.remove();},dur);
-}
-
-// ===== Helpers =====
-function setStatusDot(el,state){
-  el.className='status-dot '+state;
-  el.title=state==='online'?'Online':state==='connecting'?'Connecting...':'Offline';
-}
-function getContactName(number){
-  var c=contacts.find(function(x){return x.number===number;});
-  return c?c.name:number;
-}
-function getInitials(name){
-  if(!name)return'?';
-  var parts=name.split(' ').filter(Boolean);
-  if(parts.length>=2)return(parts[0][0]+parts[1][0]).toUpperCase();
-  return name.charAt(0).toUpperCase();
-}
-function formatDuration(sec){
-  var m=String(Math.floor(sec/60)).padStart(2,'0');
-  var s=String(sec%60).padStart(2,'0');
-  return m+':'+s;
-}
-function formatTime(ts){
-  var d=new Date(ts);
-  var now=new Date();
-  if(d.toDateString()===now.toDateString())return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-  return d.toLocaleDateString([],{month:'short',day:'numeric'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-}
-function stringToColor(str){
-  var hash=0;
-  for(var i=0;i<str.length;i++)hash=str.charCodeAt(i)+((hash<<5)-hash);
-  var c=(hash&0x00FFFFFF).toString(16).padStart(6,'0');
-  return'#'+c;
-}
-function escapeHtml(text){
-  var div=document.createElement('div');
-  div.textContent=text;
-  return div.innerHTML;
-}
-
-// ===== Call History =====
-function addCallHistory(number,direction,status,durationSec){
-  callHistory.unshift({number:number,direction:direction,status:status,duration:durationSec||0,timestamp:Date.now()});
-  if(callHistory.length>200)callHistory.pop();
-  localStorage.setItem('premCallHistory',JSON.stringify(callHistory));
-  renderHistory();
-}
-function renderHistory(){
-  if(!callHistory.length){
-    callHistoryList.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><p>No calls yet</p></div>';
-    return;
-  }
-  var html='';
-  callHistory.forEach(function(entry){
-    var name=getContactName(entry.number);
-    var iconSvg='',iconClass='';
-    if(entry.direction==='incoming'){
-      iconClass=entry.status==='missed'?'missed':'incoming';
-      iconSvg='<polyline points="23 18 17 12 23 6"/>';
-    }else{
-      iconClass=entry.status==='answered'?'outgoing':'missed';
-      iconSvg='<polyline points="17 18 11 12 17 6"/>';
-    }
-    var dur=entry.duration?formatDuration(entry.duration):'';
-    var statusText=entry.status==='missed'?'Missed':entry.status==='answered'?(dur||'Answered'):entry.status;
-    html+='<div class="history-item" data-number="'+entry.number+'">'+
-      '<div class="history-icon '+iconClass+'"><svg viewBox="0 0 24 24">'+iconSvg+'</svg></div>'+
-      '<div class="history-info"><div class="name">'+escapeHtml(name)+'</div><div class="detail">'+entry.number+' &middot; '+statusText+'</div></div>'+
-      '<div class="history-time">'+formatTime(entry.timestamp)+'</div></div>';
-  });
-  callHistoryList.innerHTML=html;
-  callHistoryList.querySelectorAll('.history-item').forEach(function(el){
-    el.addEventListener('click',function(){
-      dialedNumber=el.dataset.number;
-      dialDisplay.textContent=dialedNumber;
-      switchTab('dialer');
-    });
-  });
-}
-
-// ===== Contacts =====
-function renderContacts(){
-  if(!contacts.length){
-    contactList.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><p>No contacts saved</p></div>';
-    return;
-  }
-  var html='';
-  contacts.forEach(function(c){
-    var online=onlineStatus[c.number];
-    var statusClass=online===true?'online':online===false?'offline':'unknown';
-    html+='<div class="contact-item" data-number="'+c.number+'">'+
-      '<div class="contact-avatar" style="background:'+stringToColor(c.name)+'">'+getInitials(c.name)+'</div>'+
-      '<div class="contact-info"><div class="name">'+escapeHtml(c.name)+'</div><div class="number">'+c.number+'</div></div>'+
-      '<div class="contact-actions">'+
-      '<button class="chat-btn" title="Chat" data-number="'+c.number+'"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>'+
-      '<button class="edit-btn" title="Edit" data-number="'+c.number+'"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'+
-      '</div>'+
-      '<span class="contact-status '+statusClass+'"></span></div>';
-  });
-  contactList.innerHTML=html;
-  contactList.querySelectorAll('.contact-item').forEach(function(el){
-    el.addEventListener('click',function(e){
-      if(e.target.closest('.chat-btn')||e.target.closest('.edit-btn'))return;
-      dialedNumber=el.dataset.number;
-      dialDisplay.textContent=dialedNumber;
-      switchTab('dialer');
-    });
-  });
-  contactList.querySelectorAll('.chat-btn').forEach(function(btn){
-    btn.addEventListener('click',function(e){e.stopPropagation();openChat(btn.dataset.number);});
-  });
-  contactList.querySelectorAll('.edit-btn').forEach(function(btn){
-    btn.addEventListener('click',function(e){e.stopPropagation();openEditModal(btn.dataset.number);});
-  });
-}
-
-// ===== Data Connection Manager =====
-// This is the heart of the app. We maintain persistent data connections
-to all contacts for messaging and call signaling.
-function setupDataConnection(conn){
-  var peerId=conn.peer;
-  // If we already have an open connection to this peer, prefer the incoming one
-  if(dataConnections[peerId]&&dataConnections[peerId].open){
-    try{conn.close();}catch(e){}
-    return;
-  }
-  dataConnections[peerId]=conn;
-  onlineStatus[peerId]=true;
-  renderContacts();
-  updateChatPartnerStatus();
-
-  conn.on('data',function(data){
-    if(!data||!data.type)return;
-    if(data.type==='message'){
-      receiveMessage(peerId,data.text,data.timestamp);
-    }else if(data.type==='hangup'){
-      if(isInCall&&currentCall&&currentCall.peer===peerId){
-        showToast(getContactName(peerId)+' ended the call','info');
-        endCall(false);
-      }
-    }else if(data.type==='busy'){
-      if(isInCall&&isCaller&&currentCall&&currentCall.peer===peerId){
-        showToast(getContactName(peerId)+' is busy','warning');
-        endCall(false);
-      }
-    }else if(data.type==='ping'){
-      conn.send({type:'pong'});
-    }
-  });
-
-  conn.on('open',function(){
-    onlineStatus[peerId]=true;
-    renderContacts();
-    updateChatPartnerStatus();
-    // Send queued messages
-    if(msgQueue[peerId]&&msgQueue[peerId].length){
-      msgQueue[peerId].forEach(function(text){
-        conn.send({type:'message',text:text,timestamp:Date.now()});
-      });
-      delete msgQueue[peerId];
-    }
-  });
-
-  conn.on('close',function(){
-    delete dataConnections[peerId];
-    onlineStatus[peerId]=false;
-    renderContacts();
-    updateChatPartnerStatus();
-  });
-
-  conn.on('error',function(err){
-    console.log('Data conn error with',peerId,err);
-    delete dataConnections[peerId];
-    onlineStatus[peerId]=false;
-    renderContacts();
-    updateChatPartnerStatus();
-  });
-}
-
-function ensureDataConnection(number){
-  if(!peer||!peer.open)return;
-  if(number===myNumber)return;
-  var existing=dataConnections[number];
-  if(existing&&existing.open)return existing;
-  var conn=peer.connect(number,{reliable:true,serialization:'json'});
-  setupDataConnection(conn);
-  return conn;
-}
-
-// ===== Online Status =====
-function checkSingleOnline(number,callback){
-  if(!peer||!peer.open){callback(false);return;}
-  if(number===myNumber){callback(true);return;}
-  var conn=dataConnections[number];
-  if(conn&&conn.open){callback(true);return;}
-  // Try to connect
-  var tempConn=peer.connect(number,{reliable:true,serialization:'json'});
-  var opened=false;
-  tempConn.on('open',function(){
-    opened=true;
-    setupDataConnection(tempConn);
-    callback(true);
-  });
-  tempConn.on('error',function(){if(!opened)callback(false);});
-  setTimeout(function(){
-    if(!opened){try{tempConn.close();}catch(e){}callback(false);}
-  },4000);
-}
-
-function refreshAllStatus(){
-  statusResult.textContent='Checking...';
-  var checked=0;
-  var total=contacts.length;
-  if(total===0){statusResult.textContent='No contacts';return;}
-  contacts.forEach(function(c){
-    checkSingleOnline(c.number,function(online){
-      onlineStatus[c.number]=online;
-      checked++;
-      if(checked===total){
-        statusResult.textContent='Updated';
-        renderContacts();
-        updateChatPartnerStatus();
-        setTimeout(function(){statusResult.textContent='';},2000);
-      }
-    });
-  });
-}
-
-function updateChatPartnerStatus(){
-  if(!activeChatPartner)return;
-  var online=onlineStatus[activeChatPartner];
-  chatPartnerStatus.textContent=online===true?'Online':online===false?'Offline':'';
-}
-
-// ===== Registration =====
-function showRegistration(){
-  var regScreen=document.createElement('div');
-  regScreen.id='registrationScreen';
-  regScreen.innerHTML=
-    '<h1>PremCall</h1><p>Set your number to get started</p>'+
-    '<div class="reg-form">'+
-    '<div class="input-row">'+
-    '<select id="countryCode"><option value="+91" selected>+91</option><option value="+1">+1</option><option value="+44">+44</option><option value="+61">+61</option><option value="+86">+86</option><option value="+81">+81</option><option value="+49">+49</option><option value="+33">+33</option></select>'+
-    '<input type="tel" id="phoneInput" placeholder="10 digits" maxlength="10" inputmode="numeric" />'+
-    '</div>'+
-    '<button class="btn" id="registerBtn">Register</button>'+
-    '<div id="regStatus" class="reg-status"></div>'+
-    '</div>';
-  document.body.prepend(regScreen);
-  document.getElementById('registerBtn').addEventListener('click',registerNumber);
-  document.getElementById('phoneInput').addEventListener('keydown',function(e){if(e.key==='Enter')registerNumber();});
-}
-
-function registerNumber(){
-  var cc=document.getElementById('countryCode').value;
-  var num=document.getElementById('phoneInput').value.trim();
-  if(!/^\d{10}$/.test(num)){
-    document.getElementById('regStatus').textContent='Enter exactly 10 digits.';
-    return;
-  }
-  var full=cc+num;
-  myNumber=full;
-  myCountryCode=cc;
-  localStorage.setItem('premCallNumber',myNumber);
-  localStorage.setItem('premCallCountry',myCountryCode);
-  var rs=document.getElementById('registrationScreen');
-  if(rs)rs.remove();
-  myNumberDisplay.textContent=myNumber;
-  initPeer();
-  renderContacts();
-  renderHistory();
-  updateMsgBadge();
-  showToast('Registered as '+myNumber,'success');
-}
-
-// ===== PeerJS Init =====
-function initPeer(){
-  if(peer){try{peer.destroy();}catch(e){}}
-  if(!myNumber)return;
-  setStatusDot(headerStatusDot,'connecting');
-  peer=new Peer(myNumber,{debug:1,config:getIceServers()});
-
-  peer.on('open',function(){
-    console.log('Peer online:',myNumber);
-    setStatusDot(headerStatusDot,'online');
-    showToast('Connected','success',2000);
-    // Connect to all contacts
-    contacts.forEach(function(c){ensureDataConnection(c.number);});
-  });
-
-  peer.on('error',function(err){
-    console.error('Peer error:',err);
-    if(err.type==='unavailable-id'){
-      showToast('Number already in use. Try another.','error');
-      localStorage.removeItem('premCallNumber');
-      myNumber=null;
-      showRegistration();
-    }else if(err.type==='disconnected'||err.type==='network'){
-      setStatusDot(headerStatusDot,'offline');
-    }
-  });
-
-  peer.on('close',function(){
-    setStatusDot(headerStatusDot,'offline');
-  });
-
-  peer.on('disconnected',function(){
-    setStatusDot(headerStatusDot,'offline');
-    setTimeout(function(){if(peer&&!peer.destroyed)peer.reconnect();},3000);
-  });
-
-  // Incoming voice call
-  peer.on('call',function(call){
-    if(isInCall){
-      // Send busy signal
-      var busyConn=peer.connect(call.peer,{reliable:true,serialization:'json'});
-      busyConn.on('open',function(){
-        busyConn.send({type:'busy'});
-        setTimeout(function(){try{busyConn.close();}catch(e){}},1000);
-      });
-      call.close();
-      return;
-    }
-    incomingCall=call;
-    var name=getContactName(call.peer);
-    incomingName.textContent=name;
-    incomingNumber.textContent=call.peer;
-    incomingAvatar.textContent=getInitials(name);
-    incomingAvatar.style.background=stringToColor(name);
-    incomingOverlay.classList.add('active');
-    playRingtone();
-    setTimeout(function(){
-      if(incomingCall&&incomingOverlay.classList.contains('active')){
-        addCallHistory(call.peer,'incoming','missed');
-        rejectIncomingCall();
-      }
-    },25000);
-  });
-
-  // Incoming data connection
-  peer.on('connection',function(conn){
-    setupDataConnection(conn);
-  });
-}
-
-// ===== Microphone & Audio =====
-async function getLocalStream(){
-  if(!localStream){
-    localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-  }
-  // Re-enable all tracks (in case previous call muted them)
-  localStream.getAudioTracks().forEach(function(t){t.enabled=true;});
-  isMuted=false;
-  muteBtn.classList.remove('active');
-  return localStream;
-}
-
-function getRemoteAudioElement(){
-  if(!remoteAudioElement){
-    remoteAudioElement=document.createElement('audio');
-    remoteAudioElement.id='remoteAudio';
-    remoteAudioElement.setAttribute('playsInline','');
-    remoteAudioElement.autoplay=true;
-    remoteAudioElement.style.display='none';
-    document.body.appendChild(remoteAudioElement);
-  }
-  return remoteAudioElement;
-}
-
-function attachRemoteStream(stream){
-  remoteStream=stream;
-  var audio=getRemoteAudioElement();
-  audio.srcObject=stream;
-  audio.play().catch(function(){});
-}
-
-// ===== Make Call =====
-async function makeCall(targetNumber){
-  if(isInCall){showToast('Already in a call','warning');return;}
-  if(!peer||!peer.open){showToast('Not connected to server','error');return;}
-  if(targetNumber===myNumber){showToast('Cannot call yourself','warning');return;}
-  try{
-    await getLocalStream();
-    var call=peer.call(targetNumber,localStream);
-    currentCall=call;
-    isCaller=true;
-    isInCall=true;
-    callStartTime=null;
-    showCallScreen(targetNumber);
-    callStatus.textContent='Calling...';
-    playOutgoingRing();
-
-    outgoingCallTimeout=setTimeout(function(){
-      if(isInCall&&!callStartTime){
-        showToast('No answer','warning');
-        addCallHistory(targetNumber,'outgoing','no-answer');
-        endCall(true);
-      }
-    },30000);
-
-    call.on('stream',function(stream){
-      stopOutgoingRing();
-      clearTimeout(outgoingCallTimeout);
-      attachRemoteStream(stream);
-      callStartTime=Date.now();
-      addCallHistory(targetNumber,'outgoing','answered');
-      callStatus.textContent='Connected';
-      startTimer();
-    });
-
-    call.on('close',function(){endCall(true);});
-    call.on('error',function(err){console.error(err);endCall(true);});
-
-    var pc=call.peerConnection;
-    if(pc){
-      pc.oniceconnectionstatechange=function(){
-        if(pc.iceConnectionState==='failed'||pc.iceConnectionState==='disconnected'){
-          setTimeout(function(){
-            if((pc.iceConnectionState==='failed'||pc.iceConnectionState==='disconnected')&&isInCall){
-              showToast('Call disconnected','warning');
-              endCall(true);
+      // ─── ICE Servers ──────────────────────────────────────────────
+      function getIceServers() {
+        return {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+            { urls: 'stun:stun.ekiga.net' },
+            { urls: 'stun:stun.ideasip.com' },
+            {
+              urls: ['turn:numb.viagenie.ca:3478', 'turn:numb.viagenie.ca:443'],
+              username: 'webrtc@live.com',
+              credential: 'muazkh'
             }
-          },4000);
+          ],
+          iceCandidatePoolSize: 10
+        };
+      }
+
+      // ─── Logging ──────────────────────────────────────────────────
+      function log(msg, type) {
+        const now = new Date().toLocaleTimeString();
+        const entry = document.createElement('div');
+        entry.className = 'log-entry' + (type ? ' ' + type : '');
+        entry.textContent = now + ' ' + msg;
+        logArea.prepend(entry);
+        // Keep log manageable
+        while (logArea.children.length > 50) {
+          logArea.removeChild(logArea.lastChild);
         }
-      };
-    }
-  }catch(err){
-    showToast('Call failed: '+err.message,'error');
-    endCall(true);
-  }
-}
+        console.log('[PremCall]', msg);
+      }
 
-function showCallScreen(number){
-  var name=getContactName(number);
-  callName.textContent=name;
-  callNumber.textContent=number;
-  callAvatar.textContent=getInitials(name);
-  callAvatar.style.background=stringToColor(name);
-  callScreen.classList.add('active');
-  incomingOverlay.classList.remove('active');
-  callTimer.textContent='00:00';
-}
+      // ─── Toast ──────────────────────────────────────────────────
+      function showToast(msg, duration) {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => toast.classList.remove('show'), duration || 2500);
+      }
 
-function startTimer(){
-  if(callTimerInterval)clearInterval(callTimerInterval);
-  var seconds=0;
-  callTimerInterval=setInterval(function(){
-    seconds++;
-    callTimer.textContent=formatDuration(seconds);
-  },1000);
-}
+      // ─── Status Dot ──────────────────────────────────────────────
+      function setStatusDot(state) {
+        headerStatusDot.className = 'status-dot ' + state;
+      }
 
-// ===== Answer / Reject =====
-async function answerIncomingCall(){
-  if(isAnswering||!incomingCall)return;
-  isAnswering=true;
-  try{
-    stopRingtone();
-    await getLocalStream();
-    incomingCall.answer(localStream);
-    currentCall=incomingCall;
-    isCaller=false;
-    isInCall=true;
-    callStartTime=Date.now();
-    var number=currentCall.peer;
-    addCallHistory(number,'incoming','answered');
-    showCallScreen(number);
-    callStatus.textContent='Connected';
+      // ─── Registration ──────────────────────────────────────────
+      function register() {
+        const num = phoneInput.value.trim();
+        if (!/^\d{5}$/.test(num)) {
+          regStatus.textContent = 'Enter exactly 5 digits.';
+          regStatus.className = 'reg-status error';
+          return;
+        }
+        myNumber = num;
+        localStorage.setItem('premCallNumber', myNumber);
+        regStatus.textContent = 'Registered: ' + myNumber;
+        regStatus.className = 'reg-status success';
+        myNumberDisplay.textContent = myNumber;
+        log('Registered number: ' + myNumber, 'success');
+        initPeer();
+      }
 
-    currentCall.on('stream',function(stream){
-      attachRemoteStream(stream);
-      startTimer();
-    });
-    currentCall.on('close',function(){endCall(true);});
-    currentCall.on('error',function(err){console.error(err);endCall(true);});
+      registerBtn.addEventListener('click', register);
+      phoneInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') register(); });
 
-    var pc=currentCall.peerConnection;
-    if(pc){
-      pc.oniceconnectionstatechange=function(){
-        if(pc.iceConnectionState==='failed'||pc.iceConnectionState==='disconnected'){
-          setTimeout(function(){
-            if((pc.iceConnectionState==='failed'||pc.iceConnectionState==='disconnected')&&isInCall){
-              showToast('Call disconnected','warning');
-              endCall(true);
+      // ─── PeerJS init ──────────────────────────────────────────
+      function initPeer() {
+        if (peer) { peer.destroy(); peer = null; }
+        if (!myNumber) return;
+
+        setStatusDot('connecting');
+        log('Connecting to signaling server...', 'warning');
+
+        peer = new Peer(myNumber, { debug: 2, config: getIceServers() });
+
+        peer.on('open', (id) => {
+          log('Connected with ID: ' + id, 'success');
+          setStatusDot('online');
+          showToast('Online as ' + id);
+          regStatus.textContent = 'Online: ' + id;
+          regStatus.className = 'reg-status success';
+        });
+
+        peer.on('error', (err) => {
+          log('Peer error: ' + err.type + ' – ' + err.message, 'error');
+          if (err.type === 'unavailable-id') {
+            regStatus.textContent = 'Number taken. Choose another.';
+            regStatus.className = 'reg-status error';
+            localStorage.removeItem('premCallNumber');
+            myNumber = null;
+            myNumberDisplay.textContent = '';
+            setStatusDot('offline');
+            showToast('Number already taken');
+          } else if (err.type === 'peer-unavailable') {
+            // This happens when calling an offline peer – we handle it in makeCall
+            log('Target peer unavailable', 'warning');
+          } else {
+            setStatusDot('offline');
+            showToast('Error: ' + err.message);
+          }
+        });
+
+        peer.on('close', () => {
+          log('Connection closed', 'error');
+          setStatusDot('offline');
+          if (isInCall) endCall();
+        });
+
+        peer.on('disconnected', () => {
+          log('Disconnected – reconnecting...', 'warning');
+          setStatusDot('offline');
+          setTimeout(() => { if (peer && !isInCall) peer.reconnect(); }, 3000);
+        });
+
+        peer.on('call', (call) => {
+          log('Incoming call from: ' + call.peer, 'warning');
+          if (isInCall) {
+            call.close();
+            log('Rejected – already in call', 'error');
+            showToast('Busy, rejecting call');
+            return;
+          }
+          incomingCall = call;
+          const name = call.peer;
+          incomingName.textContent = name;
+          incomingNumber.textContent = name;
+          incomingAvatar.textContent = '📞';
+          incomingOverlay.classList.add('active');
+          playRingtone();
+
+          // Auto-miss after 20 seconds
+          setTimeout(() => {
+            if (incomingCall && incomingOverlay.classList.contains('active')) {
+              log('Auto‑missed call from ' + name, 'error');
+              showToast('Missed call from ' + name);
+              rejectIncomingCall();
             }
-          },4000);
+          }, 20000);
+        });
+      }
+
+      // ─── Ringtone ──────────────────────────────────────────────
+      function playRingtone() {
+        stopRingtone();
+        try {
+          const ctx = new(window.AudioContext || window.webkitAudioContext)();
+          let count = 0;
+          ringtoneInterval = setInterval(() => {
+            if (count >= 14 || !incomingOverlay.classList.contains('active')) {
+              stopRingtone();
+              return;
+            }
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = count % 2 === 0 ? 440 : 330;
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.12, ctx.currentTime);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.3);
+            count++;
+          }, 450);
+        } catch (e) {
+          log('Ringtone error: ' + e.message, 'error');
         }
-      };
-    }
-    incomingCall=null;
-  }catch(err){
-    showToast('Answer failed: '+err.message,'error');
-    if(incomingCall){try{incomingCall.close();}catch(e){}}
-    incomingCall=null;
-    incomingOverlay.classList.remove('active');
-    isInCall=false;
-  }finally{isAnswering=false;}
-}
+      }
 
-function rejectIncomingCall(){
-  if(incomingCall){try{incomingCall.close();}catch(e){}incomingCall=null;}
-  stopRingtone();
-  incomingOverlay.classList.remove('active');
-}
+      function stopRingtone() {
+        if (ringtoneInterval) {
+          clearInterval(ringtoneInterval);
+          ringtoneInterval = null;
+        }
+      }
 
-// ===== End Call =====
-function endCall(sendSignal){
-  if(endingCall)return;
-  endingCall=true;
+      // ─── Microphone ──────────────────────────────────────────────
+      async function getLocalStream() {
+        if (localStream && localStream.getAudioTracks().length > 0) {
+          return localStream;
+        }
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          });
+          localStream = stream;
+          log('Microphone acquired', 'success');
+          return stream;
+        } catch (err) {
+          log('Microphone error: ' + err.message, 'error');
+          showToast('Microphone access denied: ' + err.message);
+          throw err;
+        }
+      }
 
-  // Send hangup signal first
-  if(sendSignal!==false&&currentCall){
-    var peerId=currentCall.peer;
-    var conn=dataConnections[peerId];
-    if(conn&&conn.open){
-      try{conn.send({type:'hangup'});}catch(e){}
-    }else{
-      var tempConn=peer.connect(peerId,{reliable:true,serialization:'json'});
-      tempConn.on('open',function(){
-        try{tempConn.send({type:'hangup'});}catch(e){}
-        setTimeout(function(){try{tempConn.close();}catch(e){}},500);
+      // ─── Remote Audio ──────────────────────────────────────────
+      function attachRemoteStream(stream) {
+        log('Remote stream received', 'success');
+        remoteAudio.srcObject = stream;
+        remoteAudio.muted = false;
+        remoteAudio.volume = 1.0;
+        remoteAudio.play().then(() => {
+          log('Remote audio playing', 'success');
+        }).catch((err) => {
+          log('Autoplay blocked: ' + err.message, 'warning');
+          // Resume on user interaction
+          const resume = () => {
+            remoteAudio.play().catch(() => {});
+            document.removeEventListener('click', resume);
+            document.removeEventListener('touchstart', resume);
+          };
+          document.addEventListener('click', resume, { once: true });
+          document.addEventListener('touchstart', resume, { once: true });
+          showToast('Tap anywhere to play audio');
+        });
+      }
+
+      // ─── Make Call ──────────────────────────────────────────────
+      async function makeCall(targetNumber) {
+        if (isInCall) {
+          showToast('Already in a call');
+          return;
+        }
+        if (!peer) {
+          showToast('Not connected. Register first.');
+          return;
+        }
+        if (targetNumber === myNumber) {
+          showToast('Cannot call yourself');
+          return;
+        }
+        if (!/^\d{5}$/.test(targetNumber)) {
+          showToast('Enter a 5‑digit number');
+          return;
+        }
+
+        dialCallBtn.classList.add('disabled');
+        log('Calling ' + targetNumber + '...', 'warning');
+
+        try {
+          const stream = await getLocalStream();
+          const call = peer.call(targetNumber, stream);
+
+          if (!call) {
+            log('peer.call() returned null – target offline', 'error');
+            showToast('Target offline or unreachable');
+            dialCallBtn.classList.remove('disabled');
+            return;
+          }
+
+          currentCall = call;
+          isCaller = true;
+          isInCall = true;
+          callStartTime = Date.now();
+
+          // Show call screen
+          callName.textContent = targetNumber;
+          callNumber.textContent = targetNumber;
+          callAvatar.textContent = '📞';
+          callSubstatus.textContent = 'Ringing...';
+          callTimer.textContent = '00:00';
+          callScreen.classList.add('active');
+          incomingOverlay.classList.remove('active');
+
+          call.on('stream', (remoteStream) => {
+            log('Remote stream received (caller)', 'success');
+            attachRemoteStream(remoteStream);
+            callSubstatus.textContent = 'Connected';
+            startTimer();
+            showToast('Connected');
+            dialCallBtn.classList.remove('disabled');
+          });
+
+          call.on('close', () => {
+            log('Call closed', 'warning');
+            endCall();
+          });
+
+          call.on('error', (err) => {
+            log('Call error: ' + err.message, 'error');
+            showToast('Call error: ' + err.message);
+            endCall();
+          });
+
+          // ICE monitoring
+          const pc = call.peerConnection;
+          if (pc) {
+            pc.oniceconnectionstatechange = () => {
+              const state = pc.iceConnectionState;
+              log('ICE: ' + state, state === 'connected' || state === 'completed' ? 'success' : 'warning');
+              if (state === 'failed' || state === 'disconnected') {
+                showToast('Connection lost');
+                endCall();
+              } else if (state === 'connected' || state === 'completed') {
+                callSubstatus.textContent = 'Connected';
+              }
+            };
+            // Also monitor gathering state
+            pc.onicegatheringstatechange = () => {
+              log('ICE gathering: ' + pc.iceGatheringState, 'warning');
+            };
+          }
+
+        } catch (err) {
+          log('Call failed: ' + err.message, 'error');
+          showToast('Call failed: ' + err.message);
+          dialCallBtn.classList.remove('disabled');
+          endCall();
+        }
+      }
+
+      // ─── Answer Incoming ──────────────────────────────────────────
+      async function answerIncomingCall() {
+        if (isAnswering || !incomingCall) {
+          log('No incoming call to answer', 'error');
+          return;
+        }
+
+        isAnswering = true;
+        log('Answering call from ' + incomingCall.peer, 'success');
+
+        try {
+          stopRingtone();
+          const stream = await getLocalStream();
+          incomingCall.answer(stream);
+          currentCall = incomingCall;
+          isCaller = false;
+          isInCall = true;
+          callStartTime = Date.now();
+
+          const number = currentCall.peer;
+          callName.textContent = number;
+          callNumber.textContent = number;
+          callAvatar.textContent = '📞';
+          callSubstatus.textContent = 'Connecting...';
+          callTimer.textContent = '00:00';
+          callScreen.classList.add('active');
+          incomingOverlay.classList.remove('active');
+
+          currentCall.on('stream', (remoteStream) => {
+            log('Remote stream received (answerer)', 'success');
+            attachRemoteStream(remoteStream);
+            callSubstatus.textContent = 'Connected';
+            startTimer();
+            showToast('Connected');
+          });
+
+          currentCall.on('close', () => {
+            log('Call closed (answerer)', 'warning');
+            endCall();
+          });
+
+          currentCall.on('error', (err) => {
+            log('Call error (answerer): ' + err.message, 'error');
+            showToast('Call error');
+            endCall();
+          });
+
+          const pc = currentCall.peerConnection;
+          if (pc) {
+            pc.oniceconnectionstatechange = () => {
+              const state = pc.iceConnectionState;
+              log('ICE: ' + state, state === 'connected' || state === 'completed' ? 'success' : 'warning');
+              if (state === 'failed' || state === 'disconnected') {
+                showToast('Connection lost');
+                endCall();
+              } else if (state === 'connected' || state === 'completed') {
+                callSubstatus.textContent = 'Connected';
+              }
+            };
+          }
+
+          incomingCall = null;
+        } catch (err) {
+          log('Answer failed: ' + err.message, 'error');
+          showToast('Answer failed: ' + err.message);
+          if (incomingCall) {
+            incomingCall.close();
+            incomingCall = null;
+          }
+          incomingOverlay.classList.remove('active');
+          isInCall = false;
+        } finally {
+          isAnswering = false;
+        }
+      }
+
+      // ─── Reject Incoming ──────────────────────────────────────────
+      function rejectIncomingCall() {
+        if (incomingCall) {
+          incomingCall.close();
+          incomingCall = null;
+        }
+        stopRingtone();
+        incomingOverlay.classList.remove('active');
+        log('Call rejected', 'error');
+      }
+
+      // ─── End Call ──────────────────────────────────────────────
+      function endCall() {
+        log('Ending call', 'warning');
+
+        if (currentCall) {
+          currentCall.close();
+          currentCall = null;
+        }
+
+        if (remoteAudio.srcObject) {
+          remoteAudio.pause();
+          remoteAudio.srcObject = null;
+        }
+
+        // Don't stop local stream – keep it for next call
+
+        isInCall = false;
+        isCaller = false;
+        isMuted = false;
+        muteBtn.textContent = '🔇';
+        muteBtn.className = 'mute';
+
+        stopRingtone();
+        incomingOverlay.classList.remove('active');
+        callScreen.classList.remove('active');
+
+        if (callTimerInterval) {
+          clearInterval(callTimerInterval);
+          callTimerInterval = null;
+        }
+        callTimer.textContent = '00:00';
+        callSubstatus.textContent = '';
+        dialCallBtn.classList.remove('disabled');
+
+        log('Call ended', 'warning');
+      }
+
+      // ─── Timer ──────────────────────────────────────────────
+      function startTimer() {
+        if (callTimerInterval) clearInterval(callTimerInterval);
+        let seconds = 0;
+        callTimerInterval = setInterval(() => {
+          seconds++;
+          const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+          const s = String(seconds % 60).padStart(2, '0');
+          callTimer.textContent = m + ':' + s;
+        }, 1000);
+      }
+
+      // ─── Check Status ──────────────────────────────────────────
+      function checkStatus() {
+        const num = dialedNumber || prompt('Enter 5-digit number to check:');
+        if (!num) return;
+        if (!peer) {
+          statusResult.textContent = 'Not connected';
+          return;
+        }
+        statusResult.textContent = 'Checking...';
+        log('Checking status for ' + num, 'warning');
+        try {
+          const conn = peer.connect(num);
+          let done = false;
+          conn.on('open', () => {
+            if (!done) { done = true;
+              statusResult.textContent = '✅ Online';
+              log(num + ' is online', 'success');
+              conn.close(); }
+          });
+          conn.on('error', () => {
+            if (!done) { done = true;
+              statusResult.textContent = '❌ Offline';
+              log(num + ' is offline', 'error'); }
+          });
+          setTimeout(() => {
+            if (!done) { done = true;
+              statusResult.textContent = '⏳ Timeout (offline)';
+              log(num + ' timed out', 'error');
+              conn.close(); }
+          }, 3000);
+        } catch (e) {
+          statusResult.textContent = 'Error';
+          log('Status check error: ' + e.message, 'error');
+        }
+      }
+
+      // ─── Dialer ──────────────────────────────────────────────────
+      dialPad.addEventListener('click', (e) => {
+        const key = e.target.closest('.key');
+        if (!key) return;
+        const digit = key.dataset.digit;
+        const action = key.dataset.action;
+
+        if (digit) {
+          if (dialedNumber.length < 15) {
+            dialedNumber += digit;
+            dialDisplay.textContent = dialedNumber;
+          }
+        } else if (action === 'delete') {
+          dialedNumber = dialedNumber.slice(0, -1);
+          dialDisplay.textContent = dialedNumber || 'Enter number';
+          if (!dialedNumber) dialDisplay.innerHTML = '<span class="hint">Enter number</span>';
+        } else if (action === 'clear') {
+          dialedNumber = '';
+          dialDisplay.innerHTML = '<span class="hint">Enter number</span>';
+        } else if (action === 'call') {
+          if (dialedNumber) makeCall(dialedNumber);
+        }
       });
-    }
-  }
 
-  // Clean up media
-  if(currentCall){try{currentCall.close();}catch(e){}currentCall=null;}
-  if(remoteStream){
-    remoteStream.getTracks().forEach(function(t){t.stop();});
-    remoteStream=null;
-  }
-  var audio=getRemoteAudioElement();
-  audio.pause();audio.srcObject=null;
+      // Keyboard support
+      document.addEventListener('keydown', (e) => {
+        if (e.key >= '0' && e.key <= '9') {
+          if (dialedNumber.length < 15) {
+            dialedNumber += e.key;
+            dialDisplay.textContent = dialedNumber;
+          }
+        } else if (e.key === 'Backspace') {
+          dialedNumber = dialedNumber.slice(0, -1);
+          dialDisplay.textContent = dialedNumber || 'Enter number';
+          if (!dialedNumber) dialDisplay.innerHTML = '<span class="hint">Enter number</span>';
+        } else if (e.key === 'Enter') {
+          if (dialedNumber) makeCall(dialedNumber);
+        }
+      });
 
-  // Reset state
-  isInCall=false;
-  isCaller=false;
-  stopRingtone();
-  stopOutgoingRing();
-  clearTimeout(outgoingCallTimeout);
-  incomingOverlay.classList.remove('active');
-  callScreen.classList.remove('active');
-  if(callTimerInterval){clearInterval(callTimerInterval);callTimerInterval=null;}
-  callTimer.textContent='00:00';
-  callStatus.textContent='Connecting...';
-  callStartTime=null;
-  playHangupTone();
+      // ─── Call Screen Controls ──────────────────────────────────
+      hangupCallBtn.addEventListener('click', endCall);
 
-  setTimeout(function(){endingCall=false;},500);
-}
+      muteBtn.addEventListener('click', () => {
+        if (!localStream) {
+          showToast('No microphone available');
+          return;
+        }
+        isMuted = !isMuted;
+        localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+        muteBtn.textContent = isMuted ? '🔊' : '🔇';
+        muteBtn.className = isMuted ? 'mute active' : 'mute';
+        showToast(isMuted ? 'Muted' : 'Unmuted');
+      });
 
-// ===== Messaging =====
-function openChat(number){
-  activeChatPartner=number;
-  chatPartnerName.textContent=getContactName(number);
-  chatPartnerStatus.textContent=onlineStatus[number]===true?'Online':onlineStatus[number]===false?'Offline':'';
-  chatCallBtn.style.display='flex';
-  chatBackBtn.classList.remove('hidden');
-  chatInput.disabled=false;
-  sendMsgBtn.disabled=false;
-  chatInput.focus();
-  renderChatMessages();
-  switchTab('messages');
-  if(unreadCounts[number]){
-    delete unreadCounts[number];
-    localStorage.setItem('premCallUnread',JSON.stringify(unreadCounts));
-    updateMsgBadge();
-  }
-  ensureDataConnection(number);
-}
+      speakerBtn.addEventListener('click', () => {
+        isSpeakerOn = !isSpeakerOn;
+        speakerBtn.className = isSpeakerOn ? 'speaker active' : 'speaker';
+        // Try to use audio output if available
+        if (isSpeakerOn && remoteAudio && typeof remoteAudio.setSinkId === 'function') {
+          // Attempt to switch to speaker (works on some browsers)
+          try {
+            // Just a visual toggle – actual speaker switching is browser-specific
+            showToast(isSpeakerOn ? 'Speaker on' : 'Earpiece');
+          } catch (e) {}
+        } else {
+          showToast(isSpeakerOn ? 'Speaker on' : 'Earpiece');
+        }
+      });
 
-function renderChatMessages(){
-  chatMessages.innerHTML='';
-  if(!activeChatPartner)return;
-  var msgs=messages[activeChatPartner]||[];
-  if(!msgs.length){
-    chatMessages.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="12" y1="7" x2="12" y2="13"/></svg><p>No messages yet</p></div>';
-    return;
-  }
-  msgs.forEach(function(m){
-    appendMessage(m.text,m.type,m.timestamp,false);
-  });
-  chatMessages.scrollTop=chatMessages.scrollHeight;
-}
+      // ─── Incoming Overlay Buttons ──────────────────────────────
+      answerBtn.addEventListener('click', answerIncomingCall);
+      rejectBtn.addEventListener('click', rejectIncomingCall);
 
-function receiveMessage(from,text,timestamp){
-  timestamp=timestamp||Date.now();
-  if(!messages[from])messages[from]=[];
-  messages[from].push({text:text,type:'received',timestamp:timestamp});
-  if(messages[from].length>500)messages[from].shift();
-  localStorage.setItem('premCallMessages',JSON.stringify(messages));
-  if(activeChatPartner===from){
-    appendMessage(text,'received',timestamp,true);
-  }else{
-    unreadCounts[from]=(unreadCounts[from]||0)+1;
-    localStorage.setItem('premCallUnread',JSON.stringify(unreadCounts));
-    updateMsgBadge();
-    showToast('New message from '+getContactName(from),'info',4000);
-  }
-  playMessageTone();
-}
+      // ─── Check Status Button ──────────────────────────────────
+      checkStatusBtn.addEventListener('click', checkStatus);
 
-function sendMessage(text){
-  if(!activeChatPartner){showToast('No chat partner selected','warning');return;}
-  if(!text.trim())return;
-  text=text.trim();
-  var conn=dataConnections[activeChatPartner];
-  if(conn&&conn.open){
-    conn.send({type:'message',text:text,timestamp:Date.now()});
-  }else{
-    if(!msgQueue[activeChatPartner])msgQueue[activeChatPartner]=[];
-    msgQueue[activeChatPartner].push(text);
-    ensureDataConnection(activeChatPartner);
-    showToast('Message queued. Will send when online.','warning',3000);
-  }
-  if(!messages[activeChatPartner])messages[activeChatPartner]=[];
-  messages[activeChatPartner].push({text:text,type:'sent',timestamp:Date.now()});
-  if(messages[activeChatPartner].length>500)messages[activeChatPartner].shift();
-  localStorage.setItem('premCallMessages',JSON.stringify(messages));
-  appendMessage(text,'sent',Date.now(),true);
-}
+      // ─── Auto-load from URL ──────────────────────────────────────
+      (function autoLoad() {
+        const params = new URLSearchParams(window.location.search);
+        const num = params.get('number');
+        if (num && /^\d{5}$/.test(num)) {
+          dialedNumber = num;
+          dialDisplay.textContent = num;
+          setTimeout(() => {
+            if (peer && myNumber) {
+              makeCall(num);
+            }
+          }, 1500);
+        }
+      })();
 
-function appendMessage(text,type,timestamp,scroll){
-  var div=document.createElement('div');
-  div.className='message '+type;
-  div.innerHTML='<div>'+escapeHtml(text)+'</div><div class="msg-time">'+formatTime(timestamp||Date.now())+'</div>';
-  chatMessages.appendChild(div);
-  if(scroll)chatMessages.scrollTop=chatMessages.scrollHeight;
-}
+      // ─── Init ──────────────────────────────────────────────────
+      if (myNumber) {
+        myNumberDisplay.textContent = myNumber;
+        regStatus.textContent = 'Registered: ' + myNumber;
+        regStatus.className = 'reg-status success';
+        log('Loaded number: ' + myNumber, 'success');
+        initPeer();
+      } else {
+        regStatus.textContent = 'Enter a 5-digit number to start.';
+        regStatus.className = 'reg-status';
+        log('No number stored. Register first.', 'warning');
+      }
 
-function updateMsgBadge(){
-  var total=0;
-  Object.values(unreadCounts).forEach(function(c){total+=c;});
-  if(total>0){
-    msgBadge.textContent=total>99?'99+':total;
-    msgBadge.classList.remove('hidden');
-  }else{
-    msgBadge.classList.add('hidden');
-  }
-}
+      log('PremCall ready.', 'success');
 
-// ===== Tab Switching =====
-function switchTab(tabName){
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
-  document.querySelectorAll('.tab-content').forEach(function(tc){tc.classList.remove('active');});
-  document.querySelector('.tab[data-tab="'+tabName+'"]').classList.add('active');
-  document.getElementById('tab'+tabName.charAt(0).toUpperCase()+tabName.slice(1)).classList.add('active');
-}
+      // Export for debugging
+      window.premCall = { makeCall, endCall, peer, getLocalStream };
 
-// ===== Edit Modal =====
-function openEditModal(number){
-  var c=contacts.find(function(x){return x.number===number;});
-  if(!c)return;
-  editTargetNumber=number;
-  editNameInput.value=c.name;
-  editNumberInput.value=c.number;
-  editModal.classList.add('active');
-}
-function closeEditModal(){
-  editModal.classList.remove('active');
-  editTargetNumber=null;
-}
-function saveEditContact(){
-  if(!editTargetNumber)return;
-  var name=editNameInput.value.trim();
-  if(!name){showToast('Name cannot be empty','warning');return;}
-  var idx=contacts.findIndex(function(c){return c.number===editTargetNumber;});
-  if(idx>=0){
-    contacts[idx].name=name;
-    localStorage.setItem('premCallContacts',JSON.stringify(contacts));
-    renderContacts();
-    if(activeChatPartner===editTargetNumber)chatPartnerName.textContent=name;
-    showToast('Contact updated','success');
-  }
-  closeEditModal();
-}
-function deleteEditContact(){
-  if(!editTargetNumber)return;
-  contacts=contacts.filter(function(c){return c.number!==editTargetNumber;});
-  localStorage.setItem('premCallContacts',JSON.stringify(contacts));
-  renderContacts();
-  if(activeChatPartner===editTargetNumber){
-    activeChatPartner=null;
-    chatPartnerName.textContent='Select a contact';
-    chatPartnerStatus.textContent='';
-    chatCallBtn.style.display='none';
-    chatBackBtn.classList.add('hidden');
-    chatInput.disabled=true;
-    sendMsgBtn.disabled=true;
-    chatMessages.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="12" y1="7" x2="12" y2="13"/></svg><p>Double-tap a contact to start chatting</p></div>';
-  }
-  showToast('Contact deleted','success');
-  closeEditModal();
-}
-
-// ===== Event Listeners =====
-dialPad.addEventListener('click',function(e){
-  var key=e.target.closest('.key');
-  if(!key)return;
-  var digit=key.dataset.digit;
-  var action=key.dataset.action;
-  if(digit){dialedNumber+=digit;dialDisplay.textContent=dialedNumber;playDialTone();}
-  else if(action==='delete'){dialedNumber=dialedNumber.slice(0,-1);dialDisplay.textContent=dialedNumber||'Enter number';}
-  else if(action==='clear'){dialedNumber='';dialDisplay.textContent='Enter number';}
-  else if(action==='call'){if(dialedNumber)makeCall(dialedNumber);}
-});
-
-checkStatusBtn.addEventListener('click',function(){
-  var num=dialedNumber||prompt('Enter number to check:');
-  if(num){
-    statusResult.textContent='Checking...';
-    checkSingleOnline(num,function(online){
-      statusResult.textContent=online?'Online':'Offline';
-    });
-  }
-});
-
-refreshContactsBtn.addEventListener('click',refreshAllStatus);
-
-copyNumberBtn.addEventListener('click',function(){
-  if(!myNumber)return;
-  navigator.clipboard.writeText(myNumber).then(function(){
-    showToast('Number copied!','success',2000);
-  }).catch(function(){
-    showToast(myNumber,'info',3000);
-  });
-});
-
-addContactBtn.addEventListener('click',function(){
-  var num=contactInput.value.trim();
-  var name=contactNameInput.value.trim();
-  if(!/^\d+$/.test(num)){showToast('Enter valid number','warning');return;}
-  if(!name){showToast('Enter a name','warning');return;}
-  if(contacts.find(function(c){return c.number===num;})){showToast('Contact already exists','warning');return;}
-  contacts.push({number:num,name:name});
-  localStorage.setItem('premCallContacts',JSON.stringify(contacts));
-  renderContacts();
-  ensureDataConnection(num);
-  contactInput.value='';contactNameInput.value='';
-  showToast('Contact added','success');
-});
-
-sendMsgBtn.addEventListener('click',function(){
-  var text=chatInput.value.trim();
-  if(text){sendMessage(text);chatInput.value='';}
-});
-chatInput.addEventListener('keydown',function(e){if(e.key==='Enter')sendMsgBtn.click();});
-
-chatCallBtn.addEventListener('click',function(){
-  if(activeChatPartner){
-    dialedNumber=activeChatPartner;
-    dialDisplay.textContent=activeChatPartner;
-    switchTab('dialer');
-    makeCall(activeChatPartner);
-  }
-});
-
-chatBackBtn.addEventListener('click',function(){
-  activeChatPartner=null;
-  chatPartnerName.textContent='Select a contact';
-  chatPartnerStatus.textContent='';
-  chatCallBtn.style.display='none';
-  chatBackBtn.classList.add('hidden');
-  chatInput.disabled=true;
-  sendMsgBtn.disabled=true;
-  chatMessages.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="12" y1="7" x2="12" y2="13"/></svg><p>Double-tap a contact to start chatting</p></div>';
-});
-
-clearHistoryBtn.addEventListener('click',function(){
-  callHistory=[];
-  localStorage.setItem('premCallHistory',JSON.stringify(callHistory));
-  renderHistory();
-  showToast('History cleared','success');
-});
-
-answerOverlayBtn.addEventListener('click',answerIncomingCall);
-rejectOverlayBtn.addEventListener('click',function(){
-  if(incomingCall)addCallHistory(incomingCall.peer,'incoming','rejected');
-  rejectIncomingCall();
-});
-
-hangupCallBtn.addEventListener('click',function(){endCall(true);});
-
-muteBtn.addEventListener('click',function(){
-  if(!localStream)return;
-  isMuted=!isMuted;
-  localStream.getAudioTracks().forEach(function(t){t.enabled=!isMuted;});
-  muteBtn.classList.toggle('active',isMuted);
-});
-
-speakerBtn.addEventListener('click',function(){
-  isSpeakerOn=!isSpeakerOn;
-  speakerBtn.classList.toggle('active',isSpeakerOn);
-  showToast(isSpeakerOn?'Speaker on':'Speaker off','info',1500);
-});
-
-document.querySelectorAll('.tab').forEach(function(tab){
-  tab.addEventListener('click',function(){
-    var tabName=tab.dataset.tab;
-    switchTab(tabName);
-    if(tabName==='messages'&&activeChatPartner&&unreadCounts[activeChatPartner]){
-      delete unreadCounts[activeChatPartner];
-      localStorage.setItem('premCallUnread',JSON.stringify(unreadCounts));
-      updateMsgBadge();
-    }
-  });
-});
-
-editSaveBtn.addEventListener('click',saveEditContact);
-editCancelBtn.addEventListener('click',closeEditModal);
-editDeleteBtn.addEventListener('click',deleteEditContact);
-editModal.addEventListener('click',function(e){if(e.target===editModal)closeEditModal();});
-
-// ===== Init =====
-if(myNumber){
-  myNumberDisplay.textContent=myNumber;
-  initPeer();
-  renderContacts();
-  renderHistory();
-  updateMsgBadge();
-  setInterval(function(){if(contacts.length)refreshAllStatus();},30000);
-}else{
-  showRegistration();
-}
-
-console.log('PremCall Pro loaded.');
-})();
-</script>
+    })();
+  </script>
 </body>
 </html>
+
+
