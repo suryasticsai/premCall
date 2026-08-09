@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <title>premCall - Your Phone Number</title>
-
-    <!-- PeerJS SDK from CDN -->
+    <title>premCall - P2P Phone</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -20,17 +17,9 @@
             min-height: 100vh;
         }
         .container { max-width: 600px; width: 100%; }
-        h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.25rem;
-        }
-        .logo-svg { width: 36px; height: 36px; display: inline-block; }
+        .logo { display: flex; align-items: center; gap: 0.75rem; font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .logo svg { width: 36px; height: 36px; }
         .subhead { color: #8892b0; margin-bottom: 1.5rem; font-size: 0.95rem; }
-
         .card {
             background: #141b2b;
             border-radius: 20px;
@@ -39,21 +28,12 @@
             border: 1px solid #23304a;
             box-shadow: 0 8px 24px rgba(0,0,0,0.4);
         }
-        .card-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
+        .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
         .number-display {
             background: #0f1629;
             border: 2px solid #4f8cf7;
             border-radius: 16px;
-            padding: 1rem 1.5rem;
+            padding: 0.75rem 1rem;
             font-size: 2rem;
             font-weight: 700;
             text-align: center;
@@ -62,7 +42,8 @@
             letter-spacing: 2px;
             margin: 0.5rem 0 1rem;
         }
-
+        .input-group { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .input-group input { flex: 1; }
         input, textarea {
             width: 100%;
             padding: 0.75rem;
@@ -73,12 +54,10 @@
             font-size: 1rem;
             transition: border 0.2s;
         }
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: #4f8cf7;
-        }
-        input { margin-bottom: 0.5rem; }
-
+        input:focus { outline: none; border-color: #4f8cf7; }
+        input[type="tel"] { -moz-appearance: textfield; }
+        input[type="tel"]::-webkit-outer-spin-button,
+        input[type="tel"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .flex-row {
             display: flex;
             flex-wrap: wrap;
@@ -86,7 +65,6 @@
             gap: 0.6rem;
             margin: 0.5rem 0 0.8rem;
         }
-
         .btn {
             display: inline-flex;
             align-items: center;
@@ -103,22 +81,8 @@
             color: #e2e8f0;
             min-width: 100px;
         }
-        .btn svg {
-            width: 18px;
-            height: 18px;
-            fill: none;
-            stroke: currentColor;
-            stroke-width: 2;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            flex-shrink: 0;
-        }
-        .btn:disabled {
-            opacity: 0.4;
-            pointer-events: none;
-            filter: grayscale(0.6);
-        }
-
+        .btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+        .btn:disabled { opacity: 0.4; pointer-events: none; filter: grayscale(0.6); }
         .btn-green { background: #1a7a4a; color: #fff; }
         .btn-green:hover:not(:disabled) { background: #1f9b5e; }
         .btn-blue { background: #1a4a8a; color: #fff; }
@@ -127,9 +91,10 @@
         .btn-red:hover:not(:disabled) { background: #b52238; }
         .btn-yellow { background: #a67c1a; color: #fff; }
         .btn-yellow:hover:not(:disabled) { background: #ca9a2a; }
-
+        .btn-outline { background: transparent; border: 1px solid #4a5a7a; }
+        .btn-outline:hover:not(:disabled) { background: #1a2a4a; }
         .status {
-            padding: 0.5rem 0.8rem;
+            padding: 0.3rem 0.8rem;
             border-radius: 40px;
             background: #1a2338;
             font-size: 0.85rem;
@@ -140,7 +105,6 @@
         .status-success { color: #4ade80; }
         .status-error { color: #f87171; }
         .status-warning { color: #fbbf24; }
-
         .call-status {
             padding: 1rem;
             border-radius: 12px;
@@ -148,36 +112,45 @@
             font-weight: 600;
             margin: 0.5rem 0;
         }
+        .call-status.idle { background: #1a2338; color: #94a3b8; }
         .call-status.ringing { background: #a67c1a33; color: #fbbf24; }
         .call-status.connected { background: #1a7a4a33; color: #4ade80; }
-        .call-status.idle { background: #1a2338; color: #94a3b8; }
-        .call-status.error { background: #8a1a2a33; color: #f87171; }
-
+        .call-status.ended { background: #8a1a2a33; color: #f87171; }
         .hidden { display: none !important; }
-
+        .incoming-card {
+            border: 2px solid #fbbf24;
+            background: #1e2a3a;
+            animation: pulse-border 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse-border {
+            0% { border-color: #fbbf24; }
+            50% { border-color: #f59e0b; }
+            100% { border-color: #fbbf24; }
+        }
         @media (max-width: 480px) {
             .btn { min-width: 70px; padding: 0.5rem 1rem; font-size: 0.8rem; }
             .flex-row { gap: 0.4rem; }
-            .number-display { font-size: 1.5rem; padding: 0.75rem 1rem; }
+            .number-display { font-size: 1.5rem; padding: 0.5rem 1rem; }
+            .input-group { flex-wrap: wrap; }
         }
     </style>
 </head>
 <body>
 <div class="container">
 
-    <!-- ─── HEADER ─── -->
+    <!-- Header -->
     <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>
-            <svg class="logo-svg" viewBox="0 0 24 24" fill="none" stroke="#4f8cf7" stroke-width="2">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#4f8cf7" stroke-width="2">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
             </svg>
             premCall
-        </h1>
+        </div>
         <span class="status" id="peerStatus">offline</span>
     </div>
     <p class="subhead">Peer-to-peer audio calls. Your browser is your phone.</p>
 
-    <!-- ─── YOUR PHONE NUMBER ─── -->
+    <!-- Number Management -->
     <div class="card">
         <div class="card-title">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2">
@@ -187,20 +160,28 @@
             Your Number
         </div>
         <div class="number-display" id="myNumberDisplay">---</div>
+        <div class="input-group">
+            <input type="tel" id="customNumberInput" placeholder="Set your own number" inputmode="numeric" />
+            <button class="btn btn-blue" id="setNumberBtn">Set Number</button>
+        </div>
         <div class="flex-row">
             <button class="btn btn-green" id="generateBtn">
                 <svg viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 0 0 4.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 0 1-15.357-2m15.357 2H15"/></svg>
-                Generate New Number
+                Random Number
             </button>
-            <button class="btn btn-blue" id="copyNumberBtn">
+            <button class="btn btn-outline" id="copyNumberBtn">
                 <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                Copy Number
+                Copy
+            </button>
+            <button class="btn btn-outline" id="shareLinkBtn">
+                <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                Share Link
             </button>
         </div>
-        <div class="status" id="numberStatus">Click "Generate" to claim your number.</div>
+        <div class="status" id="numberStatus">Set a number to start.</div>
     </div>
 
-    <!-- ─── DIALER ─── -->
+    <!-- Dialer -->
     <div class="card">
         <div class="card-title">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2">
@@ -209,7 +190,7 @@
             </svg>
             Dialer
         </div>
-        <input type="text" id="dialInput" placeholder="Enter number to call (e.g. 12345)" />
+        <input type="tel" id="dialInput" placeholder="Enter number to call (digits only)" inputmode="numeric" />
         <div class="flex-row">
             <button class="btn btn-green" id="callBtn">
                 <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
@@ -224,13 +205,13 @@
         <div class="status" id="callStatus">Ready to call.</div>
     </div>
 
-    <!-- ─── INCOMING CALL (hidden until someone calls you) ─── -->
-    <div class="card hidden" id="incomingCard" style="border-color: #fbbf24;">
+    <!-- Incoming Call -->
+    <div class="card incoming-card hidden" id="incomingCard">
         <div class="card-title" style="color: #fbbf24;">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
             </svg>
-            📞 Incoming Call
+            Incoming Call
         </div>
         <p style="font-size: 1.2rem; margin-bottom: 0.5rem;">From: <strong id="callerIdDisplay">Unknown</strong></p>
         <div class="flex-row">
@@ -245,7 +226,7 @@
         </div>
     </div>
 
-    <!-- ─── CALL CONTROLS (in-call) ─── -->
+    <!-- Call Controls -->
     <div class="card hidden" id="callControls">
         <div class="card-title">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2">
@@ -277,8 +258,11 @@
 
         // ─── DOM refs ───
         const myNumberDisplay = document.getElementById('myNumberDisplay');
+        const customNumberInput = document.getElementById('customNumberInput');
+        const setNumberBtn = document.getElementById('setNumberBtn');
         const generateBtn = document.getElementById('generateBtn');
         const copyNumberBtn = document.getElementById('copyNumberBtn');
+        const shareLinkBtn = document.getElementById('shareLinkBtn');
         const numberStatus = document.getElementById('numberStatus');
         const peerStatus = document.getElementById('peerStatus');
         const dialInput = document.getElementById('dialInput');
@@ -297,16 +281,17 @@
 
         // ─── State ───
         let myNumber = localStorage.getItem('premCallNumber') || null;
-        let peer = null;           // PeerJS instance
-        let currentCall = null;    // PeerJS MediaConnection
+        let peer = null;
+        let currentCall = null;
         let localStream = null;
         let remoteStream = null;
         let isMuted = false;
         let isInCall = false;
         let isCaller = false;
-        let incomingCall = null;   // Stored incoming call for answering
+        let incomingCall = null;
+        let ringtoneInterval = null;
 
-        // ─── Helper: Status updates ───
+        // ─── Helpers ───
         function setStatus(el, text, type) {
             el.textContent = text;
             el.className = 'status';
@@ -318,155 +303,135 @@
             callStatusDisplay.className = 'call-status ' + (type || 'idle');
         }
 
-        // ─── Generate a random 5-8 digit number ───
-        function generateNumber() {
-            const length = 5 + Math.floor(Math.random() * 4); // 5-8 digits
-            let num = '';
-            for (let i = 0; i < length; i++) {
-                num += Math.floor(Math.random() * 10);
+        function showError(msg) {
+            alert('Error: ' + msg);
+        }
+
+        // ─── Number management ───
+        function setMyNumber(newNumber) {
+            if (!/^\d+$/.test(newNumber)) {
+                setStatus(numberStatus, 'Invalid number. Use digits only.', 'error');
+                return false;
             }
+            myNumber = newNumber;
+            localStorage.setItem('premCallNumber', newNumber);
+            myNumberDisplay.textContent = newNumber;
+            setStatus(numberStatus, 'Number set to ' + newNumber, 'success');
+            // Re‑init peer with new ID
+            initPeer();
+            return true;
+        }
+
+        function generateRandomNumber() {
+            const length = 5 + Math.floor(Math.random() * 4);
+            let num = '';
+            for (let i = 0; i < length; i++) num += Math.floor(Math.random() * 10);
             return num;
         }
 
-        // ─── Initialize PeerJS ───
+        // ─── PeerJS init ───
         function initPeer() {
             if (peer) {
                 peer.destroy();
                 peer = null;
             }
-
-            // Use the phone number as the Peer ID
-            const id = myNumber;
-            if (!id) {
-                setStatus(peerStatus, 'no number set', 'error');
+            if (!myNumber) {
+                setStatus(peerStatus, 'no number', 'error');
                 return;
             }
 
-            // Connect to PeerJS cloud server (free, public)
-            // Using 'peerjs.com' as the default cloud server
-            peer = new Peer(id, {
+            peer = new Peer(myNumber, {
                 debug: 2,
                 config: {
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        { urls: 'stun:stun3.l.google.com:19302' },
+                        { urls: 'stun:stun4.l.google.com:19302' },
+                        { urls: 'stun:stun.ekiga.net' },
+                        { urls: 'stun:stun.ideasip.com' },
+                        { urls: 'stun:stun.voipstunt.com' },
+                        { urls: 'stun:stun.voipcheap.com' }
                     ]
                 }
             });
 
             peer.on('open', () => {
-                setStatus(peerStatus, 'online (peerjs)', 'success');
-                setStatus(numberStatus, 'Number registered! You can receive calls.', 'success');
-                console.log('✅ PeerJS online with ID:', id);
+                setStatus(peerStatus, 'online', 'success');
+                setStatus(numberStatus, 'Registered and ready.', 'success');
+                console.log('✅ PeerJS online ID:', myNumber);
             });
 
             peer.on('error', (err) => {
                 console.error('PeerJS error:', err);
-                setStatus(peerStatus, 'error: ' + err.type, 'error');
-                // If the ID is taken, generate a new one
                 if (err.type === 'unavailable-id') {
-                    setStatus(numberStatus, '⚠️ Number already taken. Generate a new one.', 'error');
+                    setStatus(numberStatus, 'Number already taken. Generate a new one.', 'error');
+                    setStatus(peerStatus, 'unavailable', 'error');
+                } else {
+                    setStatus(peerStatus, 'error: ' + err.type, 'error');
                 }
             });
 
-            peer.on('connection', (conn) => {
-                console.log('🔗 Incoming data connection from:', conn.peer);
-            });
-
             peer.on('call', (call) => {
-                // Incoming call!
+                // Incoming call
+                if (isInCall) {
+                    // Already in a call – reject
+                    call.close();
+                    console.log('Rejected incoming call from ' + call.peer + ' (already in call)');
+                    return;
+                }
                 console.log('📞 Incoming call from:', call.peer);
                 incomingCall = call;
                 callerIdDisplay.textContent = call.peer;
                 incomingCard.classList.remove('hidden');
                 setCallStatus('📞 Incoming call from ' + call.peer, 'ringing');
                 setStatus(callStatus, 'Incoming call...', 'warning');
-                // Play a ringtone? We'll use a simple beep via Web Audio
                 playRingtone();
             });
 
             peer.on('close', () => {
                 setStatus(peerStatus, 'offline', 'error');
-                console.log('PeerJS closed');
+                if (isInCall) endCall();
             });
 
             peer.on('disconnected', () => {
                 setStatus(peerStatus, 'disconnected', 'error');
-                console.log('PeerJS disconnected');
-                // Try to reconnect
                 setTimeout(() => { if (peer) peer.reconnect(); }, 3000);
             });
         }
 
-        // ─── Simple ringtone using Web Audio ───
-        let ringtoneContext = null;
-        let ringtoneOscillator = null;
-
+        // ─── Ringtone ───
         function playRingtone() {
-            try {
-                if (!ringtoneContext) {
-                    ringtoneContext = new (window.AudioContext || window.webkitAudioContext)();
+            stopRingtone();
+            let ctx = new (window.AudioContext || window.webkitAudioContext)();
+            let count = 0;
+            ringtoneInterval = setInterval(() => {
+                if (count >= 12 || incomingCard.classList.contains('hidden')) {
+                    stopRingtone();
+                    return;
                 }
-                // Stop any existing ringtone
-                if (ringtoneOscillator) {
-                    ringtoneOscillator.stop();
-                    ringtoneOscillator = null;
-                }
-
-                const osc = ringtoneContext.createOscillator();
-                const gain = ringtoneContext.createGain();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
                 osc.connect(gain);
-                gain.connect(ringtoneContext.destination);
-                osc.frequency.value = 440;
-                gain.gain.value = 0.2;
+                gain.connect(ctx.destination);
+                osc.frequency.value = count % 2 === 0 ? 440 : 330;
                 osc.type = 'sine';
-                osc.start();
-                // Create a simple beep pattern
-                let count = 0;
-                const interval = setInterval(() => {
-                    if (count >= 6 || !incomingCard || incomingCard.classList.contains('hidden')) {
-                        clearInterval(interval);
-                        if (ringtoneOscillator) {
-                            ringtoneOscillator.stop();
-                            ringtoneOscillator = null;
-                        }
-                        return;
-                    }
-                    if (ringtoneOscillator) {
-                        ringtoneOscillator.stop();
-                        ringtoneOscillator = null;
-                    }
-                    const newOsc = ringtoneContext.createOscillator();
-                    const newGain = ringtoneContext.createGain();
-                    newOsc.connect(newGain);
-                    newGain.connect(ringtoneContext.destination);
-                    newOsc.frequency.value = count % 2 === 0 ? 440 : 330;
-                    newGain.gain.value = 0.15;
-                    newOsc.type = 'sine';
-                    newOsc.start();
-                    newOsc.stop(ringtoneContext.currentTime + 0.3);
-                    ringtoneOscillator = newOsc;
-                    count++;
-                }, 400);
-                // Store interval to clear later
-                window._ringtoneInterval = interval;
-            } catch (e) {
-                console.warn('Ringtone error:', e);
-            }
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.3);
+                count++;
+            }, 400);
         }
 
         function stopRingtone() {
-            if (window._ringtoneInterval) {
-                clearInterval(window._ringtoneInterval);
-                window._ringtoneInterval = null;
-            }
-            if (ringtoneOscillator) {
-                ringtoneOscillator.stop();
-                ringtoneOscillator = null;
+            if (ringtoneInterval) {
+                clearInterval(ringtoneInterval);
+                ringtoneInterval = null;
             }
         }
 
-        // ─── Get microphone stream ───
+        // ─── Microphone ───
         async function getLocalStream() {
             if (!localStream) {
                 localStream = await navigator.mediaDevices.getUserMedia({
@@ -476,18 +441,22 @@
             return localStream;
         }
 
-        // ─── Make an outgoing call ───
+        // ─── Make call ───
         async function makeCall(targetNumber) {
-            if (!peer) {
-                setStatus(callStatus, 'Peer not initialized. Generate a number first.', 'error');
-                return;
-            }
             if (isInCall) {
                 setStatus(callStatus, 'Already in a call.', 'error');
                 return;
             }
+            if (!peer) {
+                setStatus(callStatus, 'No peer instance. Set a number first.', 'error');
+                return;
+            }
             if (targetNumber === myNumber) {
                 setStatus(callStatus, 'Cannot call yourself.', 'error');
+                return;
+            }
+            if (!/^\d+$/.test(targetNumber)) {
+                setStatus(callStatus, 'Invalid number. Use digits only.', 'error');
                 return;
             }
 
@@ -496,10 +465,7 @@
                 setStatus(callStatus, 'Connecting...', 'warning');
                 callBtn.disabled = true;
 
-                // Get microphone
                 await getLocalStream();
-
-                // Call the target peer
                 const call = peer.call(targetNumber, localStream);
                 currentCall = call;
                 isCaller = true;
@@ -526,22 +492,22 @@
                 call.on('error', (err) => {
                     console.error('Call error:', err);
                     setStatus(callStatus, 'Call error: ' + err.message, 'error');
-                    setCallStatus('❌ Call failed', 'error');
+                    setCallStatus('❌ Call failed', 'ended');
                     endCall();
                 });
 
             } catch (err) {
                 console.error('Make call error:', err);
                 setStatus(callStatus, 'Failed: ' + err.message, 'error');
-                setCallStatus('❌ Failed to call', 'error');
+                setCallStatus('❌ Failed to call', 'ended');
                 callBtn.disabled = false;
+                isInCall = false;
             }
         }
 
-        // ─── Answer an incoming call ───
+        // ─── Answer incoming ───
         async function answerIncomingCall() {
-            if (!incomingCall) return;
-
+            if (!incomingCall || isInCall) return;
             try {
                 stopRingtone();
                 await getLocalStream();
@@ -581,10 +547,11 @@
                 setStatus(callStatus, 'Failed to answer: ' + err.message, 'error');
                 incomingCall = null;
                 incomingCard.classList.add('hidden');
+                isInCall = false;
             }
         }
 
-        // ─── Reject incoming call ───
+        // ─── Reject incoming ───
         function rejectIncomingCall() {
             if (incomingCall) {
                 incomingCall.close();
@@ -593,10 +560,10 @@
             stopRingtone();
             incomingCard.classList.add('hidden');
             setCallStatus('📴 Call rejected', 'idle');
-            setStatus(callStatus, 'Call rejected.', 'error');
+            setStatus(callStatus, 'Rejected.', 'error');
         }
 
-        // ─── Show call controls ───
+        // ─── UI controls ───
         function showCallControls(peerId) {
             remotePeerDisplay.textContent = peerId;
             callControls.classList.remove('hidden');
@@ -604,7 +571,6 @@
             callBtn.classList.add('hidden');
         }
 
-        // ─── Hide call controls ───
         function hideCallControls() {
             callControls.classList.add('hidden');
             hangupBtn.classList.add('hidden');
@@ -622,7 +588,6 @@
                 remoteStream.getTracks().forEach(t => t.stop());
                 remoteStream = null;
             }
-            // Don't stop local stream - reuse it
             const remoteAudio = document.getElementById('remoteAudio');
             if (remoteAudio) remoteAudio.remove();
 
@@ -637,24 +602,29 @@
             incomingCall = null;
         }
 
-        // ─── Generate new number ───
-        generateBtn.addEventListener('click', () => {
-            const newNumber = generateNumber();
-            myNumber = newNumber;
-            localStorage.setItem('premCallNumber', newNumber);
-            myNumberDisplay.textContent = newNumber;
-            setStatus(numberStatus, 'New number generated: ' + newNumber, 'success');
-            // Reinitialize peer with new ID
-            initPeer();
+        // ─── Event listeners ───
+
+        // Set Number
+        setNumberBtn.addEventListener('click', () => {
+            const val = customNumberInput.value.trim();
+            if (!val) return;
+            setMyNumber(val);
         });
 
-        // ─── Copy number ───
+        // Random Number
+        generateBtn.addEventListener('click', () => {
+            const newNum = generateRandomNumber();
+            setMyNumber(newNum);
+            customNumberInput.value = '';
+        });
+
+        // Copy Number
         copyNumberBtn.addEventListener('click', () => {
             if (myNumber) {
                 navigator.clipboard.writeText(myNumber).then(() => {
                     setStatus(numberStatus, 'Number copied!', 'success');
                 }).catch(() => {
-                    // Fallback
+                    // fallback
                     const range = document.createRange();
                     range.selectNode(myNumberDisplay);
                     window.getSelection().removeAllRanges();
@@ -665,37 +635,44 @@
             }
         });
 
-        // ─── Call button ───
+        // Share Link
+        shareLinkBtn.addEventListener('click', () => {
+            if (!myNumber) {
+                setStatus(numberStatus, 'Set a number first.', 'error');
+                return;
+            }
+            const url = window.location.href.split('?')[0] + '?number=' + myNumber;
+            navigator.clipboard.writeText(url).then(() => {
+                setStatus(numberStatus, 'Share link copied!', 'success');
+            }).catch(() => {
+                // fallback: show in alert
+                alert('Share this link:\n' + url);
+            });
+        });
+
+        // Call
         callBtn.addEventListener('click', () => {
             const target = dialInput.value.trim();
             if (!target) {
-                setStatus(callStatus, 'Please enter a number.', 'error');
-                return;
-            }
-            if (!/^\d+$/.test(target)) {
-                setStatus(callStatus, 'Invalid number. Use digits only.', 'error');
-                return;
-            }
-            if (!peer) {
-                setStatus(callStatus, 'Generate a number first.', 'error');
+                setStatus(callStatus, 'Enter a number.', 'error');
                 return;
             }
             makeCall(target);
         });
 
-        // ─── Hangup button (from dialer) ───
+        // Hangup
         hangupBtn.addEventListener('click', endCall);
 
-        // ─── Answer button ───
+        // Answer
         answerBtn.addEventListener('click', answerIncomingCall);
 
-        // ─── Reject button ───
+        // Reject
         rejectBtn.addEventListener('click', rejectIncomingCall);
 
-        // ─── End call button (from call controls) ───
+        // End Call (from controls)
         endCallBtn.addEventListener('click', endCall);
 
-        // ─── Mute button ───
+        // Mute
         muteBtn.addEventListener('click', () => {
             if (!localStream) return;
             isMuted = !isMuted;
@@ -705,29 +682,17 @@
                 `<svg viewBox="0 0 24 24"><polyline points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M23 7l-4 5m0-5l4 5"/></svg> Mute`;
         });
 
-        // ─── Enter key to call ───
+        // Enter key on dial input
         dialInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                callBtn.click();
-            }
+            if (e.key === 'Enter') callBtn.click();
         });
 
-        // ─── Initialize on load ───
-        (function init() {
-            if (myNumber) {
-                myNumberDisplay.textContent = myNumber;
-                setStatus(numberStatus, 'Welcome back! Your number: ' + myNumber, 'success');
-                initPeer();
-            } else {
-                myNumberDisplay.textContent = '---';
-                setStatus(numberStatus, 'Click "Generate" to claim your number.', 'warning');
-            }
-
-            // Check if URL has a ?number= parameter for auto-dial
+        // ─── Auto-load from URL ───
+        (function autoLoad() {
             const params = new URLSearchParams(window.location.search);
-            const autoNumber = params.get('number');
-            if (autoNumber) {
-                dialInput.value = autoNumber;
+            const num = params.get('number');
+            if (num) {
+                dialInput.value = num;
                 // Auto-call after a short delay
                 setTimeout(() => {
                     if (peer && myNumber) {
@@ -737,9 +702,18 @@
             }
         })();
 
-        console.log('premCall loaded. Your number:', myNumber);
-        console.log('Share this link to auto-dial: ' + window.location.origin + window.location.pathname + '?number=' + myNumber);
+        // ─── Initialize ───
+        if (myNumber) {
+            myNumberDisplay.textContent = myNumber;
+            setStatus(numberStatus, 'Welcome back! Your number: ' + myNumber, 'success');
+            initPeer();
+        } else {
+            myNumberDisplay.textContent = '---';
+            setStatus(numberStatus, 'Set a number to start.', 'warning');
+        }
 
+        console.log('premCall loaded. Your number:', myNumber);
+        console.log('Share link: ' + window.location.href.split('?')[0] + '?number=' + (myNumber || 'YOUR_NUMBER'));
     })();
 </script>
 </body>
