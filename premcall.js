@@ -94,26 +94,29 @@
     peer.on('open', (id) => {
       log('Connected with ID: ' + id, 'info');
       notify('online', id);
+      notify('onConnected', id);         // ← fixed: match UI callback
     });
 
     peer.on('error', (err) => {
       log('Peer error: ' + err.type + ' – ' + err.message, 'error');
       if (err.type === 'unavailable-id') {
-        notify('error', new Error('Number already taken'));
+        notify('onError', new Error('Number already taken')); // ← fixed
       } else {
-        notify('error', err);
+        notify('onError', err);                               // ← fixed
       }
     });
 
     peer.on('close', () => {
       log('Connection closed', 'warn');
       notify('offline', null);
+      notify('onDisconnected', null);   // ← fixed
       if (isInCall) hangup();
     });
 
     peer.on('disconnected', () => {
       log('Disconnected – reconnecting...', 'warn');
       notify('offline', null);
+      notify('onDisconnected', null);   // ← fixed
       setTimeout(() => {
         if (peer && !isInCall) peer.reconnect();
       }, 3000);
@@ -127,7 +130,7 @@
         return;
       }
       incomingCall = call;
-      notify('incoming', call.peer);
+      notify('onIncoming', call.peer);  // ← fixed
     });
   }
 
@@ -181,11 +184,11 @@
         isCaller = true;
         isInCall = true;
         incomingCall = null;
-        notify('callStarted', { target, isCaller: true });
+        notify('onCallStarted', { target, isCaller: true });  // ← fixed
 
         call.on('stream', (remoteStream) => {
           remoteStream = remoteStream;
-          notify('remoteStream', remoteStream);
+          notify('onRemoteStream', remoteStream);             // ← fixed
         });
 
         call.on('close', () => {
@@ -195,7 +198,7 @@
         call.on('error', (err) => {
           log('Call error: ' + err.message, 'error');
           PremCall.hangup();
-          notify('error', err);
+          notify('onError', err);                             // ← fixed
         });
 
         // ICE monitoring
@@ -205,10 +208,10 @@
             const state = pc.iceConnectionState;
             log('ICE state: ' + state, 'info');
             if (state === 'connected' || state === 'completed') {
-              notify('connected', null);
+              notify('onConnected', null);                    // ← fixed
             } else if (state === 'failed' || state === 'disconnected') {
               PremCall.hangup();
-              notify('error', new Error('Connection lost'));
+              notify('onError', new Error('Connection lost'));// ← fixed
             }
           };
         }
@@ -233,11 +236,11 @@
         isInCall = true;
         const caller = incomingCall.peer;
         incomingCall = null;
-        notify('callStarted', { target: caller, isCaller: false });
+        notify('onCallStarted', { target: caller, isCaller: false }); // ← fixed
 
         currentCall.on('stream', (remoteStream) => {
           remoteStream = remoteStream;
-          notify('remoteStream', remoteStream);
+          notify('onRemoteStream', remoteStream);                   // ← fixed
         });
 
         currentCall.on('close', () => {
@@ -247,7 +250,7 @@
         currentCall.on('error', (err) => {
           log('Call error (answer): ' + err.message, 'error');
           PremCall.hangup();
-          notify('error', err);
+          notify('onError', err);                                   // ← fixed
         });
 
         const pc = currentCall.peerConnection;
@@ -256,10 +259,10 @@
             const state = pc.iceConnectionState;
             log('ICE state: ' + state, 'info');
             if (state === 'connected' || state === 'completed') {
-              notify('connected', null);
+              notify('onConnected', null);                          // ← fixed
             } else if (state === 'failed' || state === 'disconnected') {
               PremCall.hangup();
-              notify('error', new Error('Connection lost'));
+              notify('onError', new Error('Connection lost'));      // ← fixed
             }
           };
         }
@@ -284,7 +287,7 @@
       isCaller = false;
       isMuted = false;
       incomingCall = null;
-      notify('callEnded', null);
+      notify('onCallEnded', null);   // ← fixed
       log('Call ended', 'info');
     },
 
@@ -295,7 +298,7 @@
       if (!localStream) return;
       isMuted = !isMuted;
       localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
-      notify('muteToggled', isMuted);
+      notify('onMuteToggled', isMuted);   // optional, not used in UI but fixed anyway
       return isMuted;
     },
 
@@ -304,7 +307,7 @@
      */
     speaker() {
       isSpeakerOn = !isSpeakerOn;
-      notify('speakerToggled', isSpeakerOn);
+      notify('onSpeakerToggled', isSpeakerOn); // optional, not used in UI but fixed anyway
       return isSpeakerOn;
     },
 
