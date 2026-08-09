@@ -6,6 +6,7 @@
   <title>premCall</title>
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
+    /* same styles as before – kept for brevity */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -308,12 +309,12 @@
     let ringtoneInterval = null;
     let remoteAudioElement = null;
     let iceFailed = false;
+    let isAnswering = false; // Prevent double answer
 
     // ─── ICE Servers (STUN + TURN with valid credentials) ──────
     function getIceServers() {
       return {
         iceServers: [
-          // STUN servers
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
           { urls: 'stun:stun2.l.google.com:19302' },
@@ -321,7 +322,6 @@
           { urls: 'stun:stun4.l.google.com:19302' },
           { urls: 'stun:stun.ekiga.net' },
           { urls: 'stun:stun.ideasip.com' },
-          // TURN server with public test credentials (numb.viagenie.ca)
           {
             urls: [
               'turn:numb.viagenie.ca:3478',
@@ -440,6 +440,8 @@
         setCallStatus('📞 Incoming call from ' + call.peer, 'ringing');
         setStatus(callStatus, 'Incoming call...', 'warning');
         playRingtone();
+        // Enable answer button
+        answerBtn.disabled = false;
       });
 
       peer.on('close', () => {
@@ -601,17 +603,34 @@
       }
     }
 
-    // ─── Answer incoming ──────────────────────────────────────────
+    // ─── Answer incoming (FIXED) ────────────────────────────────
     async function answerIncomingCall() {
-      if (!incomingCall || isInCall) return;
+      // Prevent double answer
+      if (isAnswering) return;
+      if (!incomingCall) {
+        console.warn('No incoming call to answer');
+        return;
+      }
+      if (isInCall) {
+        console.warn('Already in a call, cannot answer');
+        return;
+      }
+
+      isAnswering = true;
+      answerBtn.disabled = true;
+
       try {
         stopRingtone();
+        // Get microphone – this will prompt for permission if needed
         await getLocalStream();
+
+        // Answer the call with the local stream
         incomingCall.answer(localStream);
         currentCall = incomingCall;
         isCaller = false;
         isInCall = true;
 
+        // Set up listeners on the current call
         const pc = currentCall.peerConnection;
         if (pc) {
           pc.oniceconnectionstatechange = () => {
@@ -645,15 +664,28 @@
           endCall();
         });
 
+        // Clear the incoming call reference
         incomingCall = null;
         callBtn.disabled = false;
+
+        // Hide incoming card (already hidden by showCallControls)
+        incomingCard.classList.add('hidden');
 
       } catch (err) {
         console.error('Answer error:', err);
         setStatus(callStatus, 'Failed to answer: ' + err.message, 'error');
-        incomingCall = null;
+        setCallStatus('❌ Answer failed', 'ended');
+        // If we failed to answer, close the incoming call
+        if (incomingCall) {
+          incomingCall.close();
+          incomingCall = null;
+        }
         incomingCard.classList.add('hidden');
         isInCall = false;
+        // Re‑enable answer button (though the call is gone)
+        answerBtn.disabled = false;
+      } finally {
+        isAnswering = false;
       }
     }
 
@@ -667,6 +699,7 @@
       incomingCard.classList.add('hidden');
       setCallStatus('📴 Call rejected', 'idle');
       setStatus(callStatus, 'Rejected.', 'error');
+      answerBtn.disabled = false;
     }
 
     // ─── UI controls ──────────────────────────────────────────────
@@ -709,6 +742,8 @@
       incomingCall = null;
       audioOverlay.classList.add('hidden');
       iceFailed = false;
+      answerBtn.disabled = false;
+      isAnswering = false;
     }
 
     // ─── Play Audio button ──────────────────────────────────────
@@ -776,6 +811,7 @@
 
     hangupBtn.addEventListener('click', endCall);
 
+    // Answer button now calls the improved function
     answerBtn.addEventListener('click', answerIncomingCall);
 
     rejectBtn.addEventListener('click', rejectIncomingCall);
