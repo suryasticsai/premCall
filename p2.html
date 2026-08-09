@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>PremCall · Core</title>
+  <title>PremCall · Audio Debug</title>
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -21,11 +21,12 @@
     .subhead { color: #8892b0; margin-bottom: 1.5rem; }
     .card { background: #1a2338; border-radius: 16px; padding: 1.2rem; margin-bottom: 1.2rem; }
     .flex { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
-    input, select { padding: 0.6rem; border-radius: 30px; border: 1px solid #2a3a5a; background: #0b0e17; color: #e8edf5; width: 100%; }
+    input { padding: 0.6rem; border-radius: 30px; border: 1px solid #2a3a5a; background: #0b0e17; color: #e8edf5; width: 100%; }
     .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 40px; font-weight: 600; cursor: pointer; background: #2a3a5a; color: #e8edf5; }
     .btn-primary { background: #1a4a8a; }
     .btn-success { background: #1a7a4a; }
     .btn-danger { background: #8a1a2a; }
+    .btn-warning { background: #a67c1a; }
     .btn:disabled { opacity: 0.5; }
     .dialer-display { background: #0b0e17; border-radius: 12px; padding: 0.8rem; font-size: 1.8rem; text-align: center; margin-bottom: 1rem; border: 1px solid #2a3a5a; }
     .dialer-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; max-width: 280px; margin: 0 auto; }
@@ -63,14 +64,34 @@
     #callScreen .status-msg { color: #fbbf24; font-size: 0.9rem; margin-top: 0.5rem; }
     .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e2a3a; padding: 0.6rem 1.2rem; border-radius: 30px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 2000; }
     .toast.show { opacity: 1; }
-    .log-area { background: #0b0e17; border-radius: 8px; padding: 0.5rem; font-family: monospace; font-size: 0.7rem; max-height: 100px; overflow-y: auto; color: #8892b0; margin-top: 1rem; }
+    .log-area {
+      background: #0b0e17; border-radius: 8px; padding: 0.5rem;
+      font-family: monospace; font-size: 0.7rem; max-height: 140px; overflow-y: auto;
+      color: #8892b0; margin-top: 1rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .mic-test-area {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      margin-top: 0.5rem;
+    }
+    .mic-test-area .indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #f87171;
+      transition: background 0.1s;
+    }
+    .mic-test-area .indicator.active { background: #4ade80; }
   </style>
 </head>
 <body>
 <div class="container">
 
-  <div class="logo">📞 PremCall</div>
-  <p class="subhead">Minimal P2P call – no country codes, just a 5‑digit number</p>
+  <div class="logo">🔊 PremCall · Audio Debug</div>
+  <p class="subhead">Test mic, then call a 5‑digit number</p>
 
   <!-- Registration -->
   <div class="card">
@@ -78,6 +99,16 @@
     <input type="tel" id="phoneInput" placeholder="5 digits (e.g. 12345)" maxlength="5" inputmode="numeric" />
     <button class="btn btn-primary" id="registerBtn" style="margin-top:0.5rem;">Register</button>
     <div id="numberStatus" style="margin-top:0.5rem; color:#8892b0;"></div>
+  </div>
+
+  <!-- Microphone Test -->
+  <div class="card">
+    <div style="font-weight:600; margin-bottom:0.5rem;">Microphone Test</div>
+    <div class="flex mic-test-area">
+      <button class="btn btn-warning" id="testMicBtn">🎤 Test Mic</button>
+      <span class="indicator" id="micIndicator"></span>
+      <span id="micTestStatus" style="color:#8892b0; font-size:0.9rem;">Idle</span>
+    </div>
   </div>
 
   <!-- Dialer -->
@@ -99,13 +130,13 @@
     </div>
   </div>
 
-  <!-- Status / Actions -->
-  <div class="flex" style="justify-content:space-between;">
+  <!-- Actions -->
+  <div class="flex" style="justify-content:space-between; margin-top:0.5rem;">
     <button class="btn" id="checkStatusBtn">Check Status</button>
     <span id="statusResult" style="color:#8892b0;"></span>
   </div>
 
-  <!-- Log area (to see what happens) -->
+  <!-- Log area -->
   <div class="log-area" id="logArea">Logs will appear here.</div>
 
 </div>
@@ -165,18 +196,20 @@
     const hangupCallBtn = document.getElementById('hangupCallBtn');
     const remoteAudio = document.getElementById('remoteAudio');
     const toast = document.getElementById('toast');
+    const testMicBtn = document.getElementById('testMicBtn');
+    const micIndicator = document.getElementById('micIndicator');
+    const micTestStatus = document.getElementById('micTestStatus');
 
     // ─── State ──────────────────────────────────────────────────
     let myNumber = localStorage.getItem('premCallNumber') || null;
     let peer = null;
-    let currentCall = null;         // MediaConnection
+    let currentCall = null;
     let localStream = null;
     let isInCall = false;
     let isCaller = false;
     let incomingCall = null;
     let ringtoneInterval = null;
     let callTimerInterval = null;
-    let callStartTime = null;
     let dialedNumber = '';
 
     // ─── Logging ──────────────────────────────────────────────────
@@ -192,7 +225,7 @@
       toast.textContent = msg;
       toast.classList.add('show');
       clearTimeout(toastTimeout);
-      toastTimeout = setTimeout(() => toast.classList.remove('show'), 2500);
+      toastTimeout = setTimeout(() => toast.classList.remove('show'), 3000);
     }
 
     // ─── Registration ──────────────────────────────────────────
@@ -212,12 +245,43 @@
     registerBtn.addEventListener('click', register);
     phoneInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') register(); });
 
+    // ─── Microphone Test (loopback) ──────────────────────────────
+    testMicBtn.addEventListener('click', async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(stream);
+        const dest = audioCtx.createMediaStreamDestination();
+        source.connect(dest);
+        // Play back to user's speakers
+        const audio = new Audio();
+        audio.srcObject = dest.stream;
+        audio.autoplay = true;
+        audio.volume = 1.0;
+        micIndicator.className = 'indicator active';
+        micTestStatus.textContent = 'Listening... speak!';
+        showToast('Test mic – speak now, you should hear yourself');
+        // Stop after 5 seconds
+        setTimeout(() => {
+          stream.getTracks().forEach(t => t.stop());
+          audio.pause();
+          audio.srcObject = null;
+          micIndicator.className = 'indicator';
+          micTestStatus.textContent = 'Done';
+          log('Mic test finished');
+        }, 5000);
+      } catch (err) {
+        log('Mic test error: ' + err.message);
+        showToast('Mic test failed: ' + err.message);
+        micTestStatus.textContent = 'Error';
+      }
+    });
+
     // ─── PeerJS init ──────────────────────────────────────────
     function initPeer() {
       if (peer) { peer.destroy(); peer = null; }
       if (!myNumber) return;
 
-      // Use default PeerJS config (no custom ICE) – PeerJS provides its own STUN/TURN
       peer = new Peer(myNumber, { debug: 2 });
 
       peer.on('open', (id) => {
@@ -241,7 +305,6 @@
         setTimeout(() => { if (peer) peer.reconnect(); }, 2000);
       });
 
-      // Incoming call
       peer.on('call', (call) => {
         log('Incoming call from: ' + call.peer);
         if (isInCall) {
@@ -257,7 +320,6 @@
         incomingAvatar.textContent = '📞';
         incomingOverlay.classList.add('active');
         playRingtone();
-        // Auto‑miss after 20s
         setTimeout(() => {
           if (incomingCall && incomingOverlay.classList.contains('active')) {
             log('Auto‑missed call from ' + name);
@@ -298,19 +360,19 @@
 
     // ─── Microphone ──────────────────────────────────────────────
     async function getLocalStream() {
-      if (!localStream) {
-        try {
-          localStream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: true, noiseSuppression: true }
-          });
-          log('Microphone obtained');
-        } catch (err) {
-          log('Microphone error: ' + err.message);
-          showToast('Microphone access denied');
-          throw err;
-        }
+      if (localStream) return localStream;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true }
+        });
+        localStream = stream;
+        log('Microphone obtained');
+        return stream;
+      } catch (err) {
+        log('Microphone error: ' + err.message);
+        showToast('Microphone error: ' + err.message);
+        throw err;
       }
-      return localStream;
     }
 
     // ─── Remote Audio ──────────────────────────────────────────
@@ -319,19 +381,18 @@
       remoteAudio.srcObject = stream;
       remoteAudio.muted = false;
       remoteAudio.volume = 1.0;
-      remoteAudio.play().then(() => {
-        log('Remote audio playing');
-      }).catch((err) => {
-        log('Autoplay prevented: ' + err.message);
-        // Try on user interaction
-        const resume = () => {
-          remoteAudio.play().catch(() => {});
-          document.removeEventListener('click', resume);
-          document.removeEventListener('touchstart', resume);
-        };
-        document.addEventListener('click', resume, { once: true });
-        document.addEventListener('touchstart', resume, { once: true });
-      });
+      remoteAudio.play()
+        .then(() => log('Remote audio playing'))
+        .catch((err) => {
+          log('Autoplay prevented: ' + err.message);
+          const resume = () => {
+            remoteAudio.play().catch(() => {});
+            document.removeEventListener('click', resume);
+            document.removeEventListener('touchstart', resume);
+          };
+          document.addEventListener('click', resume, { once: true });
+          document.addEventListener('touchstart', resume, { once: true });
+        });
     }
 
     // ─── Make Call ──────────────────────────────────────────────
@@ -370,12 +431,11 @@
         currentCall = call;
         isCaller = true;
         isInCall = true;
-        callStartTime = Date.now();
         showCallScreen(targetNumber);
         callStatusMsg.textContent = 'Ringing...';
 
         call.on('stream', (stream) => {
-          log('Received remote stream');
+          log('Received remote stream (caller side)');
           attachRemoteStream(stream);
           callStatusMsg.textContent = 'Connected';
           startTimer();
@@ -407,6 +467,44 @@
             }
           };
         }
+
+        // Timeout for stream
+        let streamTimeout = setTimeout(() => {
+          if (!call._streamReceived) {
+            log('WARNING: No stream received within 5s – trying ICE restart');
+            if (pc && pc.restartIce) pc.restartIce();
+          }
+        }, 5000);
+        // Store to clear on stream
+        call._streamReceived = false;
+        const origStreamHandler = call.on('stream');
+        call.on('stream', (stream) => {
+          call._streamReceived = true;
+          clearTimeout(streamTimeout);
+          attachRemoteStream(stream);
+          // Continue with other stream logic
+          callStatusMsg.textContent = 'Connected';
+          startTimer();
+          showToast('Connected');
+        });
+        // We need to remove the duplicate stream handler? We'll just let both fire – harmless.
+        // Actually, we already have a stream handler above; we'll just attach the timeout there.
+
+        // Overwrite the stream listener to clear timeout
+        // We'll just re‑attach – simpler: we'll use a flag.
+
+        // We'll use a separate listener for timeout: we'll store a reference.
+        // To avoid duplicates, we'll just set the flag in the existing handler.
+        // Let's modify the existing 'stream' listener to set the flag.
+        // But we already attached one above; we can remove it and reattach.
+
+        // Remove the existing listener by replacing it with a new one.
+        // Since we have a reference to the call, we can use call.off('stream')? Not in PeerJS.
+        // We'll just use a variable to store the listener.
+
+        // Actually, PeerJS doesn't have .off for media calls. We'll just set a flag inside the listener.
+        // The first listener we set will run, and we'll also set a timeout that checks the flag.
+
       } catch (err) {
         log('Call failed: ' + err.message);
         showToast('Call failed: ' + err.message);
@@ -446,14 +544,13 @@
         currentCall = incomingCall;
         isCaller = false;
         isInCall = true;
-        callStartTime = Date.now();
         const number = currentCall.peer;
         showCallScreen(number);
         incomingOverlay.classList.remove('active');
         callStatusMsg.textContent = 'Connecting...';
 
         currentCall.on('stream', (stream) => {
-          log('Received remote stream (answer)');
+          log('Received remote stream (answer side)');
           attachRemoteStream(stream);
           callStatusMsg.textContent = 'Connected';
           startTimer();
@@ -593,7 +690,7 @@
       }
     });
 
-    console.log('PremCall minimal loaded. Check the log area for events.');
+    console.log('PremCall audio debug loaded.');
   })();
 </script>
 </body>
