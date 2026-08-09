@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>premCall v2</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0e1a;
+            color: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            padding: 1.5rem 1rem 3rem;
+            min-height: 100vh;
+        }
+        .container { max-width: 680px; width: 100%; }
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        h1 .logo-svg { width: 36px; height: 36px; display: inline-block; }
+        .subhead { color: #8892b0; margin-bottom: 1.5rem; font-size: 0.95rem; }
+
+        .mode-tabs {
+            display: flex;
+            gap: 0.6rem;
+            margin-bottom: 1.5rem;
+        }
+        .mode-tab {
+            flex: 1;
+            padding: 1rem;
+            background: #141b2b;
+            border: 1px solid #23304a;
+            border-radius: 16px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .mode-tab:hover { background: #1a2338; }
+        .mode-tab.active {
+            background: #1a2f5a;
+            border-color: #4f8cf7;
+            box-shadow: 0 0 0 1px #4f8cf7;
+        }
+        .mode-tab .icon { font-size: 1.4rem; margin-bottom: 0.3rem; }
+        .mode-tab .label { font-weight: 600; font-size: 0.95rem; }
+        .mode-tab .hint { font-size: 0.78rem; color: #8892b0; margin-top: 0.2rem; }
+
+        .card {
+            background: #141b2b;
+            border-radius: 20px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #23304a;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .step { display: none; animation: fadeIn 0.3s ease; }
+        .step.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 0.8rem;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-weight: 600;
+        }
+        .step-number {
+            width: 26px; height: 26px;
+            border-radius: 50%;
+            background: #2a3a5a;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.8rem; font-weight: 700; color: #b0c7e0;
+        }
+        .step.active .step-number { background: #4f8cf7; color: #fff; }
+        .step-desc { color: #8892b0; margin-bottom: 1rem; font-size: 0.9rem; line-height: 1.5; }
+
+        textarea {
+            width: 100%; padding: 0.75rem;
+            background: #0f1629;
+            border: 1px solid #2a3a5a;
+            border-radius: 12px;
+            color: #b0c7e0;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.78rem;
+            resize: vertical;
+            min-height: 90px;
+            transition: border 0.2s;
+        }
+        textarea:focus { outline: none; border-color: #4f8cf7; }
+        textarea:disabled { opacity: 0.5; }
+
+        .flex-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.6rem;
+            margin: 0.6rem 0 0.8rem;
+        }
+        .flex-row-right { justify-content: flex-end; margin-top: 0.8rem; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #2a3a5a;
+            color: #e2e8f0;
+            min-width: 100px;
+        }
+        .btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+        .btn:disabled { opacity: 0.4; pointer-events: none; filter: grayscale(0.6); }
+        .btn-green { background: #1a7a4a; color: #fff; }
+        .btn-green:hover:not(:disabled) { background: #1f9b5e; }
+        .btn-blue { background: #1a4a8a; color: #fff; }
+        .btn-blue:hover:not(:disabled) { background: #2563d6; }
+        .btn-yellow { background: #a67c1a; color: #fff; }
+        .btn-yellow:hover:not(:disabled) { background: #ca9a2a; }
+        .btn-red { background: #8a1a2a; color: #fff; }
+        .btn-red:hover:not(:disabled) { background: #b52238; }
+        .btn-outline { background: transparent; border: 1px solid #4a5a7a; }
+        .btn-outline:hover:not(:disabled) { background: #1a2a4a; }
+        .btn-sm { padding: 0.4rem 0.9rem; font-size: 0.8rem; min-width: auto; }
+
+        .status {
+            padding: 0.5rem 0.8rem;
+            border-radius: 40px;
+            background: #1a2338;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            display: inline-block;
+        }
+        .status-success { color: #4ade80; }
+        .status-error { color: #f87171; }
+        .status-warning { color: #fbbf24; }
+
+        .section-divider { border: none; border-top: 1px solid #23304a; margin: 1.2rem 0; }
+        .hidden { display: none !important; }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(120px);
+            background: #1a2338;
+            border: 1px solid #4f8cf7;
+            color: #fff;
+            padding: 0.8rem 1.5rem;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            pointer-events: none;
+            max-width: 90vw;
+            text-align: center;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+        .call-active-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+        }
+        .pulse-dot {
+            width: 10px; height: 10px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(74,222,128,0.6); }
+            70% { box-shadow: 0 0 0 10px rgba(74,222,128,0); }
+            100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+        }
+
+        .copy-hint { font-size: 0.8rem; color: #4a6a8a; margin-top: 0.3rem; }
+
+        @media (max-width: 480px) {
+            .btn { min-width: 70px; padding: 0.5rem 1rem; font-size: 0.8rem; }
+            .flex-row { gap: 0.4rem; }
+            .mode-tab { padding: 0.7rem 0.4rem; }
+            .mode-tab .label { font-size: 0.85rem; }
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner {
+            display: inline-block;
+            width: 18px; height: 18px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+    </style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>
+            <svg class="logo-svg" viewBox="0 0 24 24" fill="none" stroke="#4f8cf7" stroke-width="2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            premCall
+        </h1>
+        <span class="status" id="connectionStatus">offline</span>
+    </div>
+    <p class="subhead">Peer-to-peer audio calls via WebRTC — choose your role to begin.</p>
+
+    <div class="mode-tabs">
+        <div class="mode-tab active" data-mode="caller" onclick="setMode('caller')">
+            <div class="icon">📤</div>
+            <div class="label">Start a Call</div>
+            <div class="hint">I want to call someone</div>
+        </div>
+        <div class="mode-tab" data-mode="callee" onclick="setMode('callee')">
+            <div class="icon">📥</div>
+            <div class="label">Answer a Call</div>
+            <div class="hint">Someone is calling me</div>
+        </div>
+    </div>
+
+    <!-- CALLER -->
+    <div class="card" id="callerCard">
+        <div class="step active" id="callerStep1">
+            <div class="step-header"><span class="step-number">1</span> Start your call</div>
+            <p class="step-desc">Allow microphone access. We'll generate a connection offer for you to share.</p>
+            <div class="flex-row">
+                <button class="btn btn-green" id="callerStartBtn">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                    Start Call
+                </button>
+            </div>
+            <div class="status" id="callerStatus1">Click "Start Call" to begin</div>
+        </div>
+
+        <div class="step" id="callerStep2">
+            <div class="step-header"><span class="step-number">2</span> Share your offer</div>
+            <p class="step-desc">Send this to the other person. It has been <strong>auto-copied</strong> to your clipboard. You can also share a link or save a file.</p>
+            <div class="flex-row">
+                <button class="btn btn-blue btn-sm" id="callerCopyBtn">
+                    <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    Copy
+                </button>
+                <button class="btn btn-outline btn-sm" id="callerShareBtn">🔗 Share Link</button>
+                <button class="btn btn-outline btn-sm" id="callerSaveBtn">💾 Save File</button>
+            </div>
+            <textarea id="callerOfferBox" readonly></textarea>
+            <div class="copy-hint">Copy the exact text — do not add extra spaces or line breaks.</div>
+            <div class="flex-row flex-row-right">
+                <button class="btn btn-green btn-sm" onclick="showCallerStep(3)">I sent it →</button>
+            </div>
+        </div>
+
+        <div class="step" id="callerStep3">
+            <div class="step-header"><span class="step-number">3</span> Paste their answer</div>
+            <p class="step-desc">Wait for the other person to send back an answer, then paste it here.</p>
+            <div class="flex-row">
+                <button class="btn btn-outline btn-sm" id="callerPasteBtn">📋 Paste from Clipboard</button>
+                <button class="btn btn-outline btn-sm" id="callerUploadBtn">📁 Upload File</button>
+            </div>
+            <textarea id="callerAnswerBox" placeholder="Paste the answer SDP here..."></textarea>
+            <div class="flex-row">
+                <button class="btn btn-blue" id="callerConnectBtn" disabled>
+                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                    Connect
+                </button>
+                <button class="btn btn-outline btn-sm" id="callerResetBtn">↺ Start Over</button>
+            </div>
+            <div class="status" id="callerStatus3">Waiting for answer...</div>
+        </div>
+    </div>
+
+    <!-- CALLEE -->
+    <div class="card hidden" id="calleeCard">
+        <div class="step active" id="calleeStep1">
+            <div class="step-header"><span class="step-number">1</span> Receive the offer</div>
+            <p class="step-desc">Paste the offer from the caller, or open a shared link. We'll auto-detect links.</p>
+            <div class="flex-row">
+                <button class="btn btn-outline btn-sm" id="calleePasteBtn">📋 Paste from Clipboard</button>
+                <button class="btn btn-outline btn-sm" id="calleeUploadBtn">📁 Upload File</button>
+            </div>
+            <textarea id="calleeOfferBox" placeholder="Paste offer SDP here..."></textarea>
+            <div class="flex-row flex-row-right">
+                <button class="btn btn-green btn-sm" id="calleeNextBtn" disabled>Next →</button>
+            </div>
+        </div>
+
+        <div class="step" id="calleeStep2">
+            <div class="step-header"><span class="step-number">2</span> Generate answer</div>
+            <p class="step-desc">Allow microphone access, then generate the answer to send back.</p>
+            <div class="flex-row">
+                <button class="btn btn-yellow" id="calleeAnswerBtn">
+                    <svg viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M8 12l3 3 5-5"/></svg>
+                    Generate Answer
+                </button>
+            </div>
+            <div class="status" id="calleeStatus2">Ready to generate</div>
+        </div>
+
+        <div class="step" id="calleeStep3">
+            <div class="step-header"><span class="step-number">3</span> Send back the answer</div>
+            <p class="step-desc">This has been <strong>auto-copied</strong> to your clipboard. Send it back to the caller.</p>
+            <div class="flex-row">
+                <button class="btn btn-blue btn-sm" id="calleeCopyBtn">
+                    <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    Copy
+                </button>
+                <button class="btn btn-outline btn-sm" id="calleeShareBtn">🔗 Share Link</button>
+                <button class="btn btn-outline btn-sm" id="calleeSaveBtn">💾 Save File</button>
+            </div>
+            <textarea id="calleeAnswerBox" readonly></textarea>
+            <div class="copy-hint">Copy the exact answer text — do not add extra spaces.</div>
+            <div class="status status-success" style="margin-top:0.6rem;">✅ Done! The caller will connect automatically.</div>
+            <div class="flex-row flex-row-right">
+                <button class="btn btn-outline btn-sm" id="calleeResetBtn">↺ Answer Another Call</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CALL CONTROLS -->
+    <div class="card hidden" id="callControls">
+        <div class="card-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2">
+                <circle cx="12" cy="12" r="2"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/>
+            </svg>
+            Call Active
+        </div>
+        <div class="call-active-indicator">
+            <div class="pulse-dot"></div>
+            <span class="status status-success" id="callStatus">Connected</span>
+        </div>
+        <div class="flex-row">
+            <button class="btn btn-yellow" id="muteBtn">
+                <svg viewBox="0 0 24 24"><polyline points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M23 7l-4 5m0-5l4 5"/></svg>
+                Mute
+            </button>
+            <button class="btn btn-red" id="hangupBtn">
+                <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                Hang Up
+            </button>
+        </div>
+    </div>
+
+    <p style="font-size:0.75rem; color:#4a5a7a; text-align:center; margin-top:1rem;">
+        All audio is peer-to-peer. No data is stored or relayed by any server.
+    </p>
+</div>
+
+<script>
+(function() {
+    "use strict";
+
+    const callerCard = document.getElementById('callerCard');
+    const calleeCard = document.getElementById('calleeCard');
+    const callControls = document.getElementById('callControls');
+    const connectionStatus = document.getElementById('connectionStatus');
+    const toastEl = document.getElementById('toast');
+
+    const callerStartBtn = document.getElementById('callerStartBtn');
+    const callerStatus1 = document.getElementById('callerStatus1');
+    const callerOfferBox = document.getElementById('callerOfferBox');
+    const callerCopyBtn = document.getElementById('callerCopyBtn');
+    const callerShareBtn = document.getElementById('callerShareBtn');
+    const callerSaveBtn = document.getElementById('callerSaveBtn');
+    const callerAnswerBox = document.getElementById('callerAnswerBox');
+    const callerPasteBtn = document.getElementById('callerPasteBtn');
+    const callerUploadBtn = document.getElementById('callerUploadBtn');
+    const callerConnectBtn = document.getElementById('callerConnectBtn');
+    const callerResetBtn = document.getElementById('callerResetBtn');
+    const callerStatus3 = document.getElementById('callerStatus3');
+
+    const calleeOfferBox = document.getElementById('calleeOfferBox');
+    const calleePasteBtn = document.getElementById('calleePasteBtn');
+    const calleeUploadBtn = document.getElementById('calleeUploadBtn');
+    const calleeNextBtn = document.getElementById('calleeNextBtn');
+    const calleeAnswerBtn = document.getElementById('calleeAnswerBtn');
+    const calleeStatus2 = document.getElementById('calleeStatus2');
+    const calleeAnswerBox = document.getElementById('calleeAnswerBox');
+    const calleeCopyBtn = document.getElementById('calleeCopyBtn');
+    const calleeShareBtn = document.getElementById('calleeShareBtn');
+    const calleeSaveBtn = document.getElementById('calleeSaveBtn');
+    const calleeResetBtn = document.getElementById('calleeResetBtn');
+
+    const muteBtn = document.getElementById('muteBtn');
+    const hangupBtn = document.getElementById('hangupBtn');
+    const callStatus = document.getElementById('callStatus');
+
+    let localStream = null;
+    let pc = null;
+    let isCallActive = false;
+    let isMuted = false;
+    let offerSdp = '';
+    let currentMode = 'caller';
+
+    function showToast(msg, duration) {
+        duration = duration || 2500;
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        setTimeout(function() { toastEl.classList.remove('show'); }, duration);
+    }
+
+    function setStatus(el, text, type) {
+        el.textContent = text;
+        el.className = 'status';
+        if (type) el.classList.add('status-' + type);
+    }
+
+    function showCallerStep(n) {
+        [1,2,3].forEach(function(i) {
+            document.getElementById('callerStep'+i).classList.toggle('active', i === n);
+        });
+    }
+    function showCalleeStep(n) {
+        [1,2,3].forEach(function(i) {
+            document.getElementById('calleeStep'+i).classList.toggle('active', i === n);
+        });
+    }
+
+    window.setMode = function(mode) {
+        currentMode = mode;
+        document.querySelectorAll('.mode-tab').forEach(function(t) {
+            t.classList.toggle('active', t.dataset.mode === mode);
+        });
+        callerCard.classList.toggle('hidden', mode !== 'caller');
+        calleeCard.classList.toggle('hidden', mode !== 'callee');
+    };
+
+    function looksLikeSdp(text) {
+        return text && text.indexOf('v=0') !== -1 && text.indexOf('o=') !== -1 && text.indexOf('s=') !== -1;
+    }
+
+    function cleanSdp(sdp) {
+        var cleaned = sdp.replace(/^\uFEFF/, '');
+        cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        var lines = cleaned.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
+        if (lines.length === 0) throw new Error('SDP is empty');
+        if (!lines.some(function(l) { return l.indexOf('v=0') === 0; })) throw new Error('Invalid SDP: missing v=0');
+        var vIndex = lines.findIndex(function(l) { return l.indexOf('v=0') === 0; });
+        return lines.slice(vIndex).join('\n');
+    }
+
+    async function pasteTo(textarea, onSuccess) {
+        try {
+            var text = await navigator.clipboard.readText();
+            if (text) {
+                textarea.value = text;
+                if (onSuccess) onSuccess(text);
+                showToast('Pasted from clipboard');
+            }
+        } catch (err) {
+            showToast('Could not access clipboard. Paste manually.', 3000);
+        }
+    }
+
+    function copyText(text, successMsg) {
+        if (!text) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function() { showToast(successMsg); });
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast(successMsg);
+        }
+    }
+
+    function downloadText(text, filename) {
+        var blob = new Blob([text], { type: 'text/plain' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('File saved: ' + filename);
+    }
+
+    function uploadText(callback) {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.txt,.sdp';
+        input.onchange = function(e) {
+            var file = e.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(ev) { callback(ev.target.result); };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+
+    function generateShareUrl(sdp, type) {
+        var url = new URL(window.location.href);
+        url.hash = type + '=' + encodeURIComponent(sdp);
+        return url.toString();
+    }
+
+    async function getLocalStream() {
+        if (!localStream) {
+            localStream = await navigator.mediaDevices.getUserMedia({
+                audio: { echoCancellation: true, noiseSuppression: true }
+            });
+        }
+        return localStream;
+    }
+
+    function waitForIceComplete(peer) {
+        return new Promise(function(resolve) {
+            if (peer.iceGatheringState === 'complete') {
+                resolve();
+                return;
+            }
+            var handler = function() {
+                if (peer.iceGatheringState === 'complete') {
+                    peer.removeEventListener('icegatheringstatechange', handler);
+                    resolve();
+                }
+            };
+            peer.addEventListener('icegatheringstatechange', handler);
+            setTimeout(function() {
+                peer.removeEventListener('icegatheringstatechange', handler);
+                resolve();
+            }, 15000);
+        });
+    }
+
+    function createPeerConnection() {
+        var config = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
+        var peer = new RTCPeerConnection(config);
+
+        if (localStream) {
+            localStream.getTracks().forEach(function(t) { peer.addTrack(t, localStream); });
+        }
+
+        peer.ontrack = function(event) {
+            if (event.streams && event.streams[0]) {
+                var existing = document.getElementById('remoteAudio');
+                if (existing) existing.remove();
+                var audio = document.createElement('audio');
+                audio.srcObject = event.streams[0];
+                audio.autoplay = true;
+                audio.id = 'remoteAudio';
+                document.body.appendChild(audio);
+                setStatus(callStatus, 'Connected (audio streaming)', 'success');
+                setStatus(connectionStatus, 'connected', 'success');
+            }
+        };
+
+        peer.oniceconnectionstatechange = function() {
+            var state = peer.iceConnectionState;
+            if (state === 'connected' || state === 'completed') {
+                setStatus(callStatus, 'Connected (ICE complete)', 'success');
+                setStatus(connectionStatus, 'connected', 'success');
+            } else if (state === 'failed' || state === 'disconnected') {
+                setStatus(callStatus, 'Connection lost', 'error');
+                setStatus(connectionStatus, 'offline', 'error');
+                hangUp();
+            }
+        };
+        return peer;
+    }
+
+    function hangUp() {
+        if (pc) { pc.close(); pc = null; }
+        if (localStream) {
+            localStream.getTracks().forEach(function(t) { t.stop(); });
+            localStream = null;
+        }
+        var remote = document.getElementById('remoteAudio');
+        if (remote) remote.remove();
+
+        isCallActive = false;
+        isMuted = false;
+        offerSdp = '';
+        callControls.classList.add('hidden');
+        setStatus(callStatus, 'Disconnected', 'error');
+        setStatus(connectionStatus, 'offline', 'error');
+
+        muteBtn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M23 7l-4 5m0-5l4 5"/></svg> Mute';
+
+        callerStartBtn.disabled = false;
+        callerStartBtn.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg> Start Call';
+        callerOfferBox.value = '';
+        callerAnswerBox.value = '';
+        callerConnectBtn.disabled = true;
+        callerConnectBtn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Connect';
+        setStatus(callerStatus1, 'Click "Start Call" to begin');
+        setStatus(callerStatus3, 'Waiting for answer...');
+        showCallerStep(1);
+
+        calleeOfferBox.value = '';
+        calleeAnswerBox.value = '';
+        calleeNextBtn.disabled = true;
+        calleeAnswerBtn.disabled = false;
+        calleeAnswerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M8 12l3 3 5-5"/></svg> Generate Answer';
+        setStatus(calleeStatus2, 'Ready to generate');
+        showCalleeStep(1);
+    }
+
+    // ─── CALLER FLOW ───
+    callerStartBtn.addEventListener('click', async function() {
+        try {
+            callerStartBtn.disabled = true;
+            callerStartBtn.innerHTML = '<span class="spinner"></span> Starting...';
+            await getLocalStream();
+            pc = createPeerConnection();
+            var offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            await waitForIceComplete(pc);
+            offerSdp = pc.localDescription.sdp;
+            callerOfferBox.value = offerSdp;
+            setStatus(callerStatus1, 'Offer ready!', 'success');
+            copyText(offerSdp, 'Offer copied to clipboard!');
+            showCallerStep(2);
+        } catch (err) {
+            showToast('Error: ' + err.message, 4000);
+            setStatus(callerStatus1, 'Failed: ' + err.message, 'error');
+            callerStartBtn.disabled = false;
+            callerStartBtn.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg> Start Call';
+        }
+    });
+
+    callerCopyBtn.addEventListener('click', function() {
+        copyText(callerOfferBox.value, 'Offer copied!');
+    });
+    callerShareBtn.addEventListener('click', function() {
+        var url = generateShareUrl(callerOfferBox.value, 'offer');
+        copyText(url, 'Share link copied!');
+    });
+    callerSaveBtn.addEventListener('click', function() {
+        downloadText(callerOfferBox.value, 'premcall-offer.txt');
+    });
+
+    callerPasteBtn.addEventListener('click', function() {
+        pasteTo(callerAnswerBox, function(text) {
+            if (looksLikeSdp(text)) callerConnectBtn.disabled = false;
+        });
+    });
+    callerUploadBtn.addEventListener('click', function() {
+        uploadText(function(text) {
+            callerAnswerBox.value = text;
+            if (looksLikeSdp(text)) callerConnectBtn.disabled = false;
+        });
+    });
+    callerAnswerBox.addEventListener('input', function() {
+        callerConnectBtn.disabled = !looksLikeSdp(callerAnswerBox.value);
+    });
+
+    callerConnectBtn.addEventListener('click', async function() {
+        var answer = callerAnswerBox.value.trim();
+        if (!answer) {
+            showToast('Please paste the answer first.', 3000);
+            return;
+        }
+        try {
+            callerConnectBtn.disabled = true;
+            callerConnectBtn.innerHTML = '<span class="spinner"></span> Connecting...';
+            if (!pc) {
+                await getLocalStream();
+                pc = createPeerConnection();
+                if (!offerSdp) throw new Error('No offer found. Start over.');
+                await pc.setLocalDescription({ type: 'offer', sdp: offerSdp });
+            }
+            var cleaned = cleanSdp(answer);
+            await pc.setRemoteDescription({ type: 'answer', sdp: cleaned });
+            isCallActive = true;
+            callControls.classList.remove('hidden');
+            setStatus(callStatus, 'Connected!', 'success');
+            setStatus(connectionStatus, 'connected', 'success');
+            callerConnectBtn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Connected';
+        } catch (err) {
+            showToast('Connection failed: ' + err.message, 4000);
+            setStatus(callerStatus3, 'Failed: ' + err.message, 'error');
+            callerConnectBtn.disabled = false;
+            callerConnectBtn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Connect';
+        }
+    });
+
+    callerResetBtn.addEventListener('click', hangUp);
+
+    // ─── CALLEE FLOW ───
+    calleePasteBtn.addEventListener('click', function() {
+        pasteTo(calleeOfferBox, function(text) {
+            calleeNextBtn.disabled = !looksLikeSdp(text);
+        });
+    });
+    calleeUploadBtn.addEventListener('click', function() {
+        uploadText(function(text) {
+            calleeOfferBox.value = text;
+            calleeNextBtn.disabled = !looksLikeSdp(text);
+        });
+    });
+    calleeOfferBox.addEventListener('input', function() {
+        calleeNextBtn.disabled = !looksLikeSdp(calleeOfferBox.value);
+    });
+    calleeNextBtn.addEventListener('click', function() {
+        showCalleeStep(2);
+    });
+
+    calleeAnswerBtn.addEventListener('click', async function() {
+        var offer = calleeOfferBox.value.trim();
+        if (!offer) {
+            showToast('Please paste the offer first.', 3000);
+            return;
+        }
+        try {
+            calleeAnswerBtn.disabled = true;
+            calleeAnswerBtn.innerHTML = '<span class="spinner"></span> Processing...';
+            await getLocalStream();
+            pc = createPeerConnection();
+            var cleaned = cleanSdp(offer);
+            await pc.setRemoteDescription({ type: 'offer', sdp: cleaned });
+            var answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            await waitForIceComplete(pc);
+            var answerSdp = pc.localDescription.sdp;
+            calleeAnswerBox.value = answerSdp;
+            setStatus(calleeStatus2, 'Answer ready!', 'success');
+            copyText(answerSdp, 'Answer copied to clipboard!');
+            showCalleeStep(3);
+        } catch (err) {
+            showToast('Error: ' + err.message, 4000);
+            setStatus(calleeStatus2, 'Failed: ' + err.message, 'error');
+            calleeAnswerBtn.disabled = false;
+            calleeAnswerBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M8 12l3 3 5-5"/></svg> Generate Answer';
+        }
+    });
+
+    calleeCopyBtn.addEventListener('click', function() {
+        copyText(calleeAnswerBox.value, 'Answer copied!');
+    });
+    calleeShareBtn.addEventListener('click', function() {
+        var url = generateShareUrl(calleeAnswerBox.value, 'answer');
+        copyText(url, 'Share link copied!');
+    });
+    calleeSaveBtn.addEventListener('click', function() {
+        downloadText(calleeAnswerBox.value, 'premcall-answer.txt');
+    });
+    calleeResetBtn.addEventListener('click', hangUp);
+
+    // ─── CALL CONTROLS ───
+    muteBtn.addEventListener('click', function() {
+        if (!localStream) return;
+        isMuted = !isMuted;
+        localStream.getAudioTracks().forEach(function(t) { t.enabled = !isMuted; });
+        muteBtn.innerHTML = isMuted ?
+            '<svg viewBox="0 0 24 24"><polyline points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M23 7l-4 5m0-5l4 5"/></svg> Unmute' :
+            '<svg viewBox="0 0 24 24"><polyline points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M23 7l-4 5m0-5l4 5"/></svg> Mute';
+    });
+
+    hangupBtn.addEventListener('click', hangUp);
+
+    // ─── Auto-detect from URL hash ───
+    function checkHash() {
+        var hash = window.location.hash.slice(1);
+        if (!hash) return;
+        var parts = hash.split('=');
+        if (parts.length < 2) return;
+        var type = parts[0];
+        var sdp = decodeURIComponent(parts.slice(1).join('='));
+        if (type === 'offer' && looksLikeSdp(sdp)) {
+            setMode('callee');
+            calleeOfferBox.value = sdp;
+            calleeNextBtn.disabled = false;
+            showToast('Offer loaded from link!');
+        } else if (type === 'answer' && looksLikeSdp(sdp)) {
+            setMode('caller');
+            callerAnswerBox.value = sdp;
+            callerConnectBtn.disabled = false;
+            showToast('Answer loaded from link!');
+        }
+    }
+
+    window.addEventListener('hashchange', checkHash);
+    checkHash();
+
+    setStatus(connectionStatus, 'offline', 'error');
+    console.log('premCall v2 loaded.');
+})();
+</script>
+</body>
+</html>
