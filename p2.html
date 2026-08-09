@@ -3,10 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>PremCall · Audio Debug</title>
-  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <title>PremCall · Audio</title>
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js">
+  </script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* ─── Reset ─── */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #0b0e17;
@@ -15,376 +21,901 @@
       justify-content: center;
       min-height: 100vh;
       padding: 1rem;
+      margin: 0;
     }
-    .container { max-width: 420px; width: 100%; background: #131a26; border-radius: 24px; padding: 1.5rem; }
-    .logo { font-size: 1.8rem; font-weight: 700; color: #4f8cf7; margin-bottom: 0.5rem; }
-    .subhead { color: #8892b0; margin-bottom: 1.5rem; }
-    .card { background: #1a2338; border-radius: 16px; padding: 1.2rem; margin-bottom: 1.2rem; }
-    .flex { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
-    input { padding: 0.6rem; border-radius: 30px; border: 1px solid #2a3a5a; background: #0b0e17; color: #e8edf5; width: 100%; }
-    .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 40px; font-weight: 600; cursor: pointer; background: #2a3a5a; color: #e8edf5; }
-    .btn-primary { background: #1a4a8a; }
-    .btn-success { background: #1a7a4a; }
-    .btn-danger { background: #8a1a2a; }
-    .btn-warning { background: #a67c1a; }
-    .btn:disabled { opacity: 0.5; }
-    .dialer-display { background: #0b0e17; border-radius: 12px; padding: 0.8rem; font-size: 1.8rem; text-align: center; margin-bottom: 1rem; border: 1px solid #2a3a5a; }
-    .dialer-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; max-width: 280px; margin: 0 auto; }
-    .dialer-pad .key { background: #1e2a3a; border-radius: 50%; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 500; cursor: pointer; user-select: none; }
-    .dialer-pad .key:active { background: #2a3a5a; }
-    .dialer-pad .key.call { background: #1a7a4a; color: #fff; }
-    .dialer-pad .key.hangup { background: #8a1a2a; color: #fff; }
-    #incomingOverlay {
-      display: none;
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
-      flex-direction: column; justify-content: center; align-items: center;
-      z-index: 1000;
+    .container {
+      max-width: 420px;
+      width: 100%;
+      background: #131a26;
+      border-radius: 28px;
+      padding: 1.5rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
-    #incomingOverlay.active { display: flex; }
-    #incomingOverlay .caller-name { font-size: 2rem; font-weight: 700; }
-    #incomingOverlay .caller-number { color: #8892b0; margin-bottom: 2rem; }
-    #incomingOverlay .actions { display: flex; gap: 2rem; }
-    #incomingOverlay .actions button { width: 70px; height: 70px; border-radius: 50%; border: none; cursor: pointer; font-size: 2rem; }
-    #incomingOverlay .actions .answer { background: #1a7a4a; }
-    #incomingOverlay .actions .reject { background: #8a1a2a; }
-    #callScreen {
-      display: none;
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: #0b0e17;
-      flex-direction: column; justify-content: center; align-items: center;
-      z-index: 999;
+
+    /* ─── Header ─── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid #1e2a3a;
+      flex-shrink: 0;
     }
-    #callScreen.active { display: flex; }
-    #callScreen .caller-name { font-size: 2rem; font-weight: 700; }
-    #callScreen .call-timer { font-size: 1.5rem; color: #4ade80; margin: 1rem 0; }
-    #callScreen .actions { display: flex; gap: 1.5rem; }
-    #callScreen .actions button { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; font-size: 1.8rem; background: #1e2a3a; }
-    #callScreen .actions .hangup { background: #8a1a2a; }
-    #callScreen .status-msg { color: #fbbf24; font-size: 0.9rem; margin-top: 0.5rem; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1e2a3a; padding: 0.6rem 1.2rem; border-radius: 30px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 2000; }
-    .toast.show { opacity: 1; }
-    .log-area {
-      background: #0b0e17; border-radius: 8px; padding: 0.5rem;
-      font-family: monospace; font-size: 0.7rem; max-height: 140px; overflow-y: auto;
-      color: #8892b0; margin-top: 1rem;
-      white-space: pre-wrap;
-      word-break: break-word;
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #4f8cf7;
     }
-    .mic-test-area {
+    .logo svg {
+      width: 28px;
+      height: 28px;
+      stroke: #4f8cf7;
+      stroke-width: 2;
+      fill: none;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: #8892b0;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .status-dot.online {
+      background: #4ade80;
+    }
+    .status-dot.offline {
+      background: #f87171;
+    }
+    .status-dot.connecting {
+      background: #fbbf24;
+    }
+
+    /* ─── Registration ─── */
+    .reg-section {
+      background: #1a2338;
+      border-radius: 16px;
+      padding: 1.2rem;
+      margin: 1rem 0;
+      flex-shrink: 0;
+    }
+    .reg-section label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 0.4rem;
+      color: #94a3b8;
+    }
+    .reg-row {
       display: flex;
       gap: 0.5rem;
-      align-items: center;
+    }
+    .reg-row input {
+      flex: 1;
+      padding: 0.6rem 1rem;
+      border-radius: 40px;
+      border: 1px solid #2a3a5a;
+      background: #0b0e17;
+      color: #e8edf5;
+      font-size: 1rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .reg-row input:focus {
+      border-color: #4f8cf7;
+    }
+    .reg-row input::placeholder {
+      color: #4a5a6a;
+    }
+    .btn {
+      padding: 0.6rem 1.4rem;
+      border: none;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .btn-primary {
+      background: #1a4a8a;
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #2563d6;
+    }
+    .btn-success {
+      background: #1a7a4a;
+      color: #fff;
+    }
+    .btn-success:hover {
+      background: #1f9b5e;
+    }
+    .btn-danger {
+      background: #8a1a2a;
+      color: #fff;
+    }
+    .btn-danger:hover {
+      background: #b52238;
+    }
+    .btn-warning {
+      background: #a67c1a;
+      color: #fff;
+    }
+    .btn-warning:hover {
+      background: #ca9a2a;
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #2a3a5a;
+      color: #e8edf5;
+    }
+    .btn-outline:hover {
+      background: #1a2338;
+    }
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .reg-status {
       margin-top: 0.5rem;
+      font-size: 0.85rem;
+      color: #8892b0;
+      min-height: 1.2rem;
     }
-    .mic-test-area .indicator {
-      width: 12px;
-      height: 12px;
+    .reg-status.success {
+      color: #4ade80;
+    }
+    .reg-status.error {
+      color: #f87171;
+    }
+
+    /* ─── Dialer ─── */
+    .dialer-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0.5rem 0;
+    }
+    .dialer-display {
+      background: #0b0e17;
+      border-radius: 16px;
+      padding: 1rem 1.2rem;
+      font-size: 2rem;
+      font-weight: 300;
+      text-align: center;
+      letter-spacing: 3px;
+      color: #e8edf5;
+      border: 1px solid #1e2a3a;
+      min-height: 4.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      word-break: break-all;
+      margin-bottom: 1.2rem;
+      font-family: 'Courier New', monospace;
+    }
+    .dialer-display .hint {
+      font-size: 0.9rem;
+      color: #4a5a6a;
+      letter-spacing: 0;
+    }
+    .dialer-pad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.7rem;
+      max-width: 300px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .dialer-pad .key {
+      background: #1e2a3a;
       border-radius: 50%;
-      background: #f87171;
+      aspect-ratio: 1/1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
       transition: background 0.1s;
+      border: none;
+      color: #e8edf5;
+      font-family: inherit;
     }
-    .mic-test-area .indicator.active { background: #4ade80; }
+    .dialer-pad .key:active {
+      background: #2a3a5a;
+      transform: scale(0.95);
+    }
+    .dialer-pad .key.call {
+      background: #1a7a4a;
+      color: #fff;
+    }
+    .dialer-pad .key.call:active {
+      background: #1f9b5e;
+    }
+    .dialer-pad .key.call.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    .dialer-pad .key .svg-icon {
+      width: 28px;
+      height: 28px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+    }
+
+    /* ─── Action row ─── */
+    .action-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 0.8rem;
+      flex-shrink: 0;
+    }
+    .action-row .btn {
+      font-size: 0.8rem;
+      padding: 0.4rem 1rem;
+    }
+    .action-row .status-badge {
+      font-size: 0.8rem;
+      color: #8892b0;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    /* ─── Incoming Overlay ─── */
+    #incomingOverlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(12px);
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      padding: 2rem;
+    }
+    #incomingOverlay.active {
+      display: flex;
+    }
+    #incomingOverlay .avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: #2a3a5a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 1rem;
+    }
+    #incomingOverlay .name {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    #incomingOverlay .number {
+      color: #8892b0;
+      margin-bottom: 2rem;
+    }
+    #incomingOverlay .actions {
+      display: flex;
+      gap: 2.5rem;
+    }
+    #incomingOverlay .actions button {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s;
+    }
+    #incomingOverlay .actions button:active {
+      transform: scale(0.9);
+    }
+    #incomingOverlay .actions .answer {
+      background: #1a7a4a;
+      color: #fff;
+    }
+    #incomingOverlay .actions .reject {
+      background: #8a1a2a;
+      color: #fff;
+    }
+
+    /* ─── Call Screen ─── */
+    #callScreen {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0b0e17;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+      padding: 2rem;
+    }
+    #callScreen.active {
+      display: flex;
+    }
+    #callScreen .avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: #2a3a5a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+    #callScreen .name {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    #callScreen .number {
+      color: #8892b0;
+      margin-bottom: 0.3rem;
+    }
+    #callScreen .substatus {
+      color: #fbbf24;
+      font-size: 0.9rem;
+      min-height: 1.2rem;
+      margin-bottom: 1rem;
+    }
+    #callScreen .timer {
+      font-size: 1.8rem;
+      color: #4ade80;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 2rem;
+      letter-spacing: 2px;
+    }
+    #callScreen .call-actions {
+      display: flex;
+      gap: 1.5rem;
+    }
+    #callScreen .call-actions button {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 1.6rem;
+      background: #1e2a3a;
+      color: #e8edf5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, transform 0.15s;
+    }
+    #callScreen .call-actions button:active {
+      transform: scale(0.9);
+    }
+    #callScreen .call-actions .hangup {
+      background: #8a1a2a;
+    }
+    #callScreen .call-actions .hangup:hover {
+      background: #b52238;
+    }
+    #callScreen .call-actions .mute {
+      background: #a67c1a;
+    }
+    #callScreen .call-actions .mute:hover {
+      background: #ca9a2a;
+    }
+    #callScreen .call-actions .mute.active {
+      background: #4a3a1a;
+      color: #f87171;
+    }
+    #callScreen .call-actions .speaker {
+      background: #1a4a8a;
+    }
+    #callScreen .call-actions .speaker:hover {
+      background: #2563d6;
+    }
+    #callScreen .call-actions .speaker.active {
+      background: #0f3460;
+      box-shadow: 0 0 0 2px #4f8cf7;
+    }
+
+    /* ─── Toast ─── */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1e2a3a;
+      border: 1px solid #2a3a5a;
+      color: #e8edf5;
+      padding: 0.7rem 1.4rem;
+      border-radius: 40px;
+      font-size: 0.9rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 4000;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ─── Log ─── */
+    .log-area {
+      background: #0b0e17;
+      border-radius: 12px;
+      padding: 0.5rem 0.8rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.65rem;
+      max-height: 80px;
+      overflow-y: auto;
+      color: #4a5a6a;
+      margin-top: 0.8rem;
+      flex-shrink: 0;
+      line-height: 1.6;
+      border: 1px solid #1a2338;
+    }
+    .log-area .log-entry {
+      opacity: 0.8;
+    }
+    .log-area .log-entry.error {
+      color: #f87171;
+      opacity: 1;
+    }
+    .log-area .log-entry.success {
+      color: #4ade80;
+      opacity: 1;
+    }
+    .log-area .log-entry.warning {
+      color: #fbbf24;
+      opacity: 1;
+    }
+
+    /* ─── Scrollbar ─── */
+    .log-area::-webkit-scrollbar {
+      width: 3px;
+    }
+    .log-area::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .log-area::-webkit-scrollbar-thumb {
+      background: #2a3a5a;
+      border-radius: 10px;
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 480px) {
+      .container {
+        padding: 1rem;
+        border-radius: 20px;
+      }
+      .dialer-pad {
+        gap: 0.5rem;
+        max-width: 260px;
+      }
+      .dialer-pad .key {
+        font-size: 1.4rem;
+      }
+      .logo {
+        font-size: 1.2rem;
+      }
+      .dialer-display {
+        font-size: 1.6rem;
+        min-height: 3.8rem;
+        padding: 0.7rem 1rem;
+      }
+      #incomingOverlay .name {
+        font-size: 1.6rem;
+      }
+      #callScreen .name {
+        font-size: 1.6rem;
+      }
+      #callScreen .call-actions button {
+        width: 54px;
+        height: 54px;
+        font-size: 1.3rem;
+      }
+    }
   </style>
 </head>
 <body>
-<div class="container">
 
-  <div class="logo">🔊 PremCall · Audio Debug</div>
-  <p class="subhead">Test mic, then call a 5‑digit number</p>
+  <div class="container">
 
-  <!-- Registration -->
-  <div class="card">
-    <div style="font-weight:600; margin-bottom:0.5rem;">Your Number</div>
-    <input type="tel" id="phoneInput" placeholder="5 digits (e.g. 12345)" maxlength="5" inputmode="numeric" />
-    <button class="btn btn-primary" id="registerBtn" style="margin-top:0.5rem;">Register</button>
-    <div id="numberStatus" style="margin-top:0.5rem; color:#8892b0;"></div>
+    <!-- ═══ HEADER ═══ -->
+    <div class="header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 8v4l3 3"/>
+        </svg>
+        PremCall
+      </div>
+      <div class="header-right">
+        <span id="myNumberDisplay"></span>
+        <span class="status-dot offline" id="headerStatusDot"></span>
+      </div>
+    </div>
+
+    <!-- ═══ REGISTRATION ═══ -->
+    <div class="reg-section" id="regSection">
+      <label for="phoneInput">Your Number (5 digits)</label>
+      <div class="reg-row">
+        <input type="tel" id="phoneInput" placeholder="e.g. 12345" maxlength="5" inputmode="numeric" />
+        <button class="btn btn-primary" id="registerBtn">Register</button>
+      </div>
+      <div class="reg-status" id="regStatus">Enter a 5-digit number to start.</div>
+    </div>
+
+    <!-- ═══ DIALER ═══ -->
+    <div class="dialer-section" id="dialerSection">
+      <div class="dialer-display" id="dialDisplay">
+        <span class="hint">Enter number</span>
+      </div>
+      <div class="dialer-pad" id="dialPad">
+        <button class="key" data-digit="1">1</button>
+        <button class="key" data-digit="2">2</button>
+        <button class="key" data-digit="3">3</button>
+        <button class="key" data-digit="4">4</button>
+        <button class="key" data-digit="5">5</button>
+        <button class="key" data-digit="6">6</button>
+        <button class="key" data-digit="7">7</button>
+        <button class="key" data-digit="8">8</button>
+        <button class="key" data-digit="9">9</button>
+        <button class="key" data-digit="*">*</button>
+        <button class="key" data-digit="0">0</button>
+        <button class="key" data-digit="#">#</button>
+        <button class="key" data-action="delete">
+          <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="23 18 17 12 23 6"/><polyline points="17 18 11 12 17 6"/></svg>
+        </button>
+        <button class="key call" id="dialCallBtn" data-action="call">
+          <svg class="svg-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        </button>
+        <button class="key" data-action="clear">
+          <svg class="svg-icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="action-row">
+        <button class="btn btn-outline" id="checkStatusBtn">Check Status</button>
+        <span class="status-badge" id="statusResult"></span>
+      </div>
+    </div>
+
+    <!-- ═══ LOG ═══ -->
+    <div class="log-area" id="logArea">
+      <div class="log-entry">Ready. Register a number to start.</div>
+    </div>
+
   </div>
 
-  <!-- Microphone Test -->
-  <div class="card">
-    <div style="font-weight:600; margin-bottom:0.5rem;">Microphone Test</div>
-    <div class="flex mic-test-area">
-      <button class="btn btn-warning" id="testMicBtn">🎤 Test Mic</button>
-      <span class="indicator" id="micIndicator"></span>
-      <span id="micTestStatus" style="color:#8892b0; font-size:0.9rem;">Idle</span>
+  <!-- ═══ INCOMING OVERLAY ═══ -->
+  <div id="incomingOverlay">
+    <div class="avatar" id="incomingAvatar">📞</div>
+    <div class="name" id="incomingName">Unknown</div>
+    <div class="number" id="incomingNumber">+1234567890</div>
+    <div class="actions">
+      <button class="answer" id="answerBtn">✅</button>
+      <button class="reject" id="rejectBtn">❌</button>
     </div>
   </div>
 
-  <!-- Dialer -->
-  <div class="card">
-    <div class="dialer-display" id="dialDisplay">Enter number</div>
-    <div class="dialer-pad" id="dialPad">
-      <div class="key" data-digit="1">1</div>
-      <div class="key" data-digit="2">2</div>
-      <div class="key" data-digit="3">3</div>
-      <div class="key" data-digit="4">4</div>
-      <div class="key" data-digit="5">5</div>
-      <div class="key" data-digit="6">6</div>
-      <div class="key" data-digit="7">7</div>
-      <div class="key" data-digit="8">8</div>
-      <div class="key" data-digit="9">9</div>
-      <div class="key" data-digit="0">0</div>
-      <div class="key" data-action="delete">⌫</div>
-      <div class="key call" data-action="call">📞</div>
+  <!-- ═══ CALL SCREEN ═══ -->
+  <div id="callScreen">
+    <div class="avatar" id="callAvatar">📞</div>
+    <div class="name" id="callName">Calling...</div>
+    <div class="number" id="callNumber">+1234567890</div>
+    <div class="substatus" id="callSubstatus"></div>
+    <div class="timer" id="callTimer">00:00</div>
+    <div class="call-actions">
+      <button class="mute" id="muteBtn" title="Mute / Unmute">🔇</button>
+      <button class="hangup" id="hangupCallBtn" title="Hang up">📴</button>
+      <button class="speaker" id="speakerBtn" title="Toggle speaker">🔊</button>
     </div>
   </div>
 
-  <!-- Actions -->
-  <div class="flex" style="justify-content:space-between; margin-top:0.5rem;">
-    <button class="btn" id="checkStatusBtn">Check Status</button>
-    <span id="statusResult" style="color:#8892b0;"></span>
-  </div>
+  <!-- ═══ TOAST ═══ -->
+  <div id="toast"></div>
 
-  <!-- Log area -->
-  <div class="log-area" id="logArea">Logs will appear here.</div>
+  <!-- ═══ PERSISTENT AUDIO ═══ -->
+  <audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
 
-</div>
+  <script>
+    (function() {
+      "use strict";
 
-<!-- Incoming Overlay -->
-<div id="incomingOverlay">
-  <div style="font-size:3rem; margin-bottom:0.5rem;" id="incomingAvatar">📞</div>
-  <div class="caller-name" id="incomingName">Unknown</div>
-  <div class="caller-number" id="incomingNumber">+1234567890</div>
-  <div class="actions">
-    <button class="answer" id="answerBtn">✅</button>
-    <button class="reject" id="rejectBtn">❌</button>
-  </div>
-</div>
+      // ─── DOM refs ────────────────────────────────────────────────
+      const phoneInput = document.getElementById('phoneInput');
+      const registerBtn = document.getElementById('registerBtn');
+      const regStatus = document.getElementById('regStatus');
+      const dialDisplay = document.getElementById('dialDisplay');
+      const dialPad = document.getElementById('dialPad');
+      const dialCallBtn = document.getElementById('dialCallBtn');
+      const checkStatusBtn = document.getElementById('checkStatusBtn');
+      const statusResult = document.getElementById('statusResult');
+      const logArea = document.getElementById('logArea');
+      const incomingOverlay = document.getElementById('incomingOverlay');
+      const incomingName = document.getElementById('incomingName');
+      const incomingNumber = document.getElementById('incomingNumber');
+      const incomingAvatar = document.getElementById('incomingAvatar');
+      const answerBtn = document.getElementById('answerBtn');
+      const rejectBtn = document.getElementById('rejectBtn');
+      const callScreen = document.getElementById('callScreen');
+      const callName = document.getElementById('callName');
+      const callNumber = document.getElementById('callNumber');
+      const callAvatar = document.getElementById('callAvatar');
+      const callTimer = document.getElementById('callTimer');
+      const callSubstatus = document.getElementById('callSubstatus');
+      const hangupCallBtn = document.getElementById('hangupCallBtn');
+      const muteBtn = document.getElementById('muteBtn');
+      const speakerBtn = document.getElementById('speakerBtn');
+      const myNumberDisplay = document.getElementById('myNumberDisplay');
+      const headerStatusDot = document.getElementById('headerStatusDot');
+      const remoteAudio = document.getElementById('remoteAudio');
+      const toast = document.getElementById('toast');
 
-<!-- Call Screen -->
-<div id="callScreen">
-  <div style="font-size:3rem; margin-bottom:0.5rem;" id="callAvatar">📞</div>
-  <div class="caller-name" id="callName">Calling...</div>
-  <div class="call-timer" id="callTimer">00:00</div>
-  <div class="status-msg" id="callStatusMsg"></div>
-  <div class="actions">
-    <button class="hangup" id="hangupCallBtn">📴</button>
-  </div>
-</div>
+      // ─── State ──────────────────────────────────────────────────
+      let myNumber = localStorage.getItem('premCallNumber') || null;
+      let peer = null;
+      let currentCall = null;
+      let localStream = null;
+      let isInCall = false;
+      let isCaller = false;
+      let incomingCall = null;
+      let ringtoneInterval = null;
+      let callTimerInterval = null;
+      let callStartTime = null;
+      let dialedNumber = '';
+      let isMuted = false;
+      let isSpeakerOn = false;
+      let isAnswering = false;
+      let toastTimeout = null;
 
-<!-- Toast -->
-<div id="toast" class="toast"></div>
-
-<!-- Persistent audio element -->
-<audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
-
-<script>
-  (function() {
-    "use strict";
-
-    // ─── DOM refs ────────────────────────────────────────────────
-    const phoneInput = document.getElementById('phoneInput');
-    const registerBtn = document.getElementById('registerBtn');
-    const numberStatus = document.getElementById('numberStatus');
-    const dialDisplay = document.getElementById('dialDisplay');
-    const dialPad = document.getElementById('dialPad');
-    const checkStatusBtn = document.getElementById('checkStatusBtn');
-    const statusResult = document.getElementById('statusResult');
-    const logArea = document.getElementById('logArea');
-    const incomingOverlay = document.getElementById('incomingOverlay');
-    const incomingName = document.getElementById('incomingName');
-    const incomingNumber = document.getElementById('incomingNumber');
-    const incomingAvatar = document.getElementById('incomingAvatar');
-    const answerBtn = document.getElementById('answerBtn');
-    const rejectBtn = document.getElementById('rejectBtn');
-    const callScreen = document.getElementById('callScreen');
-    const callName = document.getElementById('callName');
-    const callAvatar = document.getElementById('callAvatar');
-    const callTimer = document.getElementById('callTimer');
-    const callStatusMsg = document.getElementById('callStatusMsg');
-    const hangupCallBtn = document.getElementById('hangupCallBtn');
-    const remoteAudio = document.getElementById('remoteAudio');
-    const toast = document.getElementById('toast');
-    const testMicBtn = document.getElementById('testMicBtn');
-    const micIndicator = document.getElementById('micIndicator');
-    const micTestStatus = document.getElementById('micTestStatus');
-
-    // ─── State ──────────────────────────────────────────────────
-    let myNumber = localStorage.getItem('premCallNumber') || null;
-    let peer = null;
-    let currentCall = null;
-    let localStream = null;
-    let isInCall = false;
-    let isCaller = false;
-    let incomingCall = null;
-    let ringtoneInterval = null;
-    let callTimerInterval = null;
-    let dialedNumber = '';
-
-    // ─── Logging ──────────────────────────────────────────────────
-    function log(msg) {
-      const now = new Date().toLocaleTimeString();
-      logArea.innerHTML = now + ' ' + msg + '\n' + logArea.innerHTML;
-      console.log('[PremCall]', msg);
-    }
-
-    // ─── Toast ──────────────────────────────────────────────────
-    let toastTimeout;
-    function showToast(msg) {
-      toast.textContent = msg;
-      toast.classList.add('show');
-      clearTimeout(toastTimeout);
-      toastTimeout = setTimeout(() => toast.classList.remove('show'), 3000);
-    }
-
-    // ─── Registration ──────────────────────────────────────────
-    function register() {
-      const num = phoneInput.value.trim();
-      if (!/^\d{5}$/.test(num)) {
-        numberStatus.textContent = 'Enter exactly 5 digits.';
-        return;
+      // ─── ICE Servers ──────────────────────────────────────────────
+      function getIceServers() {
+        return {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+            { urls: 'stun:stun.ekiga.net' },
+            { urls: 'stun:stun.ideasip.com' },
+            {
+              urls: ['turn:numb.viagenie.ca:3478', 'turn:numb.viagenie.ca:443'],
+              username: 'webrtc@live.com',
+              credential: 'muazkh'
+            }
+          ],
+          iceCandidatePoolSize: 10
+        };
       }
-      myNumber = num;
-      localStorage.setItem('premCallNumber', myNumber);
-      numberStatus.textContent = 'Registered: ' + myNumber;
-      log('Registered number: ' + myNumber);
-      initPeer();
-    }
 
-    registerBtn.addEventListener('click', register);
-    phoneInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') register(); });
-
-    // ─── Microphone Test (loopback) ──────────────────────────────
-    testMicBtn.addEventListener('click', async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const source = audioCtx.createMediaStreamSource(stream);
-        const dest = audioCtx.createMediaStreamDestination();
-        source.connect(dest);
-        // Play back to user's speakers
-        const audio = new Audio();
-        audio.srcObject = dest.stream;
-        audio.autoplay = true;
-        audio.volume = 1.0;
-        micIndicator.className = 'indicator active';
-        micTestStatus.textContent = 'Listening... speak!';
-        showToast('Test mic – speak now, you should hear yourself');
-        // Stop after 5 seconds
-        setTimeout(() => {
-          stream.getTracks().forEach(t => t.stop());
-          audio.pause();
-          audio.srcObject = null;
-          micIndicator.className = 'indicator';
-          micTestStatus.textContent = 'Done';
-          log('Mic test finished');
-        }, 5000);
-      } catch (err) {
-        log('Mic test error: ' + err.message);
-        showToast('Mic test failed: ' + err.message);
-        micTestStatus.textContent = 'Error';
-      }
-    });
-
-    // ─── PeerJS init ──────────────────────────────────────────
-    function initPeer() {
-      if (peer) { peer.destroy(); peer = null; }
-      if (!myNumber) return;
-
-      peer = new Peer(myNumber, { debug: 2 });
-
-      peer.on('open', (id) => {
-        log('Peer open with ID: ' + id);
-        showToast('Online as ' + id);
-      });
-
-      peer.on('error', (err) => {
-        log('Peer error: ' + err.type + ' – ' + err.message);
-        if (err.type === 'unavailable-id') {
-          numberStatus.textContent = 'Number taken. Choose another.';
-          localStorage.removeItem('premCallNumber');
-          myNumber = null;
-        } else {
-          showToast('Error: ' + err.message);
+      // ─── Logging ──────────────────────────────────────────────────
+      function log(msg, type) {
+        const now = new Date().toLocaleTimeString();
+        const entry = document.createElement('div');
+        entry.className = 'log-entry' + (type ? ' ' + type : '');
+        entry.textContent = now + ' ' + msg;
+        logArea.prepend(entry);
+        // Keep log manageable
+        while (logArea.children.length > 50) {
+          logArea.removeChild(logArea.lastChild);
         }
-      });
+        console.log('[PremCall]', msg);
+      }
 
-      peer.on('disconnected', () => {
-        log('Disconnected – trying to reconnect...');
-        setTimeout(() => { if (peer) peer.reconnect(); }, 2000);
-      });
+      // ─── Toast ──────────────────────────────────────────────────
+      function showToast(msg, duration) {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => toast.classList.remove('show'), duration || 2500);
+      }
 
-      peer.on('call', (call) => {
-        log('Incoming call from: ' + call.peer);
-        if (isInCall) {
-          call.close();
-          showToast('Busy, rejecting');
-          log('Rejected – already in call');
+      // ─── Status Dot ──────────────────────────────────────────────
+      function setStatusDot(state) {
+        headerStatusDot.className = 'status-dot ' + state;
+      }
+
+      // ─── Registration ──────────────────────────────────────────
+      function register() {
+        const num = phoneInput.value.trim();
+        if (!/^\d{5}$/.test(num)) {
+          regStatus.textContent = 'Enter exactly 5 digits.';
+          regStatus.className = 'reg-status error';
           return;
         }
-        incomingCall = call;
-        const name = call.peer;
-        incomingName.textContent = name;
-        incomingNumber.textContent = name;
-        incomingAvatar.textContent = '📞';
-        incomingOverlay.classList.add('active');
-        playRingtone();
-        setTimeout(() => {
-          if (incomingCall && incomingOverlay.classList.contains('active')) {
-            log('Auto‑missed call from ' + name);
-            showToast('Missed call from ' + name);
-            rejectIncomingCall();
-          }
-        }, 20000);
-      });
-    }
-
-    // ─── Ringtone ──────────────────────────────────────────────
-    function playRingtone() {
-      stopRingtone();
-      let ctx = new (window.AudioContext || window.webkitAudioContext)();
-      let count = 0;
-      ringtoneInterval = setInterval(() => {
-        if (count >= 12 || !incomingOverlay.classList.contains('active')) {
-          stopRingtone();
-          return;
-        }
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.value = count % 2 === 0 ? 440 : 330;
-        gain.gain.setValueAtTime(0.15, ctx.currentTime);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.3);
-        count++;
-      }, 400);
-    }
-    function stopRingtone() {
-      if (ringtoneInterval) {
-        clearInterval(ringtoneInterval);
-        ringtoneInterval = null;
+        myNumber = num;
+        localStorage.setItem('premCallNumber', myNumber);
+        regStatus.textContent = 'Registered: ' + myNumber;
+        regStatus.className = 'reg-status success';
+        myNumberDisplay.textContent = myNumber;
+        log('Registered number: ' + myNumber, 'success');
+        initPeer();
       }
-    }
 
-    // ─── Microphone ──────────────────────────────────────────────
-    async function getLocalStream() {
-      if (localStream) return localStream;
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true }
+      registerBtn.addEventListener('click', register);
+      phoneInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') register(); });
+
+      // ─── PeerJS init ──────────────────────────────────────────
+      function initPeer() {
+        if (peer) { peer.destroy(); peer = null; }
+        if (!myNumber) return;
+
+        setStatusDot('connecting');
+        log('Connecting to signaling server...', 'warning');
+
+        peer = new Peer(myNumber, { debug: 2, config: getIceServers() });
+
+        peer.on('open', (id) => {
+          log('Connected with ID: ' + id, 'success');
+          setStatusDot('online');
+          showToast('Online as ' + id);
+          regStatus.textContent = 'Online: ' + id;
+          regStatus.className = 'reg-status success';
         });
-        localStream = stream;
-        log('Microphone obtained');
-        return stream;
-      } catch (err) {
-        log('Microphone error: ' + err.message);
-        showToast('Microphone error: ' + err.message);
-        throw err;
-      }
-    }
 
-    // ─── Remote Audio ──────────────────────────────────────────
-    function attachRemoteStream(stream) {
-      log('Remote stream attached');
-      remoteAudio.srcObject = stream;
-      remoteAudio.muted = false;
-      remoteAudio.volume = 1.0;
-      remoteAudio.play()
-        .then(() => log('Remote audio playing'))
-        .catch((err) => {
-          log('Autoplay prevented: ' + err.message);
+        peer.on('error', (err) => {
+          log('Peer error: ' + err.type + ' – ' + err.message, 'error');
+          if (err.type === 'unavailable-id') {
+            regStatus.textContent = 'Number taken. Choose another.';
+            regStatus.className = 'reg-status error';
+            localStorage.removeItem('premCallNumber');
+            myNumber = null;
+            myNumberDisplay.textContent = '';
+            setStatusDot('offline');
+            showToast('Number already taken');
+          } else if (err.type === 'peer-unavailable') {
+            // This happens when calling an offline peer – we handle it in makeCall
+            log('Target peer unavailable', 'warning');
+          } else {
+            setStatusDot('offline');
+            showToast('Error: ' + err.message);
+          }
+        });
+
+        peer.on('close', () => {
+          log('Connection closed', 'error');
+          setStatusDot('offline');
+          if (isInCall) endCall();
+        });
+
+        peer.on('disconnected', () => {
+          log('Disconnected – reconnecting...', 'warning');
+          setStatusDot('offline');
+          setTimeout(() => { if (peer && !isInCall) peer.reconnect(); }, 3000);
+        });
+
+        peer.on('call', (call) => {
+          log('Incoming call from: ' + call.peer, 'warning');
+          if (isInCall) {
+            call.close();
+            log('Rejected – already in call', 'error');
+            showToast('Busy, rejecting call');
+            return;
+          }
+          incomingCall = call;
+          const name = call.peer;
+          incomingName.textContent = name;
+          incomingNumber.textContent = name;
+          incomingAvatar.textContent = '📞';
+          incomingOverlay.classList.add('active');
+          playRingtone();
+
+          // Auto-miss after 20 seconds
+          setTimeout(() => {
+            if (incomingCall && incomingOverlay.classList.contains('active')) {
+              log('Auto‑missed call from ' + name, 'error');
+              showToast('Missed call from ' + name);
+              rejectIncomingCall();
+            }
+          }, 20000);
+        });
+      }
+
+      // ─── Ringtone ──────────────────────────────────────────────
+      function playRingtone() {
+        stopRingtone();
+        try {
+          const ctx = new(window.AudioContext || window.webkitAudioContext)();
+          let count = 0;
+          ringtoneInterval = setInterval(() => {
+            if (count >= 14 || !incomingOverlay.classList.contains('active')) {
+              stopRingtone();
+              return;
+            }
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = count % 2 === 0 ? 440 : 330;
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.12, ctx.currentTime);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.3);
+            count++;
+          }, 450);
+        } catch (e) {
+          log('Ringtone error: ' + e.message, 'error');
+        }
+      }
+
+      function stopRingtone() {
+        if (ringtoneInterval) {
+          clearInterval(ringtoneInterval);
+          ringtoneInterval = null;
+        }
+      }
+
+      // ─── Microphone ──────────────────────────────────────────────
+      async function getLocalStream() {
+        if (localStream && localStream.getAudioTracks().length > 0) {
+          return localStream;
+        }
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          });
+          localStream = stream;
+          log('Microphone acquired', 'success');
+          return stream;
+        } catch (err) {
+          log('Microphone error: ' + err.message, 'error');
+          showToast('Microphone access denied: ' + err.message);
+          throw err;
+        }
+      }
+
+      // ─── Remote Audio ──────────────────────────────────────────
+      function attachRemoteStream(stream) {
+        log('Remote stream received', 'success');
+        remoteAudio.srcObject = stream;
+        remoteAudio.muted = false;
+        remoteAudio.volume = 1.0;
+        remoteAudio.play().then(() => {
+          log('Remote audio playing', 'success');
+        }).catch((err) => {
+          log('Autoplay blocked: ' + err.message, 'warning');
+          // Resume on user interaction
           const resume = () => {
             remoteAudio.play().catch(() => {});
             document.removeEventListener('click', resume);
@@ -392,306 +923,387 @@
           };
           document.addEventListener('click', resume, { once: true });
           document.addEventListener('touchstart', resume, { once: true });
+          showToast('Tap anywhere to play audio');
         });
-    }
-
-    // ─── Make Call ──────────────────────────────────────────────
-    async function makeCall(targetNumber) {
-      if (isInCall) {
-        showToast('Already in a call');
-        log('Cannot call – already in call');
-        return;
-      }
-      if (!peer) {
-        showToast('Peer not ready');
-        log('Peer not ready');
-        return;
-      }
-      if (targetNumber === myNumber) {
-        showToast('Cannot call yourself');
-        log('Cannot call yourself');
-        return;
-      }
-      if (!/^\d{5}$/.test(targetNumber)) {
-        showToast('Enter a 5‑digit number');
-        log('Invalid number');
-        return;
       }
 
-      log('Attempting to call ' + targetNumber);
-      try {
-        await getLocalStream();
-        const call = peer.call(targetNumber, localStream);
-        if (!call) {
-          log('peer.call() returned null – peer may be offline');
-          showToast('Could not call – peer offline');
+      // ─── Make Call ──────────────────────────────────────────────
+      async function makeCall(targetNumber) {
+        if (isInCall) {
+          showToast('Already in a call');
           return;
         }
-        log('Call initiated');
-        currentCall = call;
-        isCaller = true;
-        isInCall = true;
-        showCallScreen(targetNumber);
-        callStatusMsg.textContent = 'Ringing...';
-
-        call.on('stream', (stream) => {
-          log('Received remote stream (caller side)');
-          attachRemoteStream(stream);
-          callStatusMsg.textContent = 'Connected';
-          startTimer();
-          showToast('Connected');
-        });
-
-        call.on('close', () => {
-          log('Call closed by remote or network');
-          endCall();
-        });
-
-        call.on('error', (err) => {
-          log('Call error: ' + err.message);
-          showToast('Call error: ' + err.message);
-          endCall();
-        });
-
-        // ICE monitoring
-        const pc = call.peerConnection;
-        if (pc) {
-          pc.oniceconnectionstatechange = () => {
-            const state = pc.iceConnectionState;
-            log('ICE state: ' + state);
-            if (state === 'failed') {
-              showToast('Connection lost');
-              endCall();
-            } else if (state === 'connected') {
-              callStatusMsg.textContent = 'Connected';
-            }
-          };
+        if (!peer) {
+          showToast('Not connected. Register first.');
+          return;
+        }
+        if (targetNumber === myNumber) {
+          showToast('Cannot call yourself');
+          return;
+        }
+        if (!/^\d{5}$/.test(targetNumber)) {
+          showToast('Enter a 5‑digit number');
+          return;
         }
 
-        // Timeout for stream
-        let streamTimeout = setTimeout(() => {
-          if (!call._streamReceived) {
-            log('WARNING: No stream received within 5s – trying ICE restart');
-            if (pc && pc.restartIce) pc.restartIce();
+        dialCallBtn.classList.add('disabled');
+        log('Calling ' + targetNumber + '...', 'warning');
+
+        try {
+          const stream = await getLocalStream();
+          const call = peer.call(targetNumber, stream);
+
+          if (!call) {
+            log('peer.call() returned null – target offline', 'error');
+            showToast('Target offline or unreachable');
+            dialCallBtn.classList.remove('disabled');
+            return;
           }
-        }, 5000);
-        // Store to clear on stream
-        call._streamReceived = false;
-        const origStreamHandler = call.on('stream');
-        call.on('stream', (stream) => {
-          call._streamReceived = true;
-          clearTimeout(streamTimeout);
-          attachRemoteStream(stream);
-          // Continue with other stream logic
-          callStatusMsg.textContent = 'Connected';
-          startTimer();
-          showToast('Connected');
-        });
-        // We need to remove the duplicate stream handler? We'll just let both fire – harmless.
-        // Actually, we already have a stream handler above; we'll just attach the timeout there.
 
-        // Overwrite the stream listener to clear timeout
-        // We'll just re‑attach – simpler: we'll use a flag.
+          currentCall = call;
+          isCaller = true;
+          isInCall = true;
+          callStartTime = Date.now();
 
-        // We'll use a separate listener for timeout: we'll store a reference.
-        // To avoid duplicates, we'll just set the flag in the existing handler.
-        // Let's modify the existing 'stream' listener to set the flag.
-        // But we already attached one above; we can remove it and reattach.
+          // Show call screen
+          callName.textContent = targetNumber;
+          callNumber.textContent = targetNumber;
+          callAvatar.textContent = '📞';
+          callSubstatus.textContent = 'Ringing...';
+          callTimer.textContent = '00:00';
+          callScreen.classList.add('active');
+          incomingOverlay.classList.remove('active');
 
-        // Remove the existing listener by replacing it with a new one.
-        // Since we have a reference to the call, we can use call.off('stream')? Not in PeerJS.
-        // We'll just use a variable to store the listener.
+          call.on('stream', (remoteStream) => {
+            log('Remote stream received (caller)', 'success');
+            attachRemoteStream(remoteStream);
+            callSubstatus.textContent = 'Connected';
+            startTimer();
+            showToast('Connected');
+            dialCallBtn.classList.remove('disabled');
+          });
 
-        // Actually, PeerJS doesn't have .off for media calls. We'll just set a flag inside the listener.
-        // The first listener we set will run, and we'll also set a timeout that checks the flag.
+          call.on('close', () => {
+            log('Call closed', 'warning');
+            endCall();
+          });
 
-      } catch (err) {
-        log('Call failed: ' + err.message);
-        showToast('Call failed: ' + err.message);
-        endCall();
+          call.on('error', (err) => {
+            log('Call error: ' + err.message, 'error');
+            showToast('Call error: ' + err.message);
+            endCall();
+          });
+
+          // ICE monitoring
+          const pc = call.peerConnection;
+          if (pc) {
+            pc.oniceconnectionstatechange = () => {
+              const state = pc.iceConnectionState;
+              log('ICE: ' + state, state === 'connected' || state === 'completed' ? 'success' : 'warning');
+              if (state === 'failed' || state === 'disconnected') {
+                showToast('Connection lost');
+                endCall();
+              } else if (state === 'connected' || state === 'completed') {
+                callSubstatus.textContent = 'Connected';
+              }
+            };
+            // Also monitor gathering state
+            pc.onicegatheringstatechange = () => {
+              log('ICE gathering: ' + pc.iceGatheringState, 'warning');
+            };
+          }
+
+        } catch (err) {
+          log('Call failed: ' + err.message, 'error');
+          showToast('Call failed: ' + err.message);
+          dialCallBtn.classList.remove('disabled');
+          endCall();
+        }
       }
-    }
 
-    function showCallScreen(number) {
-      callName.textContent = number;
-      callAvatar.textContent = '📞';
-      callScreen.classList.add('active');
-      incomingOverlay.classList.remove('active');
-    }
+      // ─── Answer Incoming ──────────────────────────────────────────
+      async function answerIncomingCall() {
+        if (isAnswering || !incomingCall) {
+          log('No incoming call to answer', 'error');
+          return;
+        }
 
-    function startTimer() {
-      if (callTimerInterval) clearInterval(callTimerInterval);
-      let seconds = 0;
-      callTimerInterval = setInterval(() => {
-        seconds++;
-        const m = String(Math.floor(seconds / 60)).padStart(2, '0');
-        const s = String(seconds % 60).padStart(2, '0');
-        callTimer.textContent = `${m}:${s}`;
-      }, 1000);
-    }
+        isAnswering = true;
+        log('Answering call from ' + incomingCall.peer, 'success');
 
-    // ─── Answer / Reject ──────────────────────────────────────
-    async function answerIncomingCall() {
-      if (!incomingCall) {
-        log('No incoming call to answer');
-        return;
+        try {
+          stopRingtone();
+          const stream = await getLocalStream();
+          incomingCall.answer(stream);
+          currentCall = incomingCall;
+          isCaller = false;
+          isInCall = true;
+          callStartTime = Date.now();
+
+          const number = currentCall.peer;
+          callName.textContent = number;
+          callNumber.textContent = number;
+          callAvatar.textContent = '📞';
+          callSubstatus.textContent = 'Connecting...';
+          callTimer.textContent = '00:00';
+          callScreen.classList.add('active');
+          incomingOverlay.classList.remove('active');
+
+          currentCall.on('stream', (remoteStream) => {
+            log('Remote stream received (answerer)', 'success');
+            attachRemoteStream(remoteStream);
+            callSubstatus.textContent = 'Connected';
+            startTimer();
+            showToast('Connected');
+          });
+
+          currentCall.on('close', () => {
+            log('Call closed (answerer)', 'warning');
+            endCall();
+          });
+
+          currentCall.on('error', (err) => {
+            log('Call error (answerer): ' + err.message, 'error');
+            showToast('Call error');
+            endCall();
+          });
+
+          const pc = currentCall.peerConnection;
+          if (pc) {
+            pc.oniceconnectionstatechange = () => {
+              const state = pc.iceConnectionState;
+              log('ICE: ' + state, state === 'connected' || state === 'completed' ? 'success' : 'warning');
+              if (state === 'failed' || state === 'disconnected') {
+                showToast('Connection lost');
+                endCall();
+              } else if (state === 'connected' || state === 'completed') {
+                callSubstatus.textContent = 'Connected';
+              }
+            };
+          }
+
+          incomingCall = null;
+        } catch (err) {
+          log('Answer failed: ' + err.message, 'error');
+          showToast('Answer failed: ' + err.message);
+          if (incomingCall) {
+            incomingCall.close();
+            incomingCall = null;
+          }
+          incomingOverlay.classList.remove('active');
+          isInCall = false;
+        } finally {
+          isAnswering = false;
+        }
       }
-      log('Answering call from ' + incomingCall.peer);
-      try {
+
+      // ─── Reject Incoming ──────────────────────────────────────────
+      function rejectIncomingCall() {
+        if (incomingCall) {
+          incomingCall.close();
+          incomingCall = null;
+        }
         stopRingtone();
-        await getLocalStream();
-        incomingCall.answer(localStream);
-        currentCall = incomingCall;
-        isCaller = false;
-        isInCall = true;
-        const number = currentCall.peer;
-        showCallScreen(number);
         incomingOverlay.classList.remove('active');
-        callStatusMsg.textContent = 'Connecting...';
+        log('Call rejected', 'error');
+      }
 
-        currentCall.on('stream', (stream) => {
-          log('Received remote stream (answer side)');
-          attachRemoteStream(stream);
-          callStatusMsg.textContent = 'Connected';
-          startTimer();
-          showToast('Connected');
-        });
+      // ─── End Call ──────────────────────────────────────────────
+      function endCall() {
+        log('Ending call', 'warning');
 
-        currentCall.on('close', () => {
-          log('Call closed (answer side)');
-          endCall();
-        });
+        if (currentCall) {
+          currentCall.close();
+          currentCall = null;
+        }
 
-        currentCall.on('error', (err) => {
-          log('Call error (answer): ' + err.message);
-          showToast('Call error');
-          endCall();
-        });
+        if (remoteAudio.srcObject) {
+          remoteAudio.pause();
+          remoteAudio.srcObject = null;
+        }
 
-        const pc = currentCall.peerConnection;
-        if (pc) {
-          pc.oniceconnectionstatechange = () => {
-            const state = pc.iceConnectionState;
-            log('ICE state: ' + state);
-            if (state === 'failed') {
-              showToast('Connection lost');
-              endCall();
-            } else if (state === 'connected') {
-              callStatusMsg.textContent = 'Connected';
+        // Don't stop local stream – keep it for next call
+
+        isInCall = false;
+        isCaller = false;
+        isMuted = false;
+        muteBtn.textContent = '🔇';
+        muteBtn.className = 'mute';
+
+        stopRingtone();
+        incomingOverlay.classList.remove('active');
+        callScreen.classList.remove('active');
+
+        if (callTimerInterval) {
+          clearInterval(callTimerInterval);
+          callTimerInterval = null;
+        }
+        callTimer.textContent = '00:00';
+        callSubstatus.textContent = '';
+        dialCallBtn.classList.remove('disabled');
+
+        log('Call ended', 'warning');
+      }
+
+      // ─── Timer ──────────────────────────────────────────────
+      function startTimer() {
+        if (callTimerInterval) clearInterval(callTimerInterval);
+        let seconds = 0;
+        callTimerInterval = setInterval(() => {
+          seconds++;
+          const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+          const s = String(seconds % 60).padStart(2, '0');
+          callTimer.textContent = m + ':' + s;
+        }, 1000);
+      }
+
+      // ─── Check Status ──────────────────────────────────────────
+      function checkStatus() {
+        const num = dialedNumber || prompt('Enter 5-digit number to check:');
+        if (!num) return;
+        if (!peer) {
+          statusResult.textContent = 'Not connected';
+          return;
+        }
+        statusResult.textContent = 'Checking...';
+        log('Checking status for ' + num, 'warning');
+        try {
+          const conn = peer.connect(num);
+          let done = false;
+          conn.on('open', () => {
+            if (!done) { done = true;
+              statusResult.textContent = '✅ Online';
+              log(num + ' is online', 'success');
+              conn.close(); }
+          });
+          conn.on('error', () => {
+            if (!done) { done = true;
+              statusResult.textContent = '❌ Offline';
+              log(num + ' is offline', 'error'); }
+          });
+          setTimeout(() => {
+            if (!done) { done = true;
+              statusResult.textContent = '⏳ Timeout (offline)';
+              log(num + ' timed out', 'error');
+              conn.close(); }
+          }, 3000);
+        } catch (e) {
+          statusResult.textContent = 'Error';
+          log('Status check error: ' + e.message, 'error');
+        }
+      }
+
+      // ─── Dialer ──────────────────────────────────────────────────
+      dialPad.addEventListener('click', (e) => {
+        const key = e.target.closest('.key');
+        if (!key) return;
+        const digit = key.dataset.digit;
+        const action = key.dataset.action;
+
+        if (digit) {
+          if (dialedNumber.length < 15) {
+            dialedNumber += digit;
+            dialDisplay.textContent = dialedNumber;
+          }
+        } else if (action === 'delete') {
+          dialedNumber = dialedNumber.slice(0, -1);
+          dialDisplay.textContent = dialedNumber || 'Enter number';
+          if (!dialedNumber) dialDisplay.innerHTML = '<span class="hint">Enter number</span>';
+        } else if (action === 'clear') {
+          dialedNumber = '';
+          dialDisplay.innerHTML = '<span class="hint">Enter number</span>';
+        } else if (action === 'call') {
+          if (dialedNumber) makeCall(dialedNumber);
+        }
+      });
+
+      // Keyboard support
+      document.addEventListener('keydown', (e) => {
+        if (e.key >= '0' && e.key <= '9') {
+          if (dialedNumber.length < 15) {
+            dialedNumber += e.key;
+            dialDisplay.textContent = dialedNumber;
+          }
+        } else if (e.key === 'Backspace') {
+          dialedNumber = dialedNumber.slice(0, -1);
+          dialDisplay.textContent = dialedNumber || 'Enter number';
+          if (!dialedNumber) dialDisplay.innerHTML = '<span class="hint">Enter number</span>';
+        } else if (e.key === 'Enter') {
+          if (dialedNumber) makeCall(dialedNumber);
+        }
+      });
+
+      // ─── Call Screen Controls ──────────────────────────────────
+      hangupCallBtn.addEventListener('click', endCall);
+
+      muteBtn.addEventListener('click', () => {
+        if (!localStream) {
+          showToast('No microphone available');
+          return;
+        }
+        isMuted = !isMuted;
+        localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+        muteBtn.textContent = isMuted ? '🔊' : '🔇';
+        muteBtn.className = isMuted ? 'mute active' : 'mute';
+        showToast(isMuted ? 'Muted' : 'Unmuted');
+      });
+
+      speakerBtn.addEventListener('click', () => {
+        isSpeakerOn = !isSpeakerOn;
+        speakerBtn.className = isSpeakerOn ? 'speaker active' : 'speaker';
+        // Try to use audio output if available
+        if (isSpeakerOn && remoteAudio && typeof remoteAudio.setSinkId === 'function') {
+          // Attempt to switch to speaker (works on some browsers)
+          try {
+            // Just a visual toggle – actual speaker switching is browser-specific
+            showToast(isSpeakerOn ? 'Speaker on' : 'Earpiece');
+          } catch (e) {}
+        } else {
+          showToast(isSpeakerOn ? 'Speaker on' : 'Earpiece');
+        }
+      });
+
+      // ─── Incoming Overlay Buttons ──────────────────────────────
+      answerBtn.addEventListener('click', answerIncomingCall);
+      rejectBtn.addEventListener('click', rejectIncomingCall);
+
+      // ─── Check Status Button ──────────────────────────────────
+      checkStatusBtn.addEventListener('click', checkStatus);
+
+      // ─── Auto-load from URL ──────────────────────────────────────
+      (function autoLoad() {
+        const params = new URLSearchParams(window.location.search);
+        const num = params.get('number');
+        if (num && /^\d{5}$/.test(num)) {
+          dialedNumber = num;
+          dialDisplay.textContent = num;
+          setTimeout(() => {
+            if (peer && myNumber) {
+              makeCall(num);
             }
-          };
+          }, 1500);
         }
+      })();
 
-        incomingCall = null;
-      } catch (err) {
-        log('Answer failed: ' + err.message);
-        showToast('Answer failed: ' + err.message);
-        rejectIncomingCall();
+      // ─── Init ──────────────────────────────────────────────────
+      if (myNumber) {
+        myNumberDisplay.textContent = myNumber;
+        regStatus.textContent = 'Registered: ' + myNumber;
+        regStatus.className = 'reg-status success';
+        log('Loaded number: ' + myNumber, 'success');
+        initPeer();
+      } else {
+        regStatus.textContent = 'Enter a 5-digit number to start.';
+        regStatus.className = 'reg-status';
+        log('No number stored. Register first.', 'warning');
       }
-    }
 
-    function rejectIncomingCall() {
-      if (incomingCall) { incomingCall.close(); incomingCall = null; }
-      stopRingtone();
-      incomingOverlay.classList.remove('active');
-      log('Call rejected');
-    }
+      log('PremCall ready.', 'success');
 
-    // ─── End Call ──────────────────────────────────────────────
-    function endCall() {
-      log('Ending call');
-      if (currentCall) { currentCall.close(); currentCall = null; }
-      if (localStream) {
-        localStream.getTracks().forEach(t => t.stop());
-        localStream = null;
-      }
-      remoteAudio.pause();
-      remoteAudio.srcObject = null;
+      // Export for debugging
+      window.premCall = { makeCall, endCall, peer, getLocalStream };
 
-      isInCall = false;
-      isCaller = false;
-      stopRingtone();
-      incomingOverlay.classList.remove('active');
-      callScreen.classList.remove('active');
-      if (callTimerInterval) clearInterval(callTimerInterval);
-      callTimer.textContent = '00:00';
-      callStatusMsg.textContent = '';
-      log('Call ended');
-    }
-
-    // ─── Dialer ──────────────────────────────────────────────────
-    dialPad.addEventListener('click', (e) => {
-      const key = e.target.closest('.key');
-      if (!key) return;
-      const digit = key.dataset.digit;
-      const action = key.dataset.action;
-      if (digit) {
-        dialedNumber += digit;
-        dialDisplay.textContent = dialedNumber;
-      } else if (action === 'delete') {
-        dialedNumber = dialedNumber.slice(0, -1);
-        dialDisplay.textContent = dialedNumber || 'Enter number';
-      } else if (action === 'call') {
-        if (dialedNumber) makeCall(dialedNumber);
-      }
-    });
-
-    // ─── Check Status ──────────────────────────────────────────
-    checkStatusBtn.addEventListener('click', () => {
-      const num = dialedNumber || prompt('Enter 5‑digit number to check:');
-      if (!num) return;
-      if (!peer) { statusResult.textContent = 'Peer not ready'; return; }
-      statusResult.textContent = 'Checking...';
-      log('Checking status for ' + num);
-      const conn = peer.connect(num);
-      conn.on('open', () => {
-        statusResult.textContent = '✅ Online';
-        log(num + ' is online');
-        conn.close();
-      });
-      conn.on('error', () => {
-        statusResult.textContent = '❌ Offline';
-        log(num + ' is offline');
-      });
-      setTimeout(() => {
-        if (statusResult.textContent === 'Checking...') {
-          statusResult.textContent = '⏳ Timeout (offline)';
-          log(num + ' timed out');
-          conn.close();
-        }
-      }, 3000);
-    });
-
-    // ─── Button events ──────────────────────────────────────────
-    answerBtn.addEventListener('click', answerIncomingCall);
-    rejectBtn.addEventListener('click', rejectIncomingCall);
-    hangupCallBtn.addEventListener('click', endCall);
-
-    // ─── Init ──────────────────────────────────────────────────
-    if (myNumber) {
-      numberStatus.textContent = 'Registered: ' + myNumber;
-      log('Using stored number: ' + myNumber);
-      initPeer();
-    } else {
-      numberStatus.textContent = 'Enter a 5‑digit number to start.';
-      log('No number stored – register first.');
-    }
-
-    // Keyboard support for dialer
-    document.addEventListener('keydown', (e) => {
-      if (e.key >= '0' && e.key <= '9') {
-        dialedNumber += e.key;
-        dialDisplay.textContent = dialedNumber;
-      } else if (e.key === 'Backspace') {
-        dialedNumber = dialedNumber.slice(0, -1);
-        dialDisplay.textContent = dialedNumber || 'Enter number';
-      } else if (e.key === 'Enter') {
-        if (dialedNumber) makeCall(dialedNumber);
-      }
-    });
-
-    console.log('PremCall audio debug loaded.');
-  })();
-</script>
+    })();
+  </script>
 </body>
 </html>
