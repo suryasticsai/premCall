@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
     <title>premCall</title>
     <style>
-        /* same as before – keep it */
+        /* same as before */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: #0a0e1a; color: #e2e8f0; display: flex; justify-content: center; padding: 1.5rem 1rem 3rem; min-height: 100vh; }
         .container { max-width: 680px; width: 100%; }
@@ -13,7 +13,7 @@
         h1 .logo-svg { width: 36px; height: 36px; display: inline-block; }
         .subhead { color: #8892b0; margin-bottom: 1.5rem; font-size: 0.95rem; }
         .card { background: #141b2b; border-radius: 20px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid #23304a; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
-        .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
         textarea { width: 100%; padding: 0.75rem; background: #0f1629; border: 1px solid #2a3a5a; border-radius: 12px; color: #b0c7e0; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.8rem; resize: vertical; min-height: 80px; transition: border 0.2s; }
         textarea:focus { outline: none; border-color: #4f8cf7; }
         textarea:disabled { opacity: 0.5; }
@@ -31,6 +31,7 @@
         .btn-red:hover:not(:disabled) { background: #b52238; }
         .btn-outline { background: transparent; border: 1px solid #4a5a7a; }
         .btn-outline:hover:not(:disabled) { background: #1a2a4a; }
+        .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.75rem; min-width: auto; }
         .status { padding: 0.5rem 0.8rem; border-radius: 40px; background: #1a2338; font-size: 0.85rem; color: #94a3b8; margin: 0.5rem 0; display: inline-block; }
         .status-success { color: #4ade80; }
         .status-error { color: #f87171; }
@@ -39,6 +40,10 @@
         .hidden { display: none !important; }
         @media (max-width: 480px) { .btn { min-width: 70px; padding: 0.5rem 1rem; font-size: 0.8rem; } .flex-row { gap: 0.4rem; } }
         .copy-hint { font-size: 0.8rem; color: #4a6a8a; margin-top: 0.2rem; }
+        .paste-btn { background: transparent; border: 1px solid #4a6a8a; color: #94a3b8; padding: 0.2rem 0.8rem; border-radius: 20px; font-size: 0.75rem; cursor: pointer; }
+        .paste-btn:hover { background: #1a2a4a; }
+        .debug-btn { background: #2a2a4a; border: 1px solid #4a4a7a; color: #b0b0d0; padding: 0.2rem 0.8rem; border-radius: 20px; font-size: 0.75rem; cursor: pointer; }
+        .debug-btn:hover { background: #3a3a5a; }
     </style>
 </head>
 <body>
@@ -86,6 +91,8 @@
                 <polyline points="20 6 9 17 4 12"/>
             </svg>
             Paste Answer
+            <button class="paste-btn" id="pasteAnswerBtn">📋 Paste from clipboard</button>
+            <button class="debug-btn" id="debugAnswerBtn">🔍 Show Cleaned</button>
         </div>
         <textarea id="answerBox" placeholder="Paste the answer SDP from the other person..."></textarea>
         <div class="flex-row" style="margin-top: 0.6rem;">
@@ -106,6 +113,8 @@
         </div>
         <div class="card-title" style="font-size:0.9rem; font-weight:400; color:#94a3b8; margin-bottom:0.3rem;">
             Paste offer from caller:
+            <button class="paste-btn" id="pasteOfferBtn">📋 Paste from clipboard</button>
+            <button class="debug-btn" id="debugOfferBtn">🔍 Show Cleaned</button>
         </div>
         <textarea id="pasteOfferBox" placeholder="Paste the offer SDP here..."></textarea>
         <div class="flex-row">
@@ -170,6 +179,10 @@
         const hangupBtn = document.getElementById('hangupBtn');
         const callStatus = document.getElementById('callStatus');
         const connectionStatus = document.getElementById('connectionStatus');
+        const pasteOfferBtn = document.getElementById('pasteOfferBtn');
+        const pasteAnswerBtn = document.getElementById('pasteAnswerBtn');
+        const debugOfferBtn = document.getElementById('debugOfferBtn');
+        const debugAnswerBtn = document.getElementById('debugAnswerBtn');
 
         // ─── State ───
         let localStream = null;
@@ -189,23 +202,89 @@
             alert('Error: ' + msg);
         }
 
-        // ─── SDP Sanitizer (FIX) ───
+        // ─── Robust SDP Sanitizer with logging ───
         function cleanSdp(sdp) {
-            // Remove leading/trailing whitespace and normalize line endings
-            let cleaned = sdp.trim().replace(/\r\n/g, '\n');
-            // Ensure it starts with "v=0"
-            if (!cleaned.startsWith('v=0')) {
-                // Try to find the first line that looks like v=0
-                const match = cleaned.match(/v=0\n/);
-                if (match) {
-                    cleaned = cleaned.substring(match.index);
+            // 1. Remove non-printable control chars (except newline and carriage return)
+            let cleaned = sdp.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+            
+            // 2. Normalize line endings
+            cleaned = cleaned.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            
+            // 3. Split into lines, trim each, filter empty
+            let lines = cleaned.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0);
+            
+            // 4. If any line has multiple 'a=' attributes, split them (rare)
+            let newLines = [];
+            for (let line of lines) {
+                // Split by "a=" but keep the delimiter
+                const parts = line.split(/(?=a=)/);
+                if (parts.length > 1) {
+                    for (let p of parts) {
+                        if (p.trim().length > 0) {
+                            newLines.push(p.trim());
+                        }
+                    }
                 } else {
-                    throw new Error('Invalid SDP: missing v=0 line');
+                    newLines.push(line);
                 }
             }
+            lines = newLines;
+            
+            // 5. Ensure v=0 exists
+            if (!lines.some(line => line.startsWith('v=0'))) {
+                throw new Error('Invalid SDP: no v=0 line found');
+            }
+            
+            // 6. Strip everything before first v=0
+            const vIndex = lines.findIndex(line => line.startsWith('v=0'));
+            if (vIndex > 0) {
+                lines = lines.slice(vIndex);
+            }
+            
+            // 7. Join back with newline
+            cleaned = lines.join('\n');
+            
+            // 8. Log the cleaned SDP to console
+            console.log('Cleaned SDP:\n', cleaned);
+            
             return cleaned;
         }
 
+        // ─── Debug: show cleaned SDP in a modal ───
+        function showCleanedSdp(textareaId) {
+            const textarea = document.getElementById(textareaId);
+            const raw = textarea.value;
+            if (!raw) {
+                alert('Textarea is empty.');
+                return;
+            }
+            try {
+                const cleaned = cleanSdp(raw);
+                alert('Cleaned SDP (first 500 chars):\n\n' + cleaned.slice(0, 500) + '\n\n(Full SDP logged to console)');
+            } catch (err) {
+                alert('Error cleaning SDP: ' + err.message);
+            }
+        }
+
+        debugOfferBtn.addEventListener('click', () => showCleanedSdp('pasteOfferBox'));
+        debugAnswerBtn.addEventListener('click', () => showCleanedSdp('answerBox'));
+
+        // ─── Paste from clipboard ───
+        async function pasteToTextarea(textarea) {
+            try {
+                const text = await navigator.clipboard.readText();
+                textarea.value = text;
+                textarea.dispatchEvent(new Event('input'));
+            } catch (err) {
+                alert('Failed to read clipboard: ' + err.message);
+            }
+        }
+        pasteOfferBtn.addEventListener('click', () => pasteToTextarea(pasteOfferBox));
+        pasteAnswerBtn.addEventListener('click', () => pasteToTextarea(answerBox));
+
+        // ─── Get microphone ───
         async function getLocalStream() {
             if (!localStream) {
                 localStream = await navigator.mediaDevices.getUserMedia({
@@ -215,6 +294,7 @@
             return localStream;
         }
 
+        // ─── Create RTCPeerConnection ───
         function createPeerConnection() {
             const config = {
                 iceServers: [
@@ -254,6 +334,7 @@
             return pc;
         }
 
+        // ─── Hang up ───
         function hangUp() {
             if (pc) { pc.close(); pc = null; }
             if (localStream) {
@@ -323,8 +404,8 @@
 
         // ─── ANSWER (Callee) ───
         answerBtn.addEventListener('click', async () => {
-            const offer = pasteOfferBox.value.trim();
-            if (!offer) {
+            const rawOffer = pasteOfferBox.value.trim();
+            if (!rawOffer) {
                 showError('Please paste the offer first.');
                 return;
             }
@@ -333,9 +414,11 @@
                 answerBtn.innerHTML = '<span style="display:inline-block;width:18px;height:18px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;"></span> Processing...';
                 await getLocalStream();
                 pc = createPeerConnection();
-                // --- FIX: clean SDP ---
-                const cleanedOffer = cleanSdp(offer);
+                
+                // Sanitize offer
+                const cleanedOffer = cleanSdp(rawOffer);
                 await pc.setRemoteDescription({ type: 'offer', sdp: cleanedOffer });
+                
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
                 const answerSdp = pc.localDescription.sdp;
@@ -345,7 +428,13 @@
                 answerBtn.disabled = false;
                 answerBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M8 12l3 3 5-5"/></svg> Generate Answer`;
             } catch (err) {
-                showError(err.message);
+                // Show the cleaned SDP if available for debugging
+                let extra = '';
+                try {
+                    const cleaned = cleanSdp(rawOffer);
+                    extra = '\n\nCleaned SDP:\n' + cleaned;
+                } catch (e) {}
+                showError('Answer generation failed: ' + err.message + extra);
                 setStatus(calleeStatus, 'Failed: ' + err.message, 'error');
                 answerBtn.disabled = false;
                 answerBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M8 12l3 3 5-5"/></svg> Generate Answer`;
@@ -367,8 +456,8 @@
 
         // ─── CONNECT (Caller) ───
         connectBtn.addEventListener('click', async () => {
-            const answer = answerBox.value.trim();
-            if (!answer) {
+            const rawAnswer = answerBox.value.trim();
+            if (!rawAnswer) {
                 showError('Please paste the answer from the other person.');
                 return;
             }
@@ -381,9 +470,11 @@
                     if (!offerSdp) throw new Error('No offer generated. Please click Start first.');
                     await pc.setLocalDescription({ type: 'offer', sdp: offerSdp });
                 }
-                // --- FIX: clean SDP ---
-                const cleanedAnswer = cleanSdp(answer);
+                
+                // Sanitize answer
+                const cleanedAnswer = cleanSdp(rawAnswer);
                 await pc.setRemoteDescription({ type: 'answer', sdp: cleanedAnswer });
+                
                 isCallActive = true;
                 callControls.classList.remove('hidden');
                 setStatus(callStatus, 'Connected!', 'success');
@@ -394,7 +485,12 @@
                 copyOfferBtn.disabled = true;
                 copyAnswerBtn.disabled = true;
             } catch (err) {
-                showError(err.message);
+                let extra = '';
+                try {
+                    const cleaned = cleanSdp(rawAnswer);
+                    extra = '\n\nCleaned SDP:\n' + cleaned;
+                } catch (e) {}
+                showError('Connection failed: ' + err.message + extra);
                 setStatus(callStatus, 'Connection failed: ' + err.message, 'error');
                 connectBtn.disabled = false;
                 connectBtn.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Connect`;
@@ -430,7 +526,7 @@
         document.head.appendChild(style);
 
         setStatus(connectionStatus, 'offline', 'error');
-        console.log('premCall loaded with SDP sanitization fix.');
+        console.log('premCall loaded with enhanced SDP sanitizer + debug buttons.');
     })();
 </script>
 </body>
