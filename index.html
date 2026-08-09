@@ -3,860 +3,688 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>premCall</title>
-  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <title>PremCall</title>
+  <!-- load the library from CDN (or local) -->
+  <script src="premcall.js"></script>
   <style>
-    /* same styles as before – kept for brevity */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* ─── same styles as before (or your own) ─── */
+    * { box-sizing:border-box; margin:0; padding:0; }
     body {
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0e1a;
-      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0b0e17;
+      color: #e8edf5;
       display: flex;
       justify-content: center;
-      padding: 1.5rem 1rem 3rem;
       min-height: 100vh;
-    }
-    .container { max-width: 600px; width: 100%; }
-    .logo { display: flex; align-items: center; gap: 0.75rem; font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem; }
-    .logo svg { width: 36px; height: 36px; }
-    .subhead { color: #8892b0; margin-bottom: 1.5rem; font-size: 0.95rem; }
-    .card {
-      background: #141b2b;
-      border-radius: 20px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      border: 1px solid #23304a;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    }
-    .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-    .number-display {
-      background: #0f1629;
-      border: 2px solid #4f8cf7;
-      border-radius: 16px;
-      padding: 0.75rem 1rem;
-      font-size: 2rem;
-      font-weight: 700;
-      text-align: center;
-      font-family: 'JetBrains Mono', monospace;
-      color: #4f8cf7;
-      letter-spacing: 2px;
-      margin: 0.5rem 0 1rem;
-    }
-    .input-group { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
-    .input-group input { flex: 1; }
-    input, textarea {
-      width: 100%;
-      padding: 0.75rem;
-      background: #0f1629;
-      border: 1px solid #2a3a5a;
-      border-radius: 12px;
-      color: #b0c7e0;
-      font-size: 1rem;
-      transition: border 0.2s;
-    }
-    input:focus { outline: none; border-color: #4f8cf7; }
-    input[type="tel"] { -moz-appearance: textfield; }
-    input[type="tel"]::-webkit-outer-spin-button,
-    input[type="tel"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-    .flex-row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.6rem;
-      margin: 0.5rem 0 0.8rem;
-    }
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.4rem;
-      padding: 0.6rem 1.2rem;
-      border: none;
-      border-radius: 40px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: #2a3a5a;
-      color: #e2e8f0;
-      min-width: 100px;
-    }
-    .btn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
-    .btn:disabled { opacity: 0.4; pointer-events: none; filter: grayscale(0.6); }
-    .btn-green { background: #1a7a4a; color: #fff; }
-    .btn-green:hover:not(:disabled) { background: #1f9b5e; }
-    .btn-blue { background: #1a4a8a; color: #fff; }
-    .btn-blue:hover:not(:disabled) { background: #2563d6; }
-    .btn-red { background: #8a1a2a; color: #fff; }
-    .btn-red:hover:not(:disabled) { background: #b52238; }
-    .btn-yellow { background: #a67c1a; color: #fff; }
-    .btn-yellow:hover:not(:disabled) { background: #ca9a2a; }
-    .btn-outline { background: transparent; border: 1px solid #4a5a7a; }
-    .btn-outline:hover:not(:disabled) { background: #1a2a4a; }
-    .btn-sm { padding: 0.3rem 0.8rem; font-size: 0.75rem; min-width: auto; }
-    .status {
-      padding: 0.3rem 0.8rem;
-      border-radius: 40px;
-      background: #1a2338;
-      font-size: 0.85rem;
-      color: #94a3b8;
-      margin: 0.5rem 0;
-      display: inline-block;
-    }
-    .status-success { color: #4ade80; }
-    .status-error { color: #f87171; }
-    .status-warning { color: #fbbf24; }
-    .call-status {
       padding: 1rem;
-      border-radius: 12px;
-      text-align: center;
-      font-weight: 600;
-      margin: 0.5rem 0;
+      margin: 0;
     }
-    .call-status.idle { background: #1a2338; color: #94a3b8; }
-    .call-status.ringing { background: #a67c1a33; color: #fbbf24; }
-    .call-status.connected { background: #1a7a4a33; color: #4ade80; }
-    .call-status.ended { background: #8a1a2a33; color: #f87171; }
-    .hidden { display: none !important; }
-    .incoming-card {
-      border: 2px solid #fbbf24;
-      background: #1e2a3a;
-      animation: pulse-border 1.5s ease-in-out infinite;
+    .container {
+      max-width: 420px;
+      width: 100%;
+      background: #131a26;
+      border-radius: 28px;
+      padding: 1.5rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+      display: flex;
+      flex-direction: column;
     }
-    @keyframes pulse-border {
-      0% { border-color: #fbbf24; }
-      50% { border-color: #f59e0b; }
-      100% { border-color: #fbbf24; }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid #1e2a3a;
+      flex-shrink: 0;
     }
-    .audio-overlay {
-      background: #1a2a3a;
-      border-radius: 12px;
-      padding: 0.5rem 1rem;
-      margin: 0.5rem 0;
+    .logo {
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #4f8cf7;
     }
-    @media (max-width: 480px) {
-      .btn { min-width: 70px; padding: 0.5rem 1rem; font-size: 0.8rem; }
-      .flex-row { gap: 0.4rem; }
-      .number-display { font-size: 1.5rem; padding: 0.5rem 1rem; }
-      .input-group { flex-wrap: wrap; }
+    .logo svg { width:28px; height:28px; stroke:#4f8cf7; stroke-width:2; fill:none; }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: #8892b0;
     }
+    .status-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .status-dot.online { background: #4ade80; }
+    .status-dot.offline { background: #f87171; }
+    .status-dot.connecting { background: #fbbf24; }
+
+    .settings-link {
+      background: #1a2338;
+      padding: 0.4rem 1rem;
+      border-radius: 40px;
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 0.8rem;
+      margin: 0.5rem 0;
+      display: inline-block;
+    }
+    .settings-link:hover { background: #2a3a5a; }
+
+    .dialer-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0.5rem 0;
+    }
+    .dialer-display {
+      background: #0b0e17;
+      border-radius: 16px;
+      padding: 1rem 1.2rem;
+      font-size: 2rem;
+      font-weight: 300;
+      text-align: center;
+      letter-spacing: 3px;
+      color: #e8edf5;
+      border: 1px solid #1e2a3a;
+      min-height: 4.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      word-break: break-all;
+      margin-bottom: 1.2rem;
+      font-family: 'Courier New', monospace;
+    }
+    .dialer-display .hint { font-size:0.9rem; color:#4a5a6a; letter-spacing:0; }
+    .dialer-pad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.7rem;
+      max-width: 300px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .dialer-pad .key {
+      background: #1e2a3a;
+      border-radius: 50%;
+      aspect-ratio: 1/1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.1s;
+      border: none;
+      color: #e8edf5;
+      font-family: inherit;
+    }
+    .dialer-pad .key:active { background:#2a3a5a; transform:scale(0.95); }
+    .dialer-pad .key.call { background:#1a7a4a; color:#fff; }
+    .dialer-pad .key.call:active { background:#1f9b5e; }
+    .dialer-pad .key.call.disabled { opacity:0.4; pointer-events:none; }
+    .dialer-pad .key .svg-icon { width:28px; height:28px; stroke:currentColor; stroke-width:2; fill:none; }
+
+    .action-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 0.8rem;
+      flex-shrink: 0;
+    }
+    .action-row .btn {
+      padding:0.4rem 1rem;
+      border:none;
+      border-radius:40px;
+      font-weight:600;
+      font-size:0.8rem;
+      cursor:pointer;
+      background:transparent;
+      border:1px solid #2a3a5a;
+      color:#e8edf5;
+    }
+    .action-row .btn:hover { background:#1a2338; }
+    .action-row .status-badge { font-size:0.8rem; color:#8892b0; display:flex; align-items:center; gap:0.3rem; }
+
+    /* call screen overlay */
+    #callScreen {
+      display: none;
+      position: fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background:#0b0e17;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      z-index:999;
+      padding:2rem;
+    }
+    #callScreen.active { display:flex; }
+    #callScreen .avatar {
+      width:100px; height:100px;
+      border-radius:50%;
+      background:#2a3a5a;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:3rem;
+      font-weight:700;
+      color:#fff;
+      margin-bottom:0.5rem;
+    }
+    #callScreen .name { font-size:2rem; font-weight:700; }
+    #callScreen .number { color:#8892b0; margin-bottom:0.3rem; }
+    #callScreen .substatus { color:#fbbf24; font-size:0.9rem; min-height:1.2rem; margin-bottom:1rem; }
+    #callScreen .timer {
+      font-size:1.8rem;
+      color:#4ade80;
+      font-family:'Courier New', monospace;
+      margin-bottom:2rem;
+      letter-spacing:2px;
+    }
+    #callScreen .call-actions {
+      display:flex;
+      gap:1.5rem;
+    }
+    #callScreen .call-actions button {
+      width:62px; height:62px;
+      border-radius:50%;
+      border:none;
+      cursor:pointer;
+      font-size:1.6rem;
+      background:#1e2a3a;
+      color:#e8edf5;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:background 0.15s, transform 0.15s;
+    }
+    #callScreen .call-actions button:active { transform:scale(0.9); }
+    #callScreen .call-actions .hangup { background:#8a1a2a; }
+    #callScreen .call-actions .hangup:hover { background:#b52238; }
+    #callScreen .call-actions .mute { background:#a67c1a; }
+    #callScreen .call-actions .mute:hover { background:#ca9a2a; }
+    #callScreen .call-actions .mute.active { background:#4a3a1a; color:#f87171; }
+    #callScreen .call-actions .speaker { background:#1a4a8a; }
+    #callScreen .call-actions .speaker:hover { background:#2563d6; }
+    #callScreen .call-actions .speaker.active { background:#0f3460; box-shadow:0 0 0 2px #4f8cf7; }
+
+    /* incoming overlay */
+    #incomingOverlay {
+      display: none;
+      position: fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background:rgba(0,0,0,0.88);
+      backdrop-filter:blur(12px);
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      z-index:1000;
+      padding:2rem;
+    }
+    #incomingOverlay.active { display:flex; }
+    #incomingOverlay .avatar {
+      width:100px; height:100px;
+      border-radius:50%;
+      background:#2a3a5a;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:3rem;
+      font-weight:700;
+      color:#fff;
+      margin-bottom:1rem;
+    }
+    #incomingOverlay .name { font-size:2rem; font-weight:700; }
+    #incomingOverlay .number { color:#8892b0; margin-bottom:2rem; }
+    #incomingOverlay .actions { display:flex; gap:2.5rem; }
+    #incomingOverlay .actions button {
+      width:72px; height:72px;
+      border-radius:50%;
+      border:none;
+      cursor:pointer;
+      font-size:2rem;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition:transform 0.15s;
+    }
+    #incomingOverlay .actions button:active { transform:scale(0.9); }
+    #incomingOverlay .actions .answer { background:#1a7a4a; color:#fff; }
+    #incomingOverlay .actions .reject { background:#8a1a2a; color:#fff; }
+
+    #toast {
+      position:fixed; bottom:28px; left:50%;
+      transform:translateX(-50%) translateY(20px);
+      background:#1e2a3a; border:1px solid #2a3a5a;
+      color:#e8edf5;
+      padding:0.7rem 1.4rem;
+      border-radius:40px;
+      font-size:0.9rem;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity 0.25s ease, transform 0.25s ease;
+      z-index:4000;
+      max-width:90%;
+      text-align:center;
+      box-shadow:0 8px 30px rgba(0,0,0,0.5);
+    }
+    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    .log-area {
+      background:#0b0e17;
+      border-radius:12px;
+      padding:0.5rem 0.8rem;
+      font-family:'Courier New', monospace;
+      font-size:0.65rem;
+      max-height:80px;
+      overflow-y:auto;
+      color:#4a5a6a;
+      margin-top:0.8rem;
+      flex-shrink:0;
+      line-height:1.6;
+      border:1px solid #1a2338;
+    }
+    .log-area .log-entry { opacity:0.8; }
+    .log-area .log-entry.error { color:#f87171; opacity:1; }
+    .log-area .log-entry.success { color:#4ade80; opacity:1; }
+    .log-area .log-entry.warning { color:#fbbf24; opacity:1; }
   </style>
 </head>
 <body>
-<div class="container">
+  <div class="container">
+    <div class="header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 8v4l3 3"/>
+        </svg>
+        PremCall
+      </div>
+      <div class="header-right">
+        <span id="myNumberDisplay"></span>
+        <span class="status-dot offline" id="headerStatusDot"></span>
+      </div>
+    </div>
 
-  <!-- Header -->
-  <div style="display: flex; justify-content: space-between; align-items: center;">
-    <div class="logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#4f8cf7" stroke-width="2">
-        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
-      </svg>
-      premCall
-    </div>
-    <span class="status" id="peerStatus">offline</span>
-  </div>
-  <p class="subhead">Reliable P2P audio calls. Works on mobile.</p>
+    <!-- settings link -->
+    <a href="settings.html" class="settings-link">⚙️ Change number</a>
 
-  <!-- Number Management -->
-  <div class="card">
-    <div class="card-title">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2">
-        <rect x="5" y="2" width="14" height="20" rx="2" />
-        <line x1="12" y1="18" x2="12.01" y2="18" />
-      </svg>
-      Your Number
+    <!-- dialer -->
+    <div class="dialer-section">
+      <div class="dialer-display" id="dialDisplay">
+        <span class="hint">Enter 10-digit number</span>
+      </div>
+      <div class="dialer-pad" id="dialPad">
+        <button class="key" data-digit="1">1</button>
+        <button class="key" data-digit="2">2</button>
+        <button class="key" data-digit="3">3</button>
+        <button class="key" data-digit="4">4</button>
+        <button class="key" data-digit="5">5</button>
+        <button class="key" data-digit="6">6</button>
+        <button class="key" data-digit="7">7</button>
+        <button class="key" data-digit="8">8</button>
+        <button class="key" data-digit="9">9</button>
+        <button class="key" data-digit="*">*</button>
+        <button class="key" data-digit="0">0</button>
+        <button class="key" data-digit="#">#</button>
+        <button class="key" data-action="delete">
+          <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="23 18 17 12 23 6"/><polyline points="17 18 11 12 17 6"/></svg>
+        </button>
+        <button class="key call" id="dialCallBtn" data-action="call">
+          <svg class="svg-icon" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        </button>
+        <button class="key" data-action="clear">
+          <svg class="svg-icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="action-row">
+        <button class="btn" id="checkStatusBtn">Check Status</button>
+        <span class="status-badge" id="statusResult"></span>
+      </div>
     </div>
-    <div class="number-display" id="myNumberDisplay">---</div>
-    <div class="input-group">
-      <input type="tel" id="customNumberInput" placeholder="Set your own number" inputmode="numeric" />
-      <button class="btn btn-blue" id="setNumberBtn">Set</button>
-    </div>
-    <div class="flex-row">
-      <button class="btn btn-green" id="generateBtn">
-        <svg viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 0 0 4.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 0 1-15.357-2m15.357 2H15"/></svg>
-        Random
-      </button>
-      <button class="btn btn-outline" id="copyNumberBtn">
-        <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        Copy
-      </button>
-      <button class="btn btn-outline" id="shareLinkBtn">
-        <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-        Share
-      </button>
-    </div>
-    <div class="status" id="numberStatus">Set a number to start.</div>
-  </div>
 
-  <!-- Dialer -->
-  <div class="card">
-    <div class="card-title">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2">
-        <polyline points="22 16.92 22 19.92 19.82 19.92" />
-        <path d="M4.11 2.08L7.11 2.08C7.87 2.08 8.51 2.65 8.6 3.4C8.73 4.36 8.96 5.3 9.3 6.21C9.49 6.69 9.34 7.24 8.89 7.69L7.62 8.96C10.62 14.46 15.54 15.38 15.54 15.38L16.81 14.11C17.26 13.66 17.81 13.51 18.29 13.7C19.2 14.04 20.14 14.27 21.1 14.4C21.85 14.49 22.42 15.13 22.42 15.89L22.42 18.89C22.42 19.72 21.76 20.38 20.93 20.38C12.31 20.38 3.62 11.69 3.62 3.07C3.62 2.24 4.28 1.58 5.11 1.58L4.11 2.08Z" />
-      </svg>
-      Dialer
-    </div>
-    <input type="tel" id="dialInput" placeholder="Enter number to call (digits only)" inputmode="numeric" />
-    <div class="flex-row">
-      <button class="btn btn-green" id="callBtn">
-        <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-        Call
-      </button>
-      <button class="btn btn-red hidden" id="hangupBtn">
-        <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        Hang Up
-      </button>
-    </div>
-    <div class="call-status idle" id="callStatusDisplay">Idle</div>
-    <div class="status" id="callStatus">Ready to call.</div>
-  </div>
-
-  <!-- Incoming Call -->
-  <div class="card incoming-card hidden" id="incomingCard">
-    <div class="card-title" style="color: #fbbf24;">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2">
-        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-      </svg>
-      Incoming Call
-    </div>
-    <p style="font-size: 1.2rem; margin-bottom: 0.5rem;">From: <strong id="callerIdDisplay">Unknown</strong></p>
-    <div class="flex-row">
-      <button class="btn btn-green" id="answerBtn">
-        <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-        Answer
-      </button>
-      <button class="btn btn-red" id="rejectBtn">
-        <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        Reject
-      </button>
+    <!-- log -->
+    <div class="log-area" id="logArea">
+      <div class="log-entry">Ready. Set your number in settings.</div>
     </div>
   </div>
 
-  <!-- In-Call Controls -->
-  <div class="card hidden" id="callControls">
-    <div class="card-title">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2">
-        <circle cx="12" cy="12" r="2"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/>
-      </svg>
-      In Call
-    </div>
-    <p style="color: #94a3b8; margin-bottom: 0.5rem;">Connected to: <strong id="remotePeerDisplay">---</strong></p>
-    <div id="audioOverlay" class="audio-overlay hidden">
-      <span style="color: #fbbf24;">▶️ Audio paused</span>
-      <button class="btn btn-sm btn-yellow" id="playAudioBtn">Play</button>
-    </div>
-    <div class="flex-row">
-      <button class="btn btn-yellow" id="muteBtn">
-        <svg viewBox="0 0 24 24"><polyline points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M23 7l-4 5m0-5l4 5"/></svg>
-        Mute
-      </button>
-      <button class="btn btn-red" id="endCallBtn">
-        <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        End Call
-      </button>
+  <!-- overlays -->
+  <div id="incomingOverlay">
+    <div class="avatar" id="incomingAvatar">📞</div>
+    <div class="name" id="incomingName">Unknown</div>
+    <div class="number" id="incomingNumber">+1234567890</div>
+    <div class="actions">
+      <button class="answer" id="answerBtn">✅</button>
+      <button class="reject" id="rejectBtn">❌</button>
     </div>
   </div>
 
-  <p style="font-size:0.75rem; color:#4a5a7a; text-align:center; margin-top:1rem;">
-    WebRTC P2P • PeerJS signaling • TURN fallback
-  </p>
-</div>
+  <div id="callScreen">
+    <div class="avatar" id="callAvatar">📞</div>
+    <div class="name" id="callName">Calling...</div>
+    <div class="number" id="callNumber">+1234567890</div>
+    <div class="substatus" id="callSubstatus"></div>
+    <div class="timer" id="callTimer">00:00</div>
+    <div class="call-actions">
+      <button class="mute" id="muteBtn" title="Mute / Unmute">🔇</button>
+      <button class="hangup" id="hangupCallBtn" title="Hang up">📴</button>
+      <button class="speaker" id="speakerBtn" title="Toggle speaker">🔊</button>
+    </div>
+  </div>
 
-<script>
-  (function() {
-    "use strict";
+  <div id="toast"></div>
+  <audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
 
-    // ─── DOM refs ────────────────────────────────────────────────
-    const myNumberDisplay = document.getElementById('myNumberDisplay');
-    const customNumberInput = document.getElementById('customNumberInput');
-    const setNumberBtn = document.getElementById('setNumberBtn');
-    const generateBtn = document.getElementById('generateBtn');
-    const copyNumberBtn = document.getElementById('copyNumberBtn');
-    const shareLinkBtn = document.getElementById('shareLinkBtn');
-    const numberStatus = document.getElementById('numberStatus');
-    const peerStatus = document.getElementById('peerStatus');
-    const dialInput = document.getElementById('dialInput');
-    const callBtn = document.getElementById('callBtn');
-    const hangupBtn = document.getElementById('hangupBtn');
-    const callStatusDisplay = document.getElementById('callStatusDisplay');
-    const callStatus = document.getElementById('callStatus');
-    const incomingCard = document.getElementById('incomingCard');
-    const callerIdDisplay = document.getElementById('callerIdDisplay');
-    const answerBtn = document.getElementById('answerBtn');
-    const rejectBtn = document.getElementById('rejectBtn');
-    const callControls = document.getElementById('callControls');
-    const remotePeerDisplay = document.getElementById('remotePeerDisplay');
-    const muteBtn = document.getElementById('muteBtn');
-    const endCallBtn = document.getElementById('endCallBtn');
-    const audioOverlay = document.getElementById('audioOverlay');
-    const playAudioBtn = document.getElementById('playAudioBtn');
+  <script>
+    (function() {
+      'use strict';
 
-    // ─── State ──────────────────────────────────────────────────
-    let myNumber = localStorage.getItem('premCallNumber') || null;
-    let peer = null;
-    let currentCall = null;
-    let localStream = null;
-    let remoteStream = null;
-    let isMuted = false;
-    let isInCall = false;
-    let isCaller = false;
-    let incomingCall = null;
-    let ringtoneInterval = null;
-    let remoteAudioElement = null;
-    let iceFailed = false;
-    let isAnswering = false; // Prevent double answer
+      // ─── DOM refs ────────────────────────────────────────────────
+      const dialDisplay = document.getElementById('dialDisplay');
+      const dialPad = document.getElementById('dialPad');
+      const dialCallBtn = document.getElementById('dialCallBtn');
+      const checkStatusBtn = document.getElementById('checkStatusBtn');
+      const statusResult = document.getElementById('statusResult');
+      const logArea = document.getElementById('logArea');
+      const incomingOverlay = document.getElementById('incomingOverlay');
+      const incomingName = document.getElementById('incomingName');
+      const incomingNumber = document.getElementById('incomingNumber');
+      const incomingAvatar = document.getElementById('incomingAvatar');
+      const answerBtn = document.getElementById('answerBtn');
+      const rejectBtn = document.getElementById('rejectBtn');
+      const callScreen = document.getElementById('callScreen');
+      const callName = document.getElementById('callName');
+      const callNumber = document.getElementById('callNumber');
+      const callAvatar = document.getElementById('callAvatar');
+      const callTimer = document.getElementById('callTimer');
+      const callSubstatus = document.getElementById('callSubstatus');
+      const hangupCallBtn = document.getElementById('hangupCallBtn');
+      const muteBtn = document.getElementById('muteBtn');
+      const speakerBtn = document.getElementById('speakerBtn');
+      const myNumberDisplay = document.getElementById('myNumberDisplay');
+      const headerStatusDot = document.getElementById('headerStatusDot');
+      const remoteAudio = document.getElementById('remoteAudio');
+      const toast = document.getElementById('toast');
 
-    // ─── ICE Servers (STUN + TURN with valid credentials) ──────
-    function getIceServers() {
-      return {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' },
-          { urls: 'stun:stun3.l.google.com:19302' },
-          { urls: 'stun:stun4.l.google.com:19302' },
-          { urls: 'stun:stun.ekiga.net' },
-          { urls: 'stun:stun.ideasip.com' },
-          {
-            urls: [
-              'turn:numb.viagenie.ca:3478',
-              'turn:numb.viagenie.ca:443'
-            ],
-            username: 'webrtc@live.com',
-            credential: 'muazkh'
-          }
-        ],
-        iceCandidatePoolSize: 10
-      };
-    }
+      // ─── State ──────────────────────────────────────────────────
+      let dialedNumber = '';
+      let callTimerInterval = null;
+      let callStartTime = null;
+      let isMuted = false;
+      let isSpeakerOn = false;
 
-    // ─── Helpers ──────────────────────────────────────────────────
-    function setStatus(el, text, type) {
-      el.textContent = text;
-      el.className = 'status';
-      if (type) el.classList.add('status-' + type);
-    }
-
-    function setCallStatus(text, type) {
-      callStatusDisplay.textContent = text;
-      callStatusDisplay.className = 'call-status ' + (type || 'idle');
-    }
-
-    function showError(msg) {
-      alert('Error: ' + msg);
-    }
-
-    // ─── Number management ──────────────────────────────────────
-    function setMyNumber(newNumber) {
-      if (!/^\d+$/.test(newNumber)) {
-        setStatus(numberStatus, 'Invalid number. Use digits only.', 'error');
-        return false;
-      }
-      myNumber = newNumber;
-      localStorage.setItem('premCallNumber', newNumber);
-      myNumberDisplay.textContent = newNumber;
-      setStatus(numberStatus, 'Number set to ' + newNumber, 'success');
-      initPeer();
-      return true;
-    }
-
-    function generateRandomNumber() {
-      const length = 5 + Math.floor(Math.random() * 4);
-      let num = '';
-      for (let i = 0; i < length; i++) num += Math.floor(Math.random() * 10);
-      return num;
-    }
-
-    // ─── Remote Audio Element (persistent) ──────────────────────
-    function getRemoteAudioElement() {
-      if (!remoteAudioElement) {
-        remoteAudioElement = document.createElement('audio');
-        remoteAudioElement.id = 'remoteAudio';
-        remoteAudioElement.setAttribute('playsInline', '');
-        remoteAudioElement.setAttribute('webkit-playsinline', '');
-        remoteAudioElement.autoplay = true;
-        remoteAudioElement.style.display = 'none';
-        document.body.appendChild(remoteAudioElement);
-
-        remoteAudioElement.onerror = (e) => {
-          console.warn('Audio element error:', e);
-          audioOverlay.classList.remove('hidden');
-        };
-        remoteAudioElement.onplay = () => {
-          audioOverlay.classList.add('hidden');
-        };
-      }
-      return remoteAudioElement;
-    }
-
-    // ─── PeerJS init ──────────────────────────────────────────────
-    function initPeer() {
-      if (peer) {
-        peer.destroy();
-        peer = null;
-      }
-      if (!myNumber) {
-        setStatus(peerStatus, 'no number', 'error');
-        return;
+      // ─── Toast ──────────────────────────────────────────────────
+      let toastTimeout = null;
+      function showToast(msg, duration) {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => toast.classList.remove('show'), duration || 2500);
       }
 
-      const config = getIceServers();
-      peer = new Peer(myNumber, {
-        debug: 2,
-        config: config
-      });
-
-      peer.on('open', () => {
-        setStatus(peerStatus, 'online', 'success');
-        setStatus(numberStatus, 'Registered and ready.', 'success');
-        console.log('✅ PeerJS online ID:', myNumber);
-      });
-
-      peer.on('error', (err) => {
-        console.error('PeerJS error:', err);
-        if (err.type === 'unavailable-id') {
-          setStatus(numberStatus, 'Number already taken. Generate a new one.', 'error');
-          setStatus(peerStatus, 'unavailable', 'error');
-        } else {
-          setStatus(peerStatus, 'error: ' + err.type, 'error');
+      // ─── Log ──────────────────────────────────────────────────
+      function log(msg, type) {
+        const now = new Date().toLocaleTimeString();
+        const entry = document.createElement('div');
+        entry.className = 'log-entry' + (type ? ' ' + type : '');
+        entry.textContent = now + ' ' + msg;
+        logArea.prepend(entry);
+        while (logArea.children.length > 50) {
+          logArea.removeChild(logArea.lastChild);
         }
-      });
+      }
 
-      peer.on('call', (call) => {
-        if (isInCall) {
-          call.close();
-          console.log('Rejected incoming call from ' + call.peer + ' (already in call)');
+      // ─── Status Dot ──────────────────────────────────────────
+      function setStatusDot(state) {
+        headerStatusDot.className = 'status-dot ' + state;
+      }
+
+      // ─── Get stored number ──────────────────────────────────
+      function getStoredNumber() {
+        return localStorage.getItem('premCallNumber') || null;
+      }
+
+      function setStoredNumber(num) {
+        localStorage.setItem('premCallNumber', num);
+      }
+
+      // ─── Init PremCall ──────────────────────────────────────────
+      function initPremCall() {
+        const number = getStoredNumber();
+        if (!number) {
+          myNumberDisplay.textContent = 'Not set';
+          setStatusDot('offline');
+          log('No number set. Go to settings.', 'warning');
           return;
         }
-        console.log('📞 Incoming call from:', call.peer);
-        incomingCall = call;
-        callerIdDisplay.textContent = call.peer;
-        incomingCard.classList.remove('hidden');
-        setCallStatus('📞 Incoming call from ' + call.peer, 'ringing');
-        setStatus(callStatus, 'Incoming call...', 'warning');
-        playRingtone();
-        // Enable answer button
-        answerBtn.disabled = false;
-      });
-
-      peer.on('close', () => {
-        setStatus(peerStatus, 'offline', 'error');
-        if (isInCall) endCall();
-      });
-
-      peer.on('disconnected', () => {
-        setStatus(peerStatus, 'disconnected', 'error');
-        setTimeout(() => {
-          if (peer && !isInCall) peer.reconnect();
-        }, 3000);
-      });
-    }
-
-    // ─── Ringtone ──────────────────────────────────────────────────
-    function playRingtone() {
-      stopRingtone();
-      let ctx = new (window.AudioContext || window.webkitAudioContext)();
-      let count = 0;
-      ringtoneInterval = setInterval(() => {
-        if (count >= 12 || incomingCard.classList.contains('hidden')) {
-          stopRingtone();
+        if (!/^\d{10}$/.test(number)) {
+          myNumberDisplay.textContent = 'Invalid';
+          setStatusDot('offline');
+          log('Stored number is not 10 digits. Fix in settings.', 'error');
           return;
         }
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.value = count % 2 === 0 ? 440 : 330;
-        osc.type = 'sine';
-        gain.gain.setValueAtTime(0.15, ctx.currentTime);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.3);
-        count++;
-      }, 400);
-    }
 
-    function stopRingtone() {
-      if (ringtoneInterval) {
-        clearInterval(ringtoneInterval);
-        ringtoneInterval = null;
-      }
-    }
+        myNumberDisplay.textContent = number;
+        setStatusDot('connecting');
+        log('Initializing with number: ' + number, 'info');
 
-    // ─── Microphone ──────────────────────────────────────────────
-    async function getLocalStream() {
-      if (!localStream) {
         try {
-          localStream = await navigator.mediaDevices.getUserMedia({
-            audio: { echoCancellation: true, noiseSuppression: true }
-          });
-          localStream.addEventListener('inactive', () => {
-            console.warn('Local stream inactive, will reacquire on next call');
-            localStream = null;
-          });
-        } catch (err) {
-          console.error('Failed to get microphone:', err);
-          throw err;
-        }
-      }
-      return localStream;
-    }
-
-    // ─── Attach remote stream to audio element ──────────────────
-    function attachRemoteStream(stream) {
-      remoteStream = stream;
-      const audio = getRemoteAudioElement();
-      audio.srcObject = stream;
-      audio.play().then(() => {
-        audioOverlay.classList.add('hidden');
-      }).catch((err) => {
-        console.warn('Autoplay blocked:', err);
-        audioOverlay.classList.remove('hidden');
-      });
-      stream.onremovetrack = () => {
-        if (stream.getTracks().length === 0) {
-          console.warn('Remote stream ended');
-          audio.pause();
-          audio.srcObject = null;
-          remoteStream = null;
-        }
-      };
-    }
-
-    // ─── Make call ──────────────────────────────────────────────────
-    async function makeCall(targetNumber) {
-      if (isInCall) {
-        setStatus(callStatus, 'Already in a call.', 'error');
-        return;
-      }
-      if (!peer) {
-        setStatus(callStatus, 'No peer instance. Set a number first.', 'error');
-        return;
-      }
-      if (targetNumber === myNumber) {
-        setStatus(callStatus, 'Cannot call yourself.', 'error');
-        return;
-      }
-      if (!/^\d+$/.test(targetNumber)) {
-        setStatus(callStatus, 'Invalid number. Use digits only.', 'error');
-        return;
-      }
-
-      try {
-        setCallStatus('📞 Calling ' + targetNumber + '...', 'ringing');
-        setStatus(callStatus, 'Connecting...', 'warning');
-        callBtn.disabled = true;
-
-        await getLocalStream();
-        const call = peer.call(targetNumber, localStream);
-        currentCall = call;
-        isCaller = true;
-        isInCall = true;
-
-        const pc = call.peerConnection;
-        if (pc) {
-          pc.oniceconnectionstatechange = () => {
-            const state = pc.iceConnectionState;
-            console.log('ICE state:', state);
-            if (state === 'connected' || state === 'completed') {
-              setCallStatus('🔊 Connected to ' + targetNumber, 'connected');
-              setStatus(callStatus, 'Connected!', 'success');
-              showCallControls(targetNumber);
-              incomingCard.classList.add('hidden');
-              callBtn.disabled = false;
-              iceFailed = false;
-            } else if (state === 'failed' || state === 'disconnected') {
-              iceFailed = true;
-              setStatus(callStatus, 'ICE connection unstable', 'error');
-              if (pc.restartIce) {
-                pc.restartIce();
+          PremCall.init(number, {
+            onIncoming: (callerId) => {
+              incomingName.textContent = callerId;
+              incomingNumber.textContent = callerId;
+              incomingAvatar.textContent = '📞';
+              incomingOverlay.classList.add('active');
+              showToast('Incoming call from ' + callerId);
+            },
+            onConnected: () => {
+              setStatusDot('online');
+              log('Connected', 'success');
+              callSubstatus.textContent = 'Connected';
+              startTimer();
+            },
+            onDisconnected: () => {
+              setStatusDot('offline');
+              log('Disconnected', 'error');
+            },
+            onRemoteStream: (stream) => {
+              log('Remote stream received', 'success');
+              remoteAudio.srcObject = stream;
+              remoteAudio.muted = false;
+              remoteAudio.play().catch(() => {
+                // autoplay blocked, user interaction needed
+                document.addEventListener('click', () => remoteAudio.play(), { once: true });
+                document.addEventListener('touchstart', () => remoteAudio.play(), { once: true });
+              });
+              callSubstatus.textContent = 'Connected';
+            },
+            onCallStarted: (data) => {
+              const name = data.target;
+              callName.textContent = name;
+              callNumber.textContent = name;
+              callAvatar.textContent = '📞';
+              callSubstatus.textContent = data.isCaller ? 'Ringing...' : 'Connecting...';
+              callTimer.textContent = '00:00';
+              callScreen.classList.add('active');
+              incomingOverlay.classList.remove('active');
+              if (callTimerInterval) clearInterval(callTimerInterval);
+              callStartTime = Date.now();
+            },
+            onCallEnded: () => {
+              callScreen.classList.remove('active');
+              incomingOverlay.classList.remove('active');
+              if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
               }
+              callTimer.textContent = '00:00';
+              remoteAudio.srcObject = null;
+              dialCallBtn.classList.remove('disabled');
+              showToast('Call ended');
+            },
+            onError: (err) => {
+              log('Error: ' + err.message, 'error');
+              showToast('Error: ' + err.message);
+              setStatusDot('offline');
+            },
+            onLog: (msg, level) => {
+              log(msg, level);
             }
-          };
+          });
+          setStatusDot('online');
+        } catch (err) {
+          log('Init failed: ' + err.message, 'error');
+          setStatusDot('offline');
+          showToast('Init failed: ' + err.message);
         }
-
-        call.on('stream', (stream) => {
-          attachRemoteStream(stream);
-        });
-
-        call.on('close', () => {
-          endCall();
-        });
-
-        call.on('error', (err) => {
-          console.error('Call error:', err);
-          setStatus(callStatus, 'Call error: ' + err.message, 'error');
-          setCallStatus('❌ Call failed', 'ended');
-          endCall();
-        });
-
-      } catch (err) {
-        console.error('Make call error:', err);
-        setStatus(callStatus, 'Failed: ' + err.message, 'error');
-        setCallStatus('❌ Failed to call', 'ended');
-        callBtn.disabled = false;
-        isInCall = false;
-      }
-    }
-
-    // ─── Answer incoming (FIXED) ────────────────────────────────
-    async function answerIncomingCall() {
-      // Prevent double answer
-      if (isAnswering) return;
-      if (!incomingCall) {
-        console.warn('No incoming call to answer');
-        return;
-      }
-      if (isInCall) {
-        console.warn('Already in a call, cannot answer');
-        return;
       }
 
-      isAnswering = true;
-      answerBtn.disabled = true;
-
-      try {
-        stopRingtone();
-        // Get microphone – this will prompt for permission if needed
-        await getLocalStream();
-
-        // Answer the call with the local stream
-        incomingCall.answer(localStream);
-        currentCall = incomingCall;
-        isCaller = false;
-        isInCall = true;
-
-        // Set up listeners on the current call
-        const pc = currentCall.peerConnection;
-        if (pc) {
-          pc.oniceconnectionstatechange = () => {
-            const state = pc.iceConnectionState;
-            console.log('ICE state:', state);
-            if (state === 'connected' || state === 'completed') {
-              setCallStatus('🔊 Connected to ' + currentCall.peer, 'connected');
-              setStatus(callStatus, 'Connected!', 'success');
-              showCallControls(currentCall.peer);
-              incomingCard.classList.add('hidden');
-              iceFailed = false;
-            } else if (state === 'failed' || state === 'disconnected') {
-              iceFailed = true;
-              setStatus(callStatus, 'ICE connection unstable', 'error');
-              if (pc.restartIce) pc.restartIce();
-            }
-          };
-        }
-
-        currentCall.on('stream', (stream) => {
-          attachRemoteStream(stream);
-        });
-
-        currentCall.on('close', () => {
-          endCall();
-        });
-
-        currentCall.on('error', (err) => {
-          console.error('Call error:', err);
-          setStatus(callStatus, 'Call error: ' + err.message, 'error');
-          endCall();
-        });
-
-        // Clear the incoming call reference
-        incomingCall = null;
-        callBtn.disabled = false;
-
-        // Hide incoming card (already hidden by showCallControls)
-        incomingCard.classList.add('hidden');
-
-      } catch (err) {
-        console.error('Answer error:', err);
-        setStatus(callStatus, 'Failed to answer: ' + err.message, 'error');
-        setCallStatus('❌ Answer failed', 'ended');
-        // If we failed to answer, close the incoming call
-        if (incomingCall) {
-          incomingCall.close();
-          incomingCall = null;
-        }
-        incomingCard.classList.add('hidden');
-        isInCall = false;
-        // Re‑enable answer button (though the call is gone)
-        answerBtn.disabled = false;
-      } finally {
-        isAnswering = false;
+      // ─── Timer ──────────────────────────────────────────────
+      function startTimer() {
+        if (callTimerInterval) clearInterval(callTimerInterval);
+        let seconds = 0;
+        callTimerInterval = setInterval(() => {
+          seconds++;
+          const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+          const s = String(seconds % 60).padStart(2, '0');
+          callTimer.textContent = m + ':' + s;
+        }, 1000);
       }
-    }
 
-    // ─── Reject incoming ──────────────────────────────────────────
-    function rejectIncomingCall() {
-      if (incomingCall) {
-        incomingCall.close();
-        incomingCall = null;
-      }
-      stopRingtone();
-      incomingCard.classList.add('hidden');
-      setCallStatus('📴 Call rejected', 'idle');
-      setStatus(callStatus, 'Rejected.', 'error');
-      answerBtn.disabled = false;
-    }
+      // ─── Dialer ──────────────────────────────────────────────────
+      dialPad.addEventListener('click', (e) => {
+        const key = e.target.closest('.key');
+        if (!key) return;
+        const digit = key.dataset.digit;
+        const action = key.dataset.action;
 
-    // ─── UI controls ──────────────────────────────────────────────
-    function showCallControls(peerId) {
-      remotePeerDisplay.textContent = peerId;
-      callControls.classList.remove('hidden');
-      hangupBtn.classList.remove('hidden');
-      callBtn.classList.add('hidden');
-    }
-
-    function hideCallControls() {
-      callControls.classList.add('hidden');
-      hangupBtn.classList.add('hidden');
-      callBtn.classList.remove('hidden');
-      remotePeerDisplay.textContent = '---';
-    }
-
-    // ─── End call ──────────────────────────────────────────────────
-    function endCall() {
-      if (currentCall) {
-        currentCall.close();
-        currentCall = null;
-      }
-      if (remoteStream) {
-        remoteStream.getTracks().forEach(t => t.stop());
-        remoteStream = null;
-      }
-      const audio = getRemoteAudioElement();
-      audio.pause();
-      audio.srcObject = null;
-
-      isInCall = false;
-      isCaller = false;
-      stopRingtone();
-      incomingCard.classList.add('hidden');
-      hideCallControls();
-      setCallStatus('📴 Call ended', 'idle');
-      setStatus(callStatus, 'Call ended.', 'error');
-      callBtn.disabled = false;
-      incomingCall = null;
-      audioOverlay.classList.add('hidden');
-      iceFailed = false;
-      answerBtn.disabled = false;
-      isAnswering = false;
-    }
-
-    // ─── Play Audio button ──────────────────────────────────────
-    playAudioBtn.addEventListener('click', () => {
-      const audio = getRemoteAudioElement();
-      if (audio.srcObject) {
-        audio.play().then(() => {
-          audioOverlay.classList.add('hidden');
-        }).catch((err) => {
-          console.warn('Manual play failed:', err);
-        });
-      }
-    });
-
-    // ─── Event listeners ──────────────────────────────────────────
-
-    setNumberBtn.addEventListener('click', () => {
-      const val = customNumberInput.value.trim();
-      if (!val) return;
-      setMyNumber(val);
-    });
-
-    generateBtn.addEventListener('click', () => {
-      const newNum = generateRandomNumber();
-      setMyNumber(newNum);
-      customNumberInput.value = '';
-    });
-
-    copyNumberBtn.addEventListener('click', () => {
-      if (myNumber) {
-        navigator.clipboard.writeText(myNumber).then(() => {
-          setStatus(numberStatus, 'Number copied!', 'success');
-        }).catch(() => {
-          const range = document.createRange();
-          range.selectNode(myNumberDisplay);
-          window.getSelection().removeAllRanges();
-          window.getSelection().addRange(range);
-          document.execCommand('copy');
-          setStatus(numberStatus, 'Number copied!', 'success');
-        });
-      }
-    });
-
-    shareLinkBtn.addEventListener('click', () => {
-      if (!myNumber) {
-        setStatus(numberStatus, 'Set a number first.', 'error');
-        return;
-      }
-      const url = window.location.href.split('?')[0] + '?number=' + myNumber;
-      navigator.clipboard.writeText(url).then(() => {
-        setStatus(numberStatus, 'Share link copied!', 'success');
-      }).catch(() => {
-        alert('Share this link:\n' + url);
-      });
-    });
-
-    callBtn.addEventListener('click', () => {
-      const target = dialInput.value.trim();
-      if (!target) {
-        setStatus(callStatus, 'Enter a number.', 'error');
-        return;
-      }
-      makeCall(target);
-    });
-
-    hangupBtn.addEventListener('click', endCall);
-
-    // Answer button now calls the improved function
-    answerBtn.addEventListener('click', answerIncomingCall);
-
-    rejectBtn.addEventListener('click', rejectIncomingCall);
-
-    endCallBtn.addEventListener('click', endCall);
-
-    muteBtn.addEventListener('click', () => {
-      if (!localStream) return;
-      isMuted = !isMuted;
-      localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
-      muteBtn.innerHTML = isMuted ?
-        `<svg viewBox="0 0 24 24"><polyline points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M23 7l-4 5m0-5l4 5"/></svg> Unmute` :
-        `<svg viewBox="0 0 24 24"><polyline points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M23 7l-4 5m0-5l4 5"/></svg> Mute`;
-    });
-
-    dialInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') callBtn.click();
-    });
-
-    // ─── Auto-load from URL ──────────────────────────────────────
-    (function autoLoad() {
-      const params = new URLSearchParams(window.location.search);
-      const num = params.get('number');
-      if (num) {
-        dialInput.value = num;
-        setTimeout(() => {
-          if (peer && myNumber) {
-            callBtn.click();
+        if (digit) {
+          if (dialedNumber.length < 15) {
+            dialedNumber += digit;
+            dialDisplay.textContent = dialedNumber;
           }
-        }, 1500);
-      }
+        } else if (action === 'delete') {
+          dialedNumber = dialedNumber.slice(0, -1);
+          dialDisplay.textContent = dialedNumber || 'Enter number';
+          if (!dialedNumber) dialDisplay.innerHTML = '<span class="hint">Enter 10-digit number</span>';
+        } else if (action === 'clear') {
+          dialedNumber = '';
+          dialDisplay.innerHTML = '<span class="hint">Enter 10-digit number</span>';
+        } else if (action === 'call') {
+          if (dialedNumber) {
+            if (!/^\d{10}$/.test(dialedNumber)) {
+              showToast('Enter exactly 10 digits');
+              return;
+            }
+            dialCallBtn.classList.add('disabled');
+            try {
+              PremCall.call(dialedNumber);
+            } catch (err) {
+              showToast('Call failed: ' + err.message);
+              dialCallBtn.classList.remove('disabled');
+            }
+          }
+        }
+      });
+
+      // Keyboard support
+      document.addEventListener('keydown', (e) => {
+        if (e.key >= '0' && e.key <= '9') {
+          if (dialedNumber.length < 15) {
+            dialedNumber += e.key;
+            dialDisplay.textContent = dialedNumber;
+          }
+        } else if (e.key === 'Backspace') {
+          dialedNumber = dialedNumber.slice(0, -1);
+          dialDisplay.textContent = dialedNumber || 'Enter number';
+          if (!dialedNumber) dialDisplay.innerHTML = '<span class="hint">Enter 10-digit number</span>';
+        } else if (e.key === 'Enter') {
+          if (dialedNumber && /^\d{10}$/.test(dialedNumber)) {
+            PremCall.call(dialedNumber);
+          }
+        }
+      });
+
+      // ─── Call Screen Controls ──────────────────────────────────
+      hangupCallBtn.addEventListener('click', () => {
+        PremCall.hangup();
+        dialCallBtn.classList.remove('disabled');
+      });
+
+      muteBtn.addEventListener('click', () => {
+        const muted = PremCall.mute();
+        muteBtn.textContent = muted ? '🔊' : '🔇';
+        muteBtn.className = muted ? 'mute active' : 'mute';
+        showToast(muted ? 'Muted' : 'Unmuted');
+      });
+
+      speakerBtn.addEventListener('click', () => {
+        const on = PremCall.speaker();
+        speakerBtn.className = on ? 'speaker active' : 'speaker';
+        showToast(on ? 'Speaker on' : 'Earpiece');
+      });
+
+      // ─── Incoming Overlay Buttons ──────────────────────────────
+      answerBtn.addEventListener('click', async () => {
+        try {
+          await PremCall.answer();
+          incomingOverlay.classList.remove('active');
+        } catch (err) {
+          showToast('Answer failed: ' + err.message);
+        }
+      });
+
+      rejectBtn.addEventListener('click', () => {
+        PremCall.hangup();
+        incomingOverlay.classList.remove('active');
+      });
+
+      // ─── Check Status ──────────────────────────────────────────
+      checkStatusBtn.addEventListener('click', async () => {
+        const num = dialedNumber || prompt('Enter 10-digit number to check:');
+        if (!num) return;
+        if (!/^\d{10}$/.test(num)) {
+          statusResult.textContent = 'Invalid number';
+          return;
+        }
+        statusResult.textContent = 'Checking...';
+        try {
+          const online = await PremCall.checkStatus(num);
+          statusResult.textContent = online ? '✅ Online' : '❌ Offline';
+        } catch (err) {
+          statusResult.textContent = 'Error';
+        }
+      });
+
+      // ─── Auto‑init ──────────────────────────────────────────────
+      initPremCall();
+
+      // Auto‑load dial from URL param ?number=...
+      (function autoLoad() {
+        const params = new URLSearchParams(window.location.search);
+        const num = params.get('number');
+        if (num && /^\d{10}$/.test(num)) {
+          dialedNumber = num;
+          dialDisplay.textContent = num;
+          setTimeout(() => {
+            try { PremCall.call(num); } catch (e) {}
+          }, 1500);
+        }
+      })();
+
+      log('UI ready.', 'success');
     })();
-
-    // ─── Initialize ──────────────────────────────────────────────
-    if (myNumber) {
-      myNumberDisplay.textContent = myNumber;
-      setStatus(numberStatus, 'Welcome back! Your number: ' + myNumber, 'success');
-      initPeer();
-    } else {
-      myNumberDisplay.textContent = '---';
-      setStatus(numberStatus, 'Set a number to start.', 'warning');
-    }
-
-    console.log('premCall loaded. Your number:', myNumber);
-  })();
-</script>
+  </script>
 </body>
 </html>
