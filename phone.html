@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>premCall</title>
-  <!-- Use jsDelivr CDN for PeerJS (more reliable) -->
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -246,7 +245,6 @@
       In Call
     </div>
     <p style="color: #94a3b8; margin-bottom: 0.5rem;">Connected to: <strong id="remotePeerDisplay">---</strong></p>
-    <!-- Audio play overlay (if autoplay blocked) -->
     <div id="audioOverlay" class="audio-overlay hidden">
       <span style="color: #fbbf24;">▶️ Audio paused</span>
       <button class="btn btn-sm btn-yellow" id="playAudioBtn">Play</button>
@@ -311,10 +309,11 @@
     let remoteAudioElement = null;
     let iceFailed = false;
 
-    // ─── ICE Servers (STUN + TURN) ──────────────────────────────
+    // ─── ICE Servers (STUN + TURN with valid credentials) ──────
     function getIceServers() {
       return {
         iceServers: [
+          // STUN servers
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
           { urls: 'stun:stun2.l.google.com:19302' },
@@ -322,11 +321,12 @@
           { urls: 'stun:stun4.l.google.com:19302' },
           { urls: 'stun:stun.ekiga.net' },
           { urls: 'stun:stun.ideasip.com' },
+          // TURN server with public test credentials (numb.viagenie.ca)
           {
-            urls: ['turn:relay.metered.ca:80', 'turn:relay.metered.ca:443']
-          },
-          {
-            urls: ['turn:numb.viagenie.ca:3478', 'turn:numb.viagenie.ca:443'],
+            urls: [
+              'turn:numb.viagenie.ca:3478',
+              'turn:numb.viagenie.ca:443'
+            ],
             username: 'webrtc@live.com',
             credential: 'muazkh'
           }
@@ -379,11 +379,10 @@
         remoteAudioElement.id = 'remoteAudio';
         remoteAudioElement.setAttribute('playsInline', '');
         remoteAudioElement.setAttribute('webkit-playsinline', '');
-        remoteAudioElement.autoplay = true; // attempts autoplay, but we'll also call play()
-        remoteAudioElement.style.display = 'none'; // hide it
+        remoteAudioElement.autoplay = true;
+        remoteAudioElement.style.display = 'none';
         document.body.appendChild(remoteAudioElement);
 
-        // If audio fails to play, show overlay
         remoteAudioElement.onerror = (e) => {
           console.warn('Audio element error:', e);
           audioOverlay.classList.remove('hidden');
@@ -493,7 +492,6 @@
           localStream = await navigator.mediaDevices.getUserMedia({
             audio: { echoCancellation: true, noiseSuppression: true }
           });
-          // Keep stream alive – if it ends, try to restart when needed
           localStream.addEventListener('inactive', () => {
             console.warn('Local stream inactive, will reacquire on next call');
             localStream = null;
@@ -511,15 +509,12 @@
       remoteStream = stream;
       const audio = getRemoteAudioElement();
       audio.srcObject = stream;
-      // Attempt to play (will succeed if user gesture allowed)
       audio.play().then(() => {
         audioOverlay.classList.add('hidden');
       }).catch((err) => {
         console.warn('Autoplay blocked:', err);
         audioOverlay.classList.remove('hidden');
-        // Try again on user click (playAudioBtn)
       });
-      // If stream ends, clean up
       stream.onremovetrack = () => {
         if (stream.getTracks().length === 0) {
           console.warn('Remote stream ended');
@@ -560,7 +555,6 @@
         isCaller = true;
         isInCall = true;
 
-        // Monitor ICE connection
         const pc = call.peerConnection;
         if (pc) {
           pc.oniceconnectionstatechange = () => {
@@ -576,13 +570,8 @@
             } else if (state === 'failed' || state === 'disconnected') {
               iceFailed = true;
               setStatus(callStatus, 'ICE connection unstable', 'error');
-              // Try restart ICE if available
               if (pc.restartIce) {
                 pc.restartIce();
-              } else {
-                // Fallback: notify user and offer reconnect
-                setCallStatus('⚠️ Connection unstable', 'ringing');
-                // We'll not auto-end; let user decide.
               }
             }
           };
@@ -590,7 +579,6 @@
 
         call.on('stream', (stream) => {
           attachRemoteStream(stream);
-          // Call answer event will also set status
         });
 
         call.on('close', () => {
@@ -723,7 +711,7 @@
       iceFailed = false;
     }
 
-    // ─── Play Audio button (manual resume) ──────────────────────
+    // ─── Play Audio button ──────────────────────────────────────
     playAudioBtn.addEventListener('click', () => {
       const audio = getRemoteAudioElement();
       if (audio.srcObject) {
