@@ -1,2407 +1,2586 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>PremCall · Voice</title>
-    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js">
-    </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <style>
-        /* ─── Reset & Base ─── */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: #f0f2f5;
-            color: #1a1a1a;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 0.5rem;
-            margin: 0;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>PremCall · Voice</title>
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js">
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" />
+  <style>
+    /* ─── Reset & Base ─── */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #f0f2f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0.5rem;
+      margin: 0;
+    }
 
-        /* ─── App Container ─── */
-        #app {
-            width: 100%;
-            max-width: 430px;
-            background: #ffffff;
-            border-radius: 32px;
-            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.12);
-            overflow: hidden;
-            position: relative;
-            height: 780px;
-            max-height: 95vh;
-            display: flex;
-            flex-direction: column;
-            transition: background 0.2s;
-        }
+    /* ─── App Container ─── */
+    #app {
+      width: 100%;
+      max-width: 430px;
+      background: #ffffff;
+      border-radius: 32px;
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.12);
+      overflow: hidden;
+      position: relative;
+      height: 780px;
+      max-height: 95vh;
+      display: flex;
+      flex-direction: column;
+      transition: background 0.2s;
+    }
 
-        /* ─── Scrollbar ─── */
-        ::-webkit-scrollbar {
-            width: 4px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #c8d0d8;
-            border-radius: 10px;
-        }
+    /* ─── Scrollbar ─── */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #c8d0d8;
+      border-radius: 10px;
+    }
 
-        /* ─── Registration Screen ─── */
-        #regScreen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem 1.8rem;
-            height: 100%;
-            background: #ffffff;
-            flex: 1;
-        }
-        #regScreen.hidden {
-            display: none;
-        }
-        .reg-logo {
-            font-size: 2.8rem;
-            font-weight: 700;
-            color: #00a884;
-            margin-bottom: 0.2rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .reg-logo i {
-            font-size: 2.6rem;
-            color: #00a884;
-        }
-        .reg-sub {
-            color: #667781;
-            font-size: 0.95rem;
-            margin-bottom: 2rem;
-            text-align: center;
-            line-height: 1.5;
-        }
-        .reg-card {
-            background: #ffffff;
-            border-radius: 20px;
-            padding: 1.8rem 1.5rem;
-            width: 100%;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-            border: 1px solid #eef2f5;
-        }
-        .reg-card .field {
-            margin-bottom: 1.2rem;
-        }
-        .reg-card .field label {
-            display: block;
-            font-weight: 600;
-            font-size: 0.82rem;
-            color: #54656f;
-            margin-bottom: 0.3rem;
-            letter-spacing: 0.3px;
-        }
-        .reg-card .field input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border-radius: 12px;
-            border: 1.5px solid #e8edf2;
-            background: #fafbfc;
-            font-size: 1rem;
-            color: #1a1a1a;
-            outline: none;
-            transition: border 0.2s, box-shadow 0.2s;
-        }
-        .reg-card .field input:focus {
-            border-color: #00a884;
-            box-shadow: 0 0 0 3px rgba(0, 168, 132, 0.15);
-        }
-        .reg-card .field input::placeholder {
-            color: #9aa8b5;
-        }
-        .reg-card .field .input-hint {
-            font-size: 0.7rem;
-            color: #9aa8b5;
-            margin-top: 0.25rem;
-        }
-        .reg-card .otp-row {
-            display: flex;
-            gap: 0.6rem;
-            align-items: center;
-        }
-        .reg-card .otp-row input {
-            flex: 1;
-        }
-        .reg-card .otp-row .btn {
-            flex-shrink: 0;
-        }
-        .reg-card .btn {
-            padding: 0.75rem 1.6rem;
-            border: none;
-            border-radius: 40px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: #00a884;
-            color: #fff;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-        .reg-card .btn:hover {
-            background: #008f72;
-            transform: translateY(-1px);
-        }
-        .reg-card .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .reg-card .btn-outline {
-            background: transparent;
-            border: 1.5px solid #00a884;
-            color: #00a884;
-            width: auto;
-        }
-        .reg-card .btn-outline:hover {
-            background: #00a88410;
-        }
-        .reg-card .btn-secondary {
-            background: #e8edf2;
-            color: #1a1a1a;
-        }
-        .reg-card .btn-secondary:hover {
-            background: #d5dce3;
-        }
-        .reg-card .otp-section {
-            margin-top: 1.2rem;
-            border-top: 1px dashed #e8edf2;
-            padding-top: 1.2rem;
-            display: none;
-        }
-        .reg-card .otp-section.visible {
-            display: block;
-        }
-        .reg-card .otp-timer {
-            font-size: 0.8rem;
-            color: #667781;
-            text-align: center;
-            margin-top: 0.5rem;
-        }
-        .reg-status {
-            font-size: 0.85rem;
-            margin-top: 0.6rem;
-            padding: 0.4rem 0.8rem;
-            border-radius: 8px;
-            text-align: center;
-            min-height: 2rem;
-        }
-        .reg-status.success {
-            color: #00a884;
-            background: #e6f9f4;
-        }
-        .reg-status.error {
-            color: #e74c3c;
-            background: #fde8e8;
-        }
-        .reg-status.info {
-            color: #1a6b8a;
-            background: #e3f0f7;
-        }
-        .reg-footer {
-            margin-top: 1.5rem;
-            font-size: 0.7rem;
-            color: #9aa8b5;
-            text-align: center;
-            line-height: 1.6;
-        }
-        .reg-footer a {
-            color: #00a884;
-            text-decoration: none;
-        }
+    /* ─── Registration Screen ─── */
+    #regScreen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.8rem;
+      height: 100%;
+      background: #ffffff;
+      flex: 1;
+    }
+    #regScreen.hidden {
+      display: none;
+    }
+    .reg-logo {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: #00a884;
+      margin-bottom: 0.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .reg-logo img {
+      height: 52px;
+      width: auto;
+      border-radius: 12px;
+    }
+    .reg-logo span {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #00a884;
+    }
+    .reg-sub {
+      color: #667781;
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .reg-card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 1.8rem 1.5rem;
+      width: 100%;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+      border: 1px solid #eef2f5;
+    }
+    .reg-card .field {
+      margin-bottom: 1.2rem;
+    }
+    .reg-card .field label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.82rem;
+      color: #54656f;
+      margin-bottom: 0.3rem;
+      letter-spacing: 0.3px;
+    }
+    .reg-card .field input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      border: 1.5px solid #e8edf2;
+      background: #fafbfc;
+      font-size: 1rem;
+      color: #1a1a1a;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
+    }
+    .reg-card .field input:focus {
+      border-color: #00a884;
+      box-shadow: 0 0 0 3px rgba(0, 168, 132, 0.15);
+    }
+    .reg-card .field input::placeholder {
+      color: #9aa8b5;
+    }
+    .reg-card .field .input-hint {
+      font-size: 0.7rem;
+      color: #9aa8b5;
+      margin-top: 0.25rem;
+    }
+    .reg-card .otp-row {
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+    }
+    .reg-card .otp-row input {
+      flex: 1;
+    }
+    .reg-card .otp-row .btn {
+      flex-shrink: 0;
+    }
+    .reg-card .btn {
+      padding: 0.75rem 1.6rem;
+      border: none;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #00a884;
+      color: #fff;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .reg-card .btn:hover {
+      background: #008f72;
+      transform: translateY(-1px);
+    }
+    .reg-card .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .reg-card .btn-outline {
+      background: transparent;
+      border: 1.5px solid #00a884;
+      color: #00a884;
+      width: auto;
+    }
+    .reg-card .btn-outline:hover {
+      background: #00a88410;
+    }
+    .reg-card .btn-secondary {
+      background: #e8edf2;
+      color: #1a1a1a;
+    }
+    .reg-card .btn-secondary:hover {
+      background: #d5dce3;
+    }
+    .reg-card .otp-section {
+      margin-top: 1.2rem;
+      border-top: 1px dashed #e8edf2;
+      padding-top: 1.2rem;
+      display: none;
+    }
+    .reg-card .otp-section.visible {
+      display: block;
+    }
+    .reg-card .otp-timer {
+      font-size: 0.8rem;
+      color: #667781;
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+    .reg-status {
+      font-size: 0.85rem;
+      margin-top: 0.6rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      text-align: center;
+      min-height: 2rem;
+    }
+    .reg-status.success {
+      color: #00a884;
+      background: #e6f9f4;
+    }
+    .reg-status.error {
+      color: #e74c3c;
+      background: #fde8e8;
+    }
+    .reg-status.info {
+      color: #1a6b8a;
+      background: #e3f0f7;
+    }
+    .reg-footer {
+      margin-top: 1.5rem;
+      font-size: 0.7rem;
+      color: #9aa8b5;
+      text-align: center;
+      line-height: 1.6;
+    }
+    .reg-footer a {
+      color: #00a884;
+      text-decoration: none;
+    }
 
-        /* ─── Main App ─── */
-        #mainApp {
-            display: none;
-            flex-direction: column;
-            height: 100%;
-            flex: 1;
-        }
-        #mainApp.active {
-            display: flex;
-        }
+    /* ─── Main App ─── */
+    #mainApp {
+      display: none;
+      flex-direction: column;
+      height: 100%;
+      flex: 1;
+    }
+    #mainApp.active {
+      display: flex;
+    }
 
-        /* ─── Top Bar ─── */
-        .topbar {
-            background: #ffffff;
-            padding: 0.8rem 1.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid #eef2f5;
-            flex-shrink: 0;
-            min-height: 60px;
-        }
-        .topbar .left {
-            display: flex;
-            align-items: center;
-            gap: 0.7rem;
-        }
-        .topbar .left .brand {
-            font-weight: 700;
-            font-size: 1.2rem;
-            color: #00a884;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-        .topbar .left .brand i {
-            font-size: 1.3rem;
-        }
-        .topbar .right {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-        }
-        .topbar .right .avatar-sm {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            background: #00a884;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            flex-shrink: 0;
-            text-transform: uppercase;
-        }
-        .topbar .right .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            flex-shrink: 0;
-            transition: background 0.3s;
-            border: 2px solid #fff;
-            margin-left: -6px;
-        }
-        .topbar .right .status-dot.online {
-            background: #31a24c;
-        }
-        .topbar .right .status-dot.offline {
-            background: #9aa8b5;
-        }
-        .topbar .right .status-dot.connecting {
-            background: #f5b342;
-        }
-        .topbar .right .status-label {
-            font-size: 0.7rem;
-            color: #667781;
-        }
-        .topbar .right .top-action {
-            background: none;
-            border: none;
-            color: #54656f;
-            font-size: 1.1rem;
-            cursor: pointer;
-            padding: 0.3rem;
-            border-radius: 50%;
-            transition: background 0.2s;
-        }
-        .topbar .right .top-action:hover {
-            background: #f0f2f5;
-        }
+    /* ─── Top Bar ─── */
+    .topbar {
+      background: #ffffff;
+      padding: 0.6rem 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #eef2f5;
+      flex-shrink: 0;
+      min-height: 60px;
+    }
+    .topbar .left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .topbar .left .brand {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #00a884;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .topbar .left .brand img {
+      height: 32px;
+      width: auto;
+      border-radius: 8px;
+    }
+    .topbar .right {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .topbar .right .avatar-sm {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #00a884;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      flex-shrink: 0;
+      text-transform: uppercase;
+    }
+    .topbar .right .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+      transition: background 0.3s;
+      border: 2px solid #fff;
+      margin-left: -6px;
+    }
+    .topbar .right .status-dot.online {
+      background: #31a24c;
+    }
+    .topbar .right .status-dot.offline {
+      background: #9aa8b5;
+    }
+    .topbar .right .status-dot.connecting {
+      background: #f5b342;
+    }
+    .topbar .right .status-label {
+      font-size: 0.7rem;
+      color: #667781;
+    }
+    .topbar .right .top-action {
+      background: none;
+      border: none;
+      color: #54656f;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 0.3rem;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+    .topbar .right .top-action:hover {
+      background: #f0f2f5;
+    }
 
-        /* ─── Tab Content ─── */
-        .tab-content {
-            flex: 1;
-            overflow-y: auto;
-            background: #fafbfc;
-            padding: 0.5rem 1rem 0.8rem;
-        }
-        .tab-content .tab-pane {
-            display: none;
-            animation: fadeUp 0.25s ease;
-        }
-        .tab-content .tab-pane.active {
-            display: block;
-        }
-        @keyframes fadeUp {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+    /* ─── Tab Content ─── */
+    .tab-content {
+      flex: 1;
+      overflow-y: auto;
+      background: #fafbfc;
+      padding: 0.5rem 1rem 0.8rem;
+    }
+    .tab-content .tab-pane {
+      display: none;
+      animation: fadeUp 0.25s ease;
+    }
+    .tab-content .tab-pane.active {
+      display: block;
+    }
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
-        /* ─── Bottom Nav ─── */
-        .bottom-nav {
-            display: flex;
-            background: #ffffff;
-            border-top: 1px solid #eef2f5;
-            flex-shrink: 0;
-            padding: 0.2rem 0 0.5rem;
-            justify-content: space-around;
-        }
-        .bottom-nav .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.1rem;
-            background: none;
-            border: none;
-            color: #667781;
-            font-size: 0.65rem;
-            font-weight: 500;
-            cursor: pointer;
-            padding: 0.4rem 0.6rem;
-            border-radius: 12px;
-            transition: color 0.2s, background 0.2s;
-            flex: 1;
-            max-width: 70px;
-        }
-        .bottom-nav .nav-item i {
-            font-size: 1.4rem;
-            transition: color 0.2s;
-        }
-        .bottom-nav .nav-item.active {
-            color: #00a884;
-        }
-        .bottom-nav .nav-item.active i {
-            color: #00a884;
-        }
-        .bottom-nav .nav-item .badge {
-            background: #e74c3c;
-            color: #fff;
-            font-size: 0.55rem;
-            padding: 0.1rem 0.4rem;
-            border-radius: 40px;
-            margin-top: -0.15rem;
-        }
+    /* ─── Bottom Nav ─── */
+    .bottom-nav {
+      display: flex;
+      background: #ffffff;
+      border-top: 1px solid #eef2f5;
+      flex-shrink: 0;
+      padding: 0.2rem 0 0.5rem;
+      justify-content: space-around;
+    }
+    .bottom-nav .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.1rem;
+      background: none;
+      border: none;
+      color: #667781;
+      font-size: 0.65rem;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 0.4rem 0.6rem;
+      border-radius: 12px;
+      transition: color 0.2s, background 0.2s;
+      flex: 1;
+      max-width: 70px;
+    }
+    .bottom-nav .nav-item i {
+      font-size: 1.4rem;
+      transition: color 0.2s;
+    }
+    .bottom-nav .nav-item.active {
+      color: #00a884;
+    }
+    .bottom-nav .nav-item.active i {
+      color: #00a884;
+    }
+    .bottom-nav .nav-item .badge {
+      background: #e74c3c;
+      color: #fff;
+      font-size: 0.55rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 40px;
+      margin-top: -0.15rem;
+    }
 
-        /* ─── Contacts ─── */
-        .search-bar {
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 0.4rem 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            border: 1px solid #e8edf2;
-            margin-bottom: 1rem;
-            transition: border 0.2s;
-        }
-        .search-bar:focus-within {
-            border-color: #00a884;
-            box-shadow: 0 0 0 3px rgba(0, 168, 132, 0.1);
-        }
-        .search-bar i {
-            color: #9aa8b5;
-            font-size: 0.9rem;
-        }
-        .search-bar input {
-            border: none;
-            background: transparent;
-            padding: 0.5rem 0;
-            font-size: 0.9rem;
-            width: 100%;
-            outline: none;
-            color: #1a1a1a;
-        }
-        .search-bar input::placeholder {
-            color: #9aa8b5;
-        }
+    /* ─── Contacts ─── */
+    .search-bar {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 0.4rem 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: 1px solid #e8edf2;
+      margin-bottom: 1rem;
+      transition: border 0.2s;
+    }
+    .search-bar:focus-within {
+      border-color: #00a884;
+      box-shadow: 0 0 0 3px rgba(0, 168, 132, 0.1);
+    }
+    .search-bar i {
+      color: #9aa8b5;
+      font-size: 0.9rem;
+    }
+    .search-bar input {
+      border: none;
+      background: transparent;
+      padding: 0.5rem 0;
+      font-size: 0.9rem;
+      width: 100%;
+      outline: none;
+      color: #1a1a1a;
+    }
+    .search-bar input::placeholder {
+      color: #9aa8b5;
+    }
 
-        .contact-item {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            padding: 0.7rem 0.6rem;
-            border-radius: 14px;
-            cursor: pointer;
-            transition: background 0.15s;
-            background: #ffffff;
-            margin-bottom: 0.3rem;
-            border: 1px solid transparent;
-        }
-        .contact-item:hover {
-            background: #f5f7f9;
-        }
-        .contact-item .avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 1rem;
-            color: #fff;
-            flex-shrink: 0;
-            text-transform: uppercase;
-        }
-        .contact-item .info {
-            flex: 1;
-            min-width: 0;
-        }
-        .contact-item .info .name {
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: #1a1a1a;
-        }
-        .contact-item .info .sub {
-            font-size: 0.78rem;
-            color: #667781;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-            margin-top: 0.05rem;
-        }
-        .contact-item .info .sub .online-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            flex-shrink: 0;
-        }
-        .contact-item .info .sub .online-dot.online {
-            background: #31a24c;
-        }
-        .contact-item .info .sub .online-dot.offline {
-            background: #c8d0d8;
-        }
-        .contact-item .action-btn {
-            background: none;
-            border: none;
-            color: #00a884;
-            font-size: 1.1rem;
-            cursor: pointer;
-            padding: 0.3rem 0.5rem;
-            border-radius: 50%;
-            transition: background 0.2s;
-        }
-        .contact-item .action-btn:hover {
-            background: #e6f9f4;
-        }
-        .contact-item .action-btn i {
-            font-size: 1.1rem;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 2.5rem 1rem;
-            color: #9aa8b5;
-        }
-        .empty-state i {
-            font-size: 3rem;
-            color: #d5dce3;
-            margin-bottom: 0.8rem;
-        }
-        .empty-state p {
-            font-size: 0.9rem;
-        }
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.7rem 0.6rem;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: background 0.15s;
+      background: #ffffff;
+      margin-bottom: 0.3rem;
+      border: 1px solid transparent;
+    }
+    .contact-item:hover {
+      background: #f5f7f9;
+    }
+    .contact-item .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 1rem;
+      color: #fff;
+      flex-shrink: 0;
+      text-transform: uppercase;
+    }
+    .contact-item .info {
+      flex: 1;
+      min-width: 0;
+    }
+    .contact-item .info .name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #1a1a1a;
+    }
+    .contact-item .info .sub {
+      font-size: 0.78rem;
+      color: #667781;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      margin-top: 0.05rem;
+    }
+    .contact-item .info .sub .online-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .contact-item .info .sub .online-dot.online {
+      background: #31a24c;
+    }
+    .contact-item .info .sub .online-dot.offline {
+      background: #c8d0d8;
+    }
+    .contact-item .action-btn {
+      background: none;
+      border: none;
+      color: #00a884;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 0.3rem 0.5rem;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+    .contact-item .action-btn:hover {
+      background: #e6f9f4;
+    }
+    .contact-item .action-btn i {
+      font-size: 1.1rem;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: #9aa8b5;
+    }
+    .empty-state i {
+      font-size: 3rem;
+      color: #d5dce3;
+      margin-bottom: 0.8rem;
+    }
+    .empty-state p {
+      font-size: 0.9rem;
+    }
 
-        /* ─── Calls ─── */
-        .call-item {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            padding: 0.7rem 0.6rem;
-            border-radius: 14px;
-            background: #ffffff;
-            margin-bottom: 0.3rem;
-            border: 1px solid transparent;
-            transition: background 0.15s;
-        }
-        .call-item:hover {
-            background: #f5f7f9;
-        }
-        .call-item .avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 1rem;
-            color: #fff;
-            flex-shrink: 0;
-            text-transform: uppercase;
-        }
-        .call-item .info {
-            flex: 1;
-            min-width: 0;
-        }
-        .call-item .info .name {
-            font-weight: 600;
-            font-size: 0.95rem;
-            color: #1a1a1a;
-        }
-        .call-item .info .sub {
-            font-size: 0.78rem;
-            color: #667781;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-        .call-item .info .sub .call-icon {
-            font-size: 0.7rem;
-        }
-        .call-item .info .sub .call-icon.missed {
-            color: #e74c3c;
-        }
-        .call-item .info .sub .call-icon.answered {
-            color: #00a884;
-        }
-        .call-item .info .sub .call-icon.dialed {
-            color: #54656f;
-        }
-        .call-item .info .sub .call-icon i {
-            font-size: 0.7rem;
-        }
-        .call-item .time {
-            font-size: 0.7rem;
-            color: #9aa8b5;
-            flex-shrink: 0;
-        }
-        .call-item .call-again {
-            background: none;
-            border: none;
-            color: #00a884;
-            font-size: 1rem;
-            cursor: pointer;
-            padding: 0.2rem 0.5rem;
-            border-radius: 50%;
-            transition: background 0.2s;
-        }
-        .call-item .call-again:hover {
-            background: #e6f9f4;
-        }
-        .call-item .call-again i {
-            font-size: 1rem;
-        }
+    /* ─── Calls ─── */
+    .call-item {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.7rem 0.6rem;
+      border-radius: 14px;
+      background: #ffffff;
+      margin-bottom: 0.3rem;
+      border: 1px solid transparent;
+      transition: background 0.15s;
+    }
+    .call-item:hover {
+      background: #f5f7f9;
+    }
+    .call-item .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 1rem;
+      color: #fff;
+      flex-shrink: 0;
+      text-transform: uppercase;
+    }
+    .call-item .info {
+      flex: 1;
+      min-width: 0;
+    }
+    .call-item .info .name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #1a1a1a;
+    }
+    .call-item .info .sub {
+      font-size: 0.78rem;
+      color: #667781;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .call-item .info .sub .call-icon {
+      font-size: 0.7rem;
+    }
+    .call-item .info .sub .call-icon.missed {
+      color: #e74c3c;
+    }
+    .call-item .info .sub .call-icon.answered {
+      color: #00a884;
+    }
+    .call-item .info .sub .call-icon.dialed {
+      color: #54656f;
+    }
+    .call-item .info .sub .call-icon i {
+      font-size: 0.7rem;
+    }
+    .call-item .time {
+      font-size: 0.7rem;
+      color: #9aa8b5;
+      flex-shrink: 0;
+    }
+    .call-item .call-again {
+      background: none;
+      border: none;
+      color: #00a884;
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 0.2rem 0.5rem;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+    .call-item .call-again:hover {
+      background: #e6f9f4;
+    }
+    .call-item .call-again i {
+      font-size: 1rem;
+    }
 
-        /* ─── Dialer ─── */
-        .dialer-display {
-            background: #ffffff;
-            border-radius: 16px;
-            padding: 0.8rem 1.2rem;
-            font-size: 1.8rem;
-            font-weight: 300;
-            text-align: center;
-            letter-spacing: 4px;
-            color: #1a1a1a;
-            border: 1px solid #e8edf2;
-            min-height: 4.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            word-break: break-all;
-            margin-bottom: 1rem;
-            font-family: 'Courier New', monospace;
-            background: #fafbfc;
-        }
-        .dialer-display .hint {
-            font-size: 0.9rem;
-            color: #9aa8b5;
-            letter-spacing: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        .dialer-pad {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0.6rem;
-            max-width: 280px;
-            margin: 0 auto;
-            width: 100%;
-        }
-        .dialer-pad .key {
-            background: #ffffff;
-            border-radius: 50%;
-            aspect-ratio: 1/1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.6rem;
-            font-weight: 500;
-            cursor: pointer;
-            user-select: none;
-            transition: background 0.1s, transform 0.1s;
-            border: 1px solid #e8edf2;
-            color: #1a1a1a;
-            font-family: inherit;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
-        }
-        .dialer-pad .key:active {
-            background: #eef2f5;
-            transform: scale(0.94);
-        }
-        .dialer-pad .key .sub-label {
-            font-size: 0.5rem;
-            font-weight: 400;
-            color: #9aa8b5;
-            margin-top: -0.1rem;
-        }
-        .dialer-pad .key.call {
-            background: #00a884;
-            color: #fff;
-            border-color: #00a884;
-            box-shadow: 0 4px 16px rgba(0, 168, 132, 0.3);
-        }
-        .dialer-pad .key.call:active {
-            background: #008f72;
-            transform: scale(0.94);
-        }
-        .dialer-pad .key.call.disabled {
-            opacity: 0.4;
-            pointer-events: none;
-        }
-        .dialer-pad .key i {
-            font-size: 1.4rem;
-        }
-        .dialer-pad .key .fa-delete-left {
-            font-size: 1.1rem;
-            color: #667781;
-        }
-        .dialer-pad .key .fa-xmark {
-            font-size: 1.2rem;
-            color: #667781;
-        }
-        .dialer-actions {
-            display: flex;
-            justify-content: center;
-            gap: 0.8rem;
-            margin-top: 0.8rem;
-            flex-wrap: wrap;
-        }
-        .dialer-actions .btn-sm {
-            padding: 0.4rem 1rem;
-            border-radius: 40px;
-            border: 1px solid #e8edf2;
-            background: #ffffff;
-            font-size: 0.75rem;
-            color: #54656f;
-            cursor: pointer;
-            transition: background 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        .dialer-actions .btn-sm:hover {
-            background: #f5f7f9;
-        }
-        .dialer-actions .btn-sm i {
-            font-size: 0.75rem;
-        }
+    /* ─── Dialer ─── */
+    .dialer-display {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 0.8rem 1.2rem;
+      font-size: 1.8rem;
+      font-weight: 300;
+      text-align: center;
+      letter-spacing: 4px;
+      color: #1a1a1a;
+      border: 1px solid #e8edf2;
+      min-height: 4.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      word-break: break-all;
+      margin-bottom: 1rem;
+      font-family: 'Courier New', monospace;
+      background: #fafbfc;
+    }
+    .dialer-display .hint {
+      font-size: 0.9rem;
+      color: #9aa8b5;
+      letter-spacing: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .dialer-pad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.6rem;
+      max-width: 280px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .dialer-pad .key {
+      background: #ffffff;
+      border-radius: 50%;
+      aspect-ratio: 1/1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.1s, transform 0.1s;
+      border: 1px solid #e8edf2;
+      color: #1a1a1a;
+      font-family: inherit;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+    }
+    .dialer-pad .key:active {
+      background: #eef2f5;
+      transform: scale(0.94);
+    }
+    .dialer-pad .key .sub-label {
+      font-size: 0.5rem;
+      font-weight: 400;
+      color: #9aa8b5;
+      margin-top: -0.1rem;
+    }
+    .dialer-pad .key.call {
+      background: #00a884;
+      color: #fff;
+      border-color: #00a884;
+      box-shadow: 0 4px 16px rgba(0, 168, 132, 0.3);
+    }
+    .dialer-pad .key.call:active {
+      background: #008f72;
+      transform: scale(0.94);
+    }
+    .dialer-pad .key.call.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    .dialer-pad .key i {
+      font-size: 1.4rem;
+    }
+    .dialer-pad .key .fa-delete-left {
+      font-size: 1.1rem;
+      color: #667781;
+    }
+    .dialer-pad .key .fa-xmark {
+      font-size: 1.2rem;
+      color: #667781;
+    }
+    .dialer-actions {
+      display: flex;
+      justify-content: center;
+      gap: 0.8rem;
+      margin-top: 0.8rem;
+      flex-wrap: wrap;
+    }
+    .dialer-actions .btn-sm {
+      padding: 0.4rem 1rem;
+      border-radius: 40px;
+      border: 1px solid #e8edf2;
+      background: #ffffff;
+      font-size: 0.75rem;
+      color: #54656f;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .dialer-actions .btn-sm:hover {
+      background: #f5f7f9;
+    }
+    .dialer-actions .btn-sm i {
+      font-size: 0.75rem;
+    }
 
-        /* ─── Profile ─── */
-        .profile-card {
-            background: #ffffff;
-            border-radius: 20px;
-            padding: 1.8rem 1.5rem;
-            text-align: center;
-            border: 1px solid #eef2f5;
-        }
-        .profile-card .big-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            font-weight: 700;
-            color: #fff;
-            margin: 0 auto 0.8rem;
-            text-transform: uppercase;
-            background: #00a884;
-        }
-        .profile-card .pname {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #1a1a1a;
-        }
-        .profile-card .pphone {
-            font-size: 0.9rem;
-            color: #667781;
-            margin-top: 0.1rem;
-        }
-        .profile-card .pstatus {
-            font-size: 0.85rem;
-            color: #00a884;
-            margin-top: 0.2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.3rem;
-        }
-        .profile-card .pstatus i {
-            font-size: 0.6rem;
-        }
-        .profile-menu {
-            margin-top: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.3rem;
-        }
-        .profile-menu .menu-item {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            padding: 0.7rem 1rem;
-            border-radius: 12px;
-            background: #fafbfc;
-            border: none;
-            width: 100%;
-            font-size: 0.9rem;
-            color: #1a1a1a;
-            cursor: pointer;
-            transition: background 0.15s;
-            text-align: left;
-        }
-        .profile-menu .menu-item:hover {
-            background: #f0f2f5;
-        }
-        .profile-menu .menu-item i {
-            width: 1.4rem;
-            color: #00a884;
-            font-size: 1rem;
-        }
-        .profile-menu .menu-item .menu-icon-danger {
-            color: #e74c3c;
-        }
-        .profile-menu .menu-item .menu-label {
-            flex: 1;
-        }
-        .profile-menu .menu-item .menu-arrow {
-            color: #c8d0d8;
-            font-size: 0.7rem;
-        }
+    /* ─── Profile ─── */
+    .profile-card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 1.8rem 1.5rem;
+      text-align: center;
+      border: 1px solid #eef2f5;
+    }
+    .profile-card .big-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+      margin: 0 auto 0.8rem;
+      text-transform: uppercase;
+      background: #00a884;
+    }
+    .profile-card .pname {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+    .profile-card .pphone {
+      font-size: 0.9rem;
+      color: #667781;
+      margin-top: 0.1rem;
+    }
+    .profile-card .pstatus {
+      font-size: 0.85rem;
+      color: #00a884;
+      margin-top: 0.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+    }
+    .profile-card .pstatus i {
+      font-size: 0.6rem;
+    }
+    .profile-menu {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .profile-menu .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.7rem 1rem;
+      border-radius: 12px;
+      background: #fafbfc;
+      border: none;
+      width: 100%;
+      font-size: 0.9rem;
+      color: #1a1a1a;
+      cursor: pointer;
+      transition: background 0.15s;
+      text-align: left;
+    }
+    .profile-menu .menu-item:hover {
+      background: #f0f2f5;
+    }
+    .profile-menu .menu-item i {
+      width: 1.4rem;
+      color: #00a884;
+      font-size: 1rem;
+    }
+    .profile-menu .menu-item .menu-icon-danger {
+      color: #e74c3c;
+    }
+    .profile-menu .menu-item .menu-label {
+      flex: 1;
+    }
+    .profile-menu .menu-item .menu-arrow {
+      color: #c8d0d8;
+      font-size: 0.7rem;
+    }
 
-        /* ─── Incoming Overlay ─── */
-        #incomingOverlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(16px);
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            padding: 2rem;
-        }
-        #incomingOverlay.active {
-            display: flex;
-        }
-        #incomingOverlay .avatar-lg {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.6rem;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 0.8rem;
-            background: #00a884;
-            text-transform: uppercase;
-        }
-        #incomingOverlay .caller-name {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #fff;
-        }
-        #incomingOverlay .caller-number {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 1rem;
-            margin-bottom: 0.5rem;
-        }
-        #incomingOverlay .caller-label {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.85rem;
-            margin-bottom: 2rem;
-        }
-        #incomingOverlay .actions {
-            display: flex;
-            gap: 2.5rem;
-        }
-        #incomingOverlay .actions button {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            font-size: 1.8rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.15s, box-shadow 0.15s;
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-        }
-        #incomingOverlay .actions button:active {
-            transform: scale(0.9);
-        }
-        #incomingOverlay .actions .answer {
-            background: #00a884;
-            color: #fff;
-            box-shadow: 0 4px 24px rgba(0, 168, 132, 0.4);
-        }
-        #incomingOverlay .actions .answer:hover {
-            background: #008f72;
-        }
-        #incomingOverlay .actions .reject {
-            background: #e74c3c;
-            color: #fff;
-            box-shadow: 0 4px 24px rgba(231, 76, 60, 0.4);
-        }
-        #incomingOverlay .actions .reject:hover {
-            background: #c0392b;
-        }
+    /* ─── Incoming Overlay ─── */
+    #incomingOverlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(16px);
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+      padding: 2rem;
+    }
+    #incomingOverlay.active {
+      display: flex;
+    }
+    #incomingOverlay .avatar-lg {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.6rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.8rem;
+      background: #00a884;
+      text-transform: uppercase;
+    }
+    #incomingOverlay .caller-name {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    #incomingOverlay .caller-number {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    #incomingOverlay .caller-label {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.85rem;
+      margin-bottom: 2rem;
+    }
+    #incomingOverlay .actions {
+      display: flex;
+      gap: 2.5rem;
+    }
+    #incomingOverlay .actions button {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 1.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s, box-shadow 0.15s;
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+    #incomingOverlay .actions button:active {
+      transform: scale(0.9);
+    }
+    #incomingOverlay .actions .answer {
+      background: #00a884;
+      color: #fff;
+      box-shadow: 0 4px 24px rgba(0, 168, 132, 0.4);
+    }
+    #incomingOverlay .actions .answer:hover {
+      background: #008f72;
+    }
+    #incomingOverlay .actions .reject {
+      background: #e74c3c;
+      color: #fff;
+      box-shadow: 0 4px 24px rgba(231, 76, 60, 0.4);
+    }
+    #incomingOverlay .actions .reject:hover {
+      background: #c0392b;
+    }
 
-        /* ─── Call Screen ─── */
-        #callScreen {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #0b0e17;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1500;
-            padding: 2rem;
-        }
-        #callScreen.active {
-            display: flex;
-        }
-        #callScreen .avatar-lg {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.6rem;
-            font-weight: 700;
-            color: #fff;
-            margin-bottom: 0.5rem;
-            background: #2a3a5a;
-            text-transform: uppercase;
-        }
-        #callScreen .caller-name {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: #fff;
-        }
-        #callScreen .caller-number {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 1rem;
-        }
-        #callScreen .call-status {
-            color: #f5b342;
-            font-size: 0.9rem;
-            min-height: 1.4rem;
-            margin-top: 0.2rem;
-        }
-        #callScreen .call-timer {
-            font-size: 2.2rem;
-            color: #4ade80;
-            font-family: 'Courier New', monospace;
-            margin: 0.8rem 0 1.8rem;
-            letter-spacing: 2px;
-        }
-        #callScreen .call-controls {
-            display: flex;
-            gap: 1.5rem;
-        }
-        #callScreen .call-controls button {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            font-size: 1.4rem;
-            background: rgba(255, 255, 255, 0.08);
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.15s, transform 0.15s;
-        }
-        #callScreen .call-controls button:active {
-            transform: scale(0.92);
-        }
-        #callScreen .call-controls .hangup {
-            background: #e74c3c;
-            color: #fff;
-        }
-        #callScreen .call-controls .hangup:hover {
-            background: #c0392b;
-        }
-        #callScreen .call-controls .mute {
-            background: rgba(255, 255, 255, 0.08);
-        }
-        #callScreen .call-controls .mute.active {
-            background: #f5b342;
-            color: #1a1a1a;
-        }
-        #callScreen .call-controls .speaker {
-            background: rgba(255, 255, 255, 0.08);
-        }
-        #callScreen .call-controls .speaker.active {
-            background: #00a884;
-            color: #fff;
-        }
+    /* ─── Call Screen ─── */
+    #callScreen {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0b0e17;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 1500;
+      padding: 2rem;
+    }
+    #callScreen.active {
+      display: flex;
+    }
+    #callScreen .avatar-lg {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.6rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.5rem;
+      background: #2a3a5a;
+      text-transform: uppercase;
+    }
+    #callScreen .caller-name {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    #callScreen .caller-number {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 1rem;
+    }
+    #callScreen .call-status {
+      color: #f5b342;
+      font-size: 0.9rem;
+      min-height: 1.4rem;
+      margin-top: 0.2rem;
+    }
+    #callScreen .call-timer {
+      font-size: 2.2rem;
+      color: #4ade80;
+      font-family: 'Courier New', monospace;
+      margin: 0.8rem 0 1.8rem;
+      letter-spacing: 2px;
+    }
+    #callScreen .call-controls {
+      display: flex;
+      gap: 1.5rem;
+    }
+    #callScreen .call-controls button {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 1.4rem;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, transform 0.15s;
+    }
+    #callScreen .call-controls button:active {
+      transform: scale(0.92);
+    }
+    #callScreen .call-controls .hangup {
+      background: #e74c3c;
+      color: #fff;
+    }
+    #callScreen .call-controls .hangup:hover {
+      background: #c0392b;
+    }
+    #callScreen .call-controls .mute {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    #callScreen .call-controls .mute.active {
+      background: #f5b342;
+      color: #1a1a1a;
+    }
+    #callScreen .call-controls .speaker {
+      background: rgba(255, 255, 255, 0.08);
+    }
+    #callScreen .call-controls .speaker.active {
+      background: #00a884;
+      color: #fff;
+    }
 
-        /* ─── Toast ─── */
-        #toast {
-            position: fixed;
-            bottom: 28px;
-            left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            background: #1e2a3a;
-            border: 1px solid #2a3a5a;
-            color: #e8edf5;
-            padding: 0.6rem 1.4rem;
-            border-radius: 40px;
-            font-size: 0.85rem;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            z-index: 5000;
-            max-width: 90%;
-            text-align: center;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-            font-weight: 500;
-        }
-        #toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-        #toast.success {
-            background: #00a884;
-            color: #fff;
-            border-color: #00a884;
-        }
-        #toast.error {
-            background: #e74c3c;
-            color: #fff;
-            border-color: #e74c3c;
-        }
+    /* ─── About Modal ─── */
+    #aboutModal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      z-index: 3000;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem;
+    }
+    #aboutModal.active {
+      display: flex;
+    }
+    #aboutModal .modal-card {
+      background: #ffffff;
+      border-radius: 28px;
+      max-width: 420px;
+      width: 100%;
+      padding: 2rem 1.8rem;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+      animation: fadeUp 0.3s ease;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    #aboutModal .modal-card .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.2rem;
+    }
+    #aboutModal .modal-card .modal-header h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    #aboutModal .modal-card .modal-header h2 img {
+      height: 32px;
+      width: auto;
+      border-radius: 8px;
+    }
+    #aboutModal .modal-card .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.6rem;
+      color: #9aa8b5;
+      cursor: pointer;
+      padding: 0.2rem 0.4rem;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+    #aboutModal .modal-card .modal-close:hover {
+      background: #f0f2f5;
+    }
+    #aboutModal .modal-card .about-body {
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: #1a1a1a;
+    }
+    #aboutModal .modal-card .about-body .maker {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      background: #f5f7f9;
+      padding: 0.8rem 1rem;
+      border-radius: 16px;
+      margin: 1rem 0;
+    }
+    #aboutModal .modal-card .about-body .maker .maker-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #00a884;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    #aboutModal .modal-card .about-body .maker .maker-info {
+      flex: 1;
+    }
+    #aboutModal .modal-card .about-body .maker .maker-info .name {
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    #aboutModal .modal-card .about-body .maker .maker-info .handle {
+      font-size: 0.8rem;
+      color: #667781;
+    }
+    #aboutModal .modal-card .about-body h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 1.2rem 0 0.6rem;
+      color: #00a884;
+    }
+    #aboutModal .modal-card .about-body ul {
+      padding-left: 1.2rem;
+      margin: 0.4rem 0 0.8rem;
+    }
+    #aboutModal .modal-card .about-body ul li {
+      margin-bottom: 0.4rem;
+      color: #2d3a45;
+    }
+    #aboutModal .modal-card .about-body .footer-note {
+      margin-top: 1.2rem;
+      padding-top: 1rem;
+      border-top: 1px solid #eef2f5;
+      font-size: 0.8rem;
+      color: #9aa8b5;
+      text-align: center;
+    }
+    #aboutModal .modal-card .about-body .footer-note a {
+      color: #00a884;
+      text-decoration: none;
+    }
 
-        /* ─── Responsive ─── */
-        @media (max-width: 460px) {
-            #app {
-                border-radius: 0;
-                height: 100vh;
-                max-height: 100vh;
-            }
-            .reg-card {
-                padding: 1.2rem 1rem;
-            }
-            .dialer-pad {
-                max-width: 240px;
-                gap: 0.5rem;
-            }
-            .dialer-pad .key {
-                font-size: 1.3rem;
-            }
-            #callScreen .call-controls button {
-                width: 52px;
-                height: 52px;
-                font-size: 1.2rem;
-            }
-            #incomingOverlay .actions button {
-                width: 60px;
-                height: 60px;
-                font-size: 1.5rem;
-            }
-            .topbar .left .brand {
-                font-size: 1rem;
-            }
-            .topbar .right .avatar-sm {
-                width: 30px;
-                height: 30px;
-                font-size: 0.75rem;
-            }
-        }
-        @media (max-width: 380px) {
-            .dialer-pad {
-                max-width: 200px;
-                gap: 0.4rem;
-            }
-            .dialer-pad .key {
-                font-size: 1.1rem;
-            }
-            .dialer-display {
-                font-size: 1.4rem;
-                min-height: 3.6rem;
-            }
-            .reg-logo {
-                font-size: 2.2rem;
-            }
-        }
+    /* ─── Toast ─── */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1e2a3a;
+      border: 1px solid #2a3a5a;
+      color: #e8edf5;
+      padding: 0.6rem 1.4rem;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      z-index: 5000;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+      font-weight: 500;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    #toast.success {
+      background: #00a884;
+      color: #fff;
+      border-color: #00a884;
+    }
+    #toast.error {
+      background: #e74c3c;
+      color: #fff;
+      border-color: #e74c3c;
+    }
 
-        /* ─── Hidden audio ─── */
-        #remoteAudio {
-            display: none;
-        }
+    /* ─── Responsive ─── */
+    @media (max-width: 460px) {
+      #app {
+        border-radius: 0;
+        height: 100vh;
+        max-height: 100vh;
+      }
+      .reg-card {
+        padding: 1.2rem 1rem;
+      }
+      .dialer-pad {
+        max-width: 240px;
+        gap: 0.5rem;
+      }
+      .dialer-pad .key {
+        font-size: 1.3rem;
+      }
+      #callScreen .call-controls button {
+        width: 52px;
+        height: 52px;
+        font-size: 1.2rem;
+      }
+      #incomingOverlay .actions button {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+      }
+      .topbar .left .brand {
+        font-size: 1rem;
+      }
+      .topbar .right .avatar-sm {
+        width: 30px;
+        height: 30px;
+        font-size: 0.75rem;
+      }
+      .topbar .left .brand img {
+        height: 26px;
+      }
+      #aboutModal .modal-card {
+        padding: 1.5rem;
+      }
+    }
+    @media (max-width: 380px) {
+      .dialer-pad {
+        max-width: 200px;
+        gap: 0.4rem;
+      }
+      .dialer-pad .key {
+        font-size: 1.1rem;
+      }
+      .dialer-display {
+        font-size: 1.4rem;
+        min-height: 3.6rem;
+      }
+      .reg-logo {
+        font-size: 2.2rem;
+      }
+    }
 
-        /* ─── Misc ─── */
-        .text-muted {
-            color: #9aa8b5;
-        }
-        .mt-1 {
-            margin-top: 0.5rem;
-        }
-        .flex-center {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .gap-1 {
-            gap: 0.5rem;
-        }
-    </style>
+    /* ─── Hidden audio ─── */
+    #remoteAudio {
+      display: none;
+    }
+
+    /* ─── Misc ─── */
+    .text-muted {
+      color: #9aa8b5;
+    }
+    .mt-1 {
+      margin-top: 0.5rem;
+    }
+    .flex-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .gap-1 {
+      gap: 0.5rem;
+    }
+  </style>
 </head>
 <body>
 
-    <!-- ═══ APP WRAPPER ═══ -->
-    <div id="app">
+  <!-- ═══ APP WRAPPER ═══ -->
+  <div id="app">
 
-        <!-- ═══ REGISTRATION SCREEN ═══ -->
-        <div id="regScreen">
-            <div class="reg-logo">
-                <i class="fas fa-phone-alt"></i> PremCall
+    <!-- ═══ REGISTRATION SCREEN ═══ -->
+    <div id="regScreen">
+      <div class="reg-logo">
+        <img src="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" alt="PremCall Logo" />
+        <span>PremCall</span>
+      </div>
+      <div class="reg-sub">Secure voice calls · 10‑digit number</div>
+
+      <div class="reg-card">
+        <div class="field">
+          <label><i class="fas fa-user"></i> Full Name</label>
+          <input type="text" id="regName" placeholder="e.g. John Doe" maxlength="40" />
+        </div>
+        <div class="field">
+          <label><i class="fas fa-mobile-alt"></i> Phone Number</label>
+          <input type="tel" id="regPhone" placeholder="Enter 10 digits" maxlength="10" inputmode="numeric" />
+          <div class="input-hint">10‑digit number · will be locked after verification</div>
+        </div>
+        <button class="btn" id="sendOtpBtn">
+          <i class="fas fa-paper-plane"></i> Send OTP
+        </button>
+
+        <div class="otp-section" id="otpSection">
+          <div class="field" style="margin-bottom:0.8rem;">
+            <label><i class="fas fa-shield-alt"></i> Verification Code</label>
+            <div class="otp-row">
+              <input type="tel" id="regOtp" placeholder="6‑digit code" maxlength="6" inputmode="numeric" />
+              <button class="btn btn-outline" id="verifyOtpBtn" style="width:auto;padding:0.7rem 1.2rem;">
+                <i class="fas fa-check"></i> Verify
+              </button>
             </div>
-            <div class="reg-sub">Secure voice calls · 10‑digit number</div>
-
-            <div class="reg-card">
-                <div class="field">
-                    <label><i class="fas fa-user"></i> Full Name</label>
-                    <input type="text" id="regName" placeholder="e.g. John Doe" maxlength="40" />
-                </div>
-                <div class="field">
-                    <label><i class="fas fa-mobile-alt"></i> Phone Number</label>
-                    <input type="tel" id="regPhone" placeholder="Enter 10 digits" maxlength="10" inputmode="numeric" />
-                    <div class="input-hint">10‑digit number · will be locked after verification</div>
-                </div>
-                <button class="btn" id="sendOtpBtn">
-                    <i class="fas fa-paper-plane"></i> Send OTP
-                </button>
-
-                <div class="otp-section" id="otpSection">
-                    <div class="field" style="margin-bottom:0.8rem;">
-                        <label><i class="fas fa-shield-alt"></i> Verification Code</label>
-                        <div class="otp-row">
-                            <input type="tel" id="regOtp" placeholder="6‑digit code" maxlength="6" inputmode="numeric" />
-                            <button class="btn btn-outline" id="verifyOtpBtn" style="width:auto;padding:0.7rem 1.2rem;">
-                                <i class="fas fa-check"></i> Verify
-                            </button>
-                        </div>
-                    </div>
-                    <div class="otp-timer" id="otpTimer">OTP sent to +91 ***** <span id="otpPhoneMask"></span></div>
-                    <button class="btn btn-secondary" id="resendOtpBtn" style="margin-top:0.5rem;font-size:0.8rem;padding:0.4rem 1.2rem;width:auto;display:inline-flex;margin-left:auto;margin-right:auto;">
-                        <i class="fas fa-redo"></i> Resend OTP
-                    </button>
-                </div>
-
-                <div class="reg-status" id="regStatus">Enter your name &amp; 10‑digit number to get started.</div>
-            </div>
-
-            <div class="reg-footer">
-                By registering, you agree to our <a href="#">Terms</a> &amp; <a href="#">Privacy Policy</a>.
-                Your number is securely stored.
-            </div>
+          </div>
+          <div class="otp-timer" id="otpTimer">OTP sent to +91 ***** <span id="otpPhoneMask"></span></div>
+          <button class="btn btn-secondary" id="resendOtpBtn" style="margin-top:0.5rem;font-size:0.8rem;padding:0.4rem 1.2rem;width:auto;display:inline-flex;margin-left:auto;margin-right:auto;">
+            <i class="fas fa-redo"></i> Resend OTP
+          </button>
         </div>
 
-        <!-- ═══ MAIN APP ═══ -->
-        <div id="mainApp">
+        <div class="reg-status" id="regStatus">Enter your name &amp; 10‑digit number to get started.</div>
+      </div>
 
-            <!-- Top Bar -->
-            <div class="topbar">
-                <div class="left">
-                    <div class="brand">
-                        <i class="fas fa-phone-alt"></i> PremCall
-                    </div>
-                </div>
-                <div class="right">
-                    <span class="status-label" id="statusLabel">Offline</span>
-                    <span class="status-dot offline" id="headerStatusDot"></span>
-                    <div class="avatar-sm" id="topAvatar">U</div>
-                    <button class="top-action" id="logoutBtn" title="Sign out">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Tab Content -->
-            <div class="tab-content" id="tabContent">
-
-                <!-- Contacts -->
-                <div class="tab-pane active" id="paneContacts">
-                    <div class="search-bar">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="contactSearch" placeholder="Search contacts..." />
-                    </div>
-                    <div id="contactList"></div>
-                </div>
-
-                <!-- Calls -->
-                <div class="tab-pane" id="paneCalls">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;">
-                        <span style="font-weight:600;font-size:1rem;color:#1a1a1a;">Recent Calls</span>
-                        <button id="clearCallsBtn" style="background:none;border:none;color:#9aa8b5;font-size:0.75rem;cursor:pointer;">
-                            <i class="fas fa-trash-alt"></i> Clear
-                        </button>
-                    </div>
-                    <div id="callHistoryList"></div>
-                </div>
-
-                <!-- Dialer -->
-                <div class="tab-pane" id="paneDialer">
-                    <div class="dialer-display" id="dialDisplay">
-                        <span class="hint">Enter number</span>
-                    </div>
-                    <div class="dialer-pad" id="dialPad">
-                        <button class="key" data-digit="1">1<span class="sub-label"></span></button>
-                        <button class="key" data-digit="2">2<span class="sub-label">ABC</span></button>
-                        <button class="key" data-digit="3">3<span class="sub-label">DEF</span></button>
-                        <button class="key" data-digit="4">4<span class="sub-label">GHI</span></button>
-                        <button class="key" data-digit="5">5<span class="sub-label">JKL</span></button>
-                        <button class="key" data-digit="6">6<span class="sub-label">MNO</span></button>
-                        <button class="key" data-digit="7">7<span class="sub-label">PQRS</span></button>
-                        <button class="key" data-digit="8">8<span class="sub-label">TUV</span></button>
-                        <button class="key" data-digit="9">9<span class="sub-label">WXYZ</span></button>
-                        <button class="key" data-digit="*">*<span class="sub-label"></span></button>
-                        <button class="key" data-digit="0">0<span class="sub-label">+</span></button>
-                        <button class="key" data-digit="#">#<span class="sub-label"></span></button>
-                        <button class="key" data-action="delete">
-                            <i class="fas fa-delete-left"></i>
-                        </button>
-                        <button class="key call" id="dialCallBtn" data-action="call">
-                            <i class="fas fa-phone"></i>
-                        </button>
-                        <button class="key" data-action="clear">
-                            <i class="fas fa-xmark"></i>
-                        </button>
-                    </div>
-                    <div class="dialer-actions">
-                        <button class="btn-sm" id="checkStatusBtn"><i class="fas fa-circle-check"></i> Check</button>
-                        <span id="statusResult" style="font-size:0.75rem;color:#667781;display:flex;align-items:center;"></span>
-                    </div>
-                </div>
-
-                <!-- Profile -->
-                <div class="tab-pane" id="paneProfile">
-                    <div class="profile-card">
-                        <div class="big-avatar" id="profileAvatar">U</div>
-                        <div class="pname" id="profileName">User</div>
-                        <div class="pphone" id="profilePhone">+91 00000 00000</div>
-                        <div class="pstatus"><i class="fas fa-circle"></i> <span id="profileStatus">Online</span></div>
-                        <div class="profile-menu">
-                            <button class="menu-item" id="editProfileBtn">
-                                <i class="fas fa-user-edit"></i>
-                                <span class="menu-label">Edit Profile</span>
-                                <span class="menu-arrow"><i class="fas fa-chevron-right"></i></span>
-                            </button>
-                            <button class="menu-item" id="aboutBtn">
-                                <i class="fas fa-info-circle"></i>
-                                <span class="menu-label">About</span>
-                                <span class="menu-arrow"><i class="fas fa-chevron-right"></i></span>
-                            </button>
-                            <button class="menu-item" id="logoutProfileBtn">
-                                <i class="fas fa-sign-out-alt menu-icon-danger"></i>
-                                <span class="menu-label" style="color:#e74c3c;">Sign Out</span>
-                                <span class="menu-arrow"><i class="fas fa-chevron-right"></i></span>
-                            </button>
-                        </div>
-                    </div>
-                    <div style="text-align:center;margin-top:1rem;font-size:0.65rem;color:#c8d0d8;">
-                        PremCall v2.0 · Secure calling
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bottom Nav -->
-            <div class="bottom-nav">
-                <button class="nav-item active" data-tab="paneContacts">
-                    <i class="fas fa-users"></i>
-                    <span>Contacts</span>
-                </button>
-                <button class="nav-item" data-tab="paneCalls">
-                    <i class="fas fa-history"></i>
-                    <span>Calls</span>
-                </button>
-                <button class="nav-item" data-tab="paneDialer">
-                    <i class="fas fa-keypad"></i>
-                    <span>Dialer</span>
-                </button>
-                <button class="nav-item" data-tab="paneProfile">
-                    <i class="fas fa-user"></i>
-                    <span>Profile</span>
-                </button>
-            </div>
-        </div>
-
+      <div class="reg-footer">
+        By registering, you agree to our <a href="#">Terms</a> &amp; <a href="#">Privacy Policy</a>.
+        Your number is securely stored.
+      </div>
     </div>
 
-    <!-- ═══ INCOMING OVERLAY ═══ -->
-    <div id="incomingOverlay">
-        <div class="avatar-lg" id="incomingAvatar">U</div>
-        <div class="caller-name" id="incomingName">Unknown</div>
-        <div class="caller-number" id="incomingNumber">+91 00000 00000</div>
-        <div class="caller-label">Incoming call…</div>
-        <div class="actions">
-            <button class="answer" id="answerBtn"><i class="fas fa-phone"></i></button>
-            <button class="reject" id="rejectBtn"><i class="fas fa-phone-slash"></i></button>
+    <!-- ═══ MAIN APP ═══ -->
+    <div id="mainApp">
+
+      <!-- Top Bar -->
+      <div class="topbar">
+        <div class="left">
+          <div class="brand">
+            <img src="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" alt="PremCall" />
+            PremCall
+          </div>
         </div>
+        <div class="right">
+          <span class="status-label" id="statusLabel">Offline</span>
+          <span class="status-dot offline" id="headerStatusDot"></span>
+          <div class="avatar-sm" id="topAvatar">U</div>
+          <button class="top-action" id="logoutBtn" title="Sign out">
+            <i class="fas fa-sign-out-alt"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="tab-content" id="tabContent">
+
+        <!-- Contacts -->
+        <div class="tab-pane active" id="paneContacts">
+          <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" id="contactSearch" placeholder="Search contacts..." />
+          </div>
+          <div id="contactList"></div>
+        </div>
+
+        <!-- Calls -->
+        <div class="tab-pane" id="paneCalls">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;">
+            <span style="font-weight:600;font-size:1rem;color:#1a1a1a;">Recent Calls</span>
+            <button id="clearCallsBtn" style="background:none;border:none;color:#9aa8b5;font-size:0.75rem;cursor:pointer;">
+              <i class="fas fa-trash-alt"></i> Clear
+            </button>
+          </div>
+          <div id="callHistoryList"></div>
+        </div>
+
+        <!-- Dialer -->
+        <div class="tab-pane" id="paneDialer">
+          <div class="dialer-display" id="dialDisplay">
+            <span class="hint">Enter number</span>
+          </div>
+          <div class="dialer-pad" id="dialPad">
+            <button class="key" data-digit="1">1<span class="sub-label"></span></button>
+            <button class="key" data-digit="2">2<span class="sub-label">ABC</span></button>
+            <button class="key" data-digit="3">3<span class="sub-label">DEF</span></button>
+            <button class="key" data-digit="4">4<span class="sub-label">GHI</span></button>
+            <button class="key" data-digit="5">5<span class="sub-label">JKL</span></button>
+            <button class="key" data-digit="6">6<span class="sub-label">MNO</span></button>
+            <button class="key" data-digit="7">7<span class="sub-label">PQRS</span></button>
+            <button class="key" data-digit="8">8<span class="sub-label">TUV</span></button>
+            <button class="key" data-digit="9">9<span class="sub-label">WXYZ</span></button>
+            <button class="key" data-digit="*">*<span class="sub-label"></span></button>
+            <button class="key" data-digit="0">0<span class="sub-label">+</span></button>
+            <button class="key" data-digit="#">#<span class="sub-label"></span></button>
+            <button class="key" data-action="delete">
+              <i class="fas fa-delete-left"></i>
+            </button>
+            <button class="key call" id="dialCallBtn" data-action="call">
+              <i class="fas fa-phone"></i>
+            </button>
+            <button class="key" data-action="clear">
+              <i class="fas fa-xmark"></i>
+            </button>
+          </div>
+          <div class="dialer-actions">
+            <button class="btn-sm" id="checkStatusBtn"><i class="fas fa-circle-check"></i> Check</button>
+            <span id="statusResult" style="font-size:0.75rem;color:#667781;display:flex;align-items:center;"></span>
+          </div>
+        </div>
+
+        <!-- Profile -->
+        <div class="tab-pane" id="paneProfile">
+          <div class="profile-card">
+            <div class="big-avatar" id="profileAvatar">U</div>
+            <div class="pname" id="profileName">User</div>
+            <div class="pphone" id="profilePhone">+91 00000 00000</div>
+            <div class="pstatus"><i class="fas fa-circle"></i> <span id="profileStatus">Online</span></div>
+            <div class="profile-menu">
+              <button class="menu-item" id="editProfileBtn">
+                <i class="fas fa-user-edit"></i>
+                <span class="menu-label">Edit Profile</span>
+                <span class="menu-arrow"><i class="fas fa-chevron-right"></i></span>
+              </button>
+              <button class="menu-item" id="aboutBtn">
+                <i class="fas fa-info-circle"></i>
+                <span class="menu-label">About</span>
+                <span class="menu-arrow"><i class="fas fa-chevron-right"></i></span>
+              </button>
+              <button class="menu-item" id="logoutProfileBtn">
+                <i class="fas fa-sign-out-alt menu-icon-danger"></i>
+                <span class="menu-label" style="color:#e74c3c;">Sign Out</span>
+                <span class="menu-arrow"><i class="fas fa-chevron-right"></i></span>
+              </button>
+            </div>
+          </div>
+          <div style="text-align:center;margin-top:1rem;font-size:0.65rem;color:#c8d0d8;">
+            PremCall v2.0 · Secure calling
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Nav -->
+      <div class="bottom-nav">
+        <button class="nav-item active" data-tab="paneContacts">
+          <i class="fas fa-users"></i>
+          <span>Contacts</span>
+        </button>
+        <button class="nav-item" data-tab="paneCalls">
+          <i class="fas fa-history"></i>
+          <span>Calls</span>
+        </button>
+        <button class="nav-item" data-tab="paneDialer">
+          <i class="fas fa-keypad"></i>
+          <span>Dialer</span>
+        </button>
+        <button class="nav-item" data-tab="paneProfile">
+          <i class="fas fa-user"></i>
+          <span>Profile</span>
+        </button>
+      </div>
     </div>
 
-    <!-- ═══ CALL SCREEN ═══ -->
-    <div id="callScreen">
-        <div class="avatar-lg" id="callAvatar">U</div>
-        <div class="caller-name" id="callName">Calling...</div>
-        <div class="caller-number" id="callNumber">+91 00000 00000</div>
-        <div class="call-status" id="callStatus">Connecting...</div>
-        <div class="call-timer" id="callTimer">00:00</div>
-        <div class="call-controls">
-            <button class="mute" id="muteBtn" title="Mute"><i class="fas fa-microphone"></i></button>
-            <button class="hangup" id="hangupCallBtn" title="Hang up"><i class="fas fa-phone-slash"></i></button>
-            <button class="speaker" id="speakerBtn" title="Speaker"><i class="fas fa-volume-up"></i></button>
-        </div>
+  </div>
+
+  <!-- ═══ INCOMING OVERLAY ═══ -->
+  <div id="incomingOverlay">
+    <div class="avatar-lg" id="incomingAvatar">U</div>
+    <div class="caller-name" id="incomingName">Unknown</div>
+    <div class="caller-number" id="incomingNumber">+91 00000 00000</div>
+    <div class="caller-label">Incoming call…</div>
+    <div class="actions">
+      <button class="answer" id="answerBtn"><i class="fas fa-phone"></i></button>
+      <button class="reject" id="rejectBtn"><i class="fas fa-phone-slash"></i></button>
     </div>
+  </div>
 
-    <!-- ═══ TOAST ═══ -->
-    <div id="toast"></div>
+  <!-- ═══ CALL SCREEN ═══ -->
+  <div id="callScreen">
+    <div class="avatar-lg" id="callAvatar">U</div>
+    <div class="caller-name" id="callName">Calling...</div>
+    <div class="caller-number" id="callNumber">+91 00000 00000</div>
+    <div class="call-status" id="callStatus">Connecting...</div>
+    <div class="call-timer" id="callTimer">00:00</div>
+    <div class="call-controls">
+      <button class="mute" id="muteBtn" title="Mute"><i class="fas fa-microphone"></i></button>
+      <button class="hangup" id="hangupCallBtn" title="Hang up"><i class="fas fa-phone-slash"></i></button>
+      <button class="speaker" id="speakerBtn" title="Speaker"><i class="fas fa-volume-up"></i></button>
+    </div>
+  </div>
 
-    <!-- ═══ AUDIO ═══ -->
-    <audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
+  <!-- ═══ ABOUT MODAL ═══ -->
+  <div id="aboutModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>
+          <img src="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" alt="PremCall" />
+          About PremCall
+        </h2>
+        <button class="modal-close" id="closeAboutBtn">&times;</button>
+      </div>
+      <div class="about-body">
+        <div class="maker">
+          <div class="maker-avatar">S</div>
+          <div class="maker-info">
+            <div class="name">Surya Sticsai</div>
+            <div class="handle">@suryasticsai · Maker</div>
+          </div>
+        </div>
+        <p>
+          <strong>PremCall</strong> is a secure, peer‑to‑peer voice calling app built with WebRTC.
+          It lets you call your friends directly — no middlemen, no tracking.
+        </p>
+        <h3>📖 How to use</h3>
+        <ul>
+          <li><strong>Register</strong> — Enter your name and a 10‑digit phone number. Verify with the OTP (use <code>123456</code> for demo).</li>
+          <li><strong>Call</strong> — Tap any contact or dial a number manually. Press the green call button.</li>
+          <li><strong>Incoming calls</strong> — Answer or reject with the overlay buttons.</li>
+          <li><strong>During a call</strong> — Mute, speaker, or hang up using the call screen controls.</li>
+          <li><strong>Check status</strong> — Use the <em>Check</em> button in the dialer to see if a number is online.</li>
+        </ul>
+        <h3>🔒 Privacy first</h3>
+        <p>
+          Your number is locked after verification. Calls are direct and encrypted via WebRTC.
+          No call data is stored on any server.
+        </p>
+        <div class="footer-note">
+          Made with ❤️ by <a href="https://github.com/suryasticsai" target="_blank">suryasticsai</a> ·
+          <a href="https://github.com/suryasticsai/premCall" target="_blank">GitHub</a>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    <!-- ════════════════════════════════════════════════════════════════ -->
-    <!-- ═══ JAVASCRIPT ═══ -->
-    <!-- ════════════════════════════════════════════════════════════════ -->
-    <script>
-        (function() {
-            "use strict";
+  <!-- ═══ TOAST ═══ -->
+  <div id="toast"></div>
 
-            // ─── DOM refs ──────────────────────────────────────────────────────
-            const regScreen = document.getElementById('regScreen');
-            const mainApp = document.getElementById('mainApp');
-            const regName = document.getElementById('regName');
-            const regPhone = document.getElementById('regPhone');
-            const sendOtpBtn = document.getElementById('sendOtpBtn');
-            const regOtp = document.getElementById('regOtp');
-            const verifyOtpBtn = document.getElementById('verifyOtpBtn');
-            const regStatus = document.getElementById('regStatus');
-            const otpSection = document.getElementById('otpSection');
-            const otpTimer = document.getElementById('otpTimer');
-            const otpPhoneMask = document.getElementById('otpPhoneMask');
-            const resendOtpBtn = document.getElementById('resendOtpBtn');
+  <!-- ═══ AUDIO ═══ -->
+  <audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
 
-            const topAvatar = document.getElementById('topAvatar');
-            const statusLabel = document.getElementById('statusLabel');
-            const headerStatusDot = document.getElementById('headerStatusDot');
-            const profileAvatar = document.getElementById('profileAvatar');
-            const profileName = document.getElementById('profileName');
-            const profilePhone = document.getElementById('profilePhone');
-            const profileStatus = document.getElementById('profileStatus');
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <!-- ═══ JAVASCRIPT ═══ -->
+  <!-- ════════════════════════════════════════════════════════════════════ -->
+  <script>
+    (function() {
+      "use strict";
 
-            const contactList = document.getElementById('contactList');
-            const contactSearch = document.getElementById('contactSearch');
-            const callHistoryList = document.getElementById('callHistoryList');
-            const clearCallsBtn = document.getElementById('clearCallsBtn');
+      // ─── DOM refs ──────────────────────────────────────────────────────
+      const regScreen = document.getElementById('regScreen');
+      const mainApp = document.getElementById('mainApp');
+      const regName = document.getElementById('regName');
+      const regPhone = document.getElementById('regPhone');
+      const sendOtpBtn = document.getElementById('sendOtpBtn');
+      const regOtp = document.getElementById('regOtp');
+      const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+      const regStatus = document.getElementById('regStatus');
+      const otpSection = document.getElementById('otpSection');
+      const otpTimer = document.getElementById('otpTimer');
+      const otpPhoneMask = document.getElementById('otpPhoneMask');
+      const resendOtpBtn = document.getElementById('resendOtpBtn');
 
-            const dialDisplay = document.getElementById('dialDisplay');
-            const dialPad = document.getElementById('dialPad');
-            const dialCallBtn = document.getElementById('dialCallBtn');
-            const checkStatusBtn = document.getElementById('checkStatusBtn');
-            const statusResult = document.getElementById('statusResult');
+      const topAvatar = document.getElementById('topAvatar');
+      const statusLabel = document.getElementById('statusLabel');
+      const headerStatusDot = document.getElementById('headerStatusDot');
+      const profileAvatar = document.getElementById('profileAvatar');
+      const profileName = document.getElementById('profileName');
+      const profilePhone = document.getElementById('profilePhone');
+      const profileStatus = document.getElementById('profileStatus');
 
-            const incomingOverlay = document.getElementById('incomingOverlay');
-            const incomingAvatar = document.getElementById('incomingAvatar');
-            const incomingName = document.getElementById('incomingName');
-            const incomingNumber = document.getElementById('incomingNumber');
-            const answerBtn = document.getElementById('answerBtn');
-            const rejectBtn = document.getElementById('rejectBtn');
+      const contactList = document.getElementById('contactList');
+      const contactSearch = document.getElementById('contactSearch');
+      const callHistoryList = document.getElementById('callHistoryList');
+      const clearCallsBtn = document.getElementById('clearCallsBtn');
 
-            const callScreen = document.getElementById('callScreen');
-            const callAvatar = document.getElementById('callAvatar');
-            const callName = document.getElementById('callName');
-            const callNumber = document.getElementById('callNumber');
-            const callStatus = document.getElementById('callStatus');
-            const callTimer = document.getElementById('callTimer');
-            const hangupCallBtn = document.getElementById('hangupCallBtn');
-            const muteBtn = document.getElementById('muteBtn');
-            const speakerBtn = document.getElementById('speakerBtn');
+      const dialDisplay = document.getElementById('dialDisplay');
+      const dialPad = document.getElementById('dialPad');
+      const dialCallBtn = document.getElementById('dialCallBtn');
+      const checkStatusBtn = document.getElementById('checkStatusBtn');
+      const statusResult = document.getElementById('statusResult');
 
-            const logoutBtn = document.getElementById('logoutBtn');
-            const logoutProfileBtn = document.getElementById('logoutProfileBtn');
-            const editProfileBtn = document.getElementById('editProfileBtn');
-            const aboutBtn = document.getElementById('aboutBtn');
+      const incomingOverlay = document.getElementById('incomingOverlay');
+      const incomingAvatar = document.getElementById('incomingAvatar');
+      const incomingName = document.getElementById('incomingName');
+      const incomingNumber = document.getElementById('incomingNumber');
+      const answerBtn = document.getElementById('answerBtn');
+      const rejectBtn = document.getElementById('rejectBtn');
 
-            const toast = document.getElementById('toast');
-            const remoteAudio = document.getElementById('remoteAudio');
+      const callScreen = document.getElementById('callScreen');
+      const callAvatar = document.getElementById('callAvatar');
+      const callName = document.getElementById('callName');
+      const callNumber = document.getElementById('callNumber');
+      const callStatus = document.getElementById('callStatus');
+      const callTimer = document.getElementById('callTimer');
+      const hangupCallBtn = document.getElementById('hangupCallBtn');
+      const muteBtn = document.getElementById('muteBtn');
+      const speakerBtn = document.getElementById('speakerBtn');
 
-            // ─── State ──────────────────────────────────────────────────────────
-            let userData = JSON.parse(localStorage.getItem('premCallUser')) || null;
-            let peer = null;
-            let currentCall = null;
-            let localStream = null;
-            let isInCall = false;
-            let isCaller = false;
-            let incomingCall = null;
-            let ringtoneInterval = null;
-            let callTimerInterval = null;
-            let callStartTime = null;
-            let dialedNumber = '';
-            let isMuted = false;
-            let isSpeakerOn = false;
-            let isAnswering = false;
-            let toastTimeout = null;
-            let otpCode = '123456'; // Fixed OTP for demo
-            let otpSent = false;
-            let otpTimerInterval = null;
-            let otpCooldown = 0;
+      const logoutBtn = document.getElementById('logoutBtn');
+      const logoutProfileBtn = document.getElementById('logoutProfileBtn');
+      const editProfileBtn = document.getElementById('editProfileBtn');
+      const aboutBtn = document.getElementById('aboutBtn');
+      const aboutModal = document.getElementById('aboutModal');
+      const closeAboutBtn = document.getElementById('closeAboutBtn');
 
-            // ─── Contacts (simulated) ──────────────────────────────────────────
-            const CONTACTS = [
-                { id: 'c1', name: 'Alice Johnson', phone: '9876543210', status: 'online', lastSeen: null },
-                { id: 'c2', name: 'Bob Smith', phone: '8765432109', status: 'offline', lastSeen: '2026-08-08T14:30:00' },
-                { id: 'c3', name: 'Carol White', phone: '7654321098', status: 'online', lastSeen: null },
-                { id: 'c4', name: 'David Brown', phone: '6543210987', status: 'offline', lastSeen: '2026-08-07T09:15:00' },
-                { id: 'c5', name: 'Eva Green', phone: '5432109876', status: 'online', lastSeen: null },
-                { id: 'c6', name: 'Frank Wilson', phone: '4321098765', status: 'offline', lastSeen: '2026-08-06T22:10:00' },
-                { id: 'c7', name: 'Grace Lee', phone: '3210987654', status: 'offline', lastSeen: '2026-08-05T16:45:00' },
-                { id: 'c8', name: 'Henry Davis', phone: '2109876543', status: 'online', lastSeen: null },
-            ];
+      const toast = document.getElementById('toast');
+      const remoteAudio = document.getElementById('remoteAudio');
 
-            // ─── Call History ──────────────────────────────────────────────────
-            let callHistory = JSON.parse(localStorage.getItem('premCallHistory')) || [];
+      // ─── State ──────────────────────────────────────────────────────────
+      let userData = JSON.parse(localStorage.getItem('premCallUser')) || null;
+      let peer = null;
+      let currentCall = null;
+      let localStream = null;
+      let isInCall = false;
+      let isCaller = false;
+      let incomingCall = null;
+      let ringtoneInterval = null;
+      let callTimerInterval = null;
+      let callStartTime = null;
+      let dialedNumber = '';
+      let isMuted = false;
+      let isSpeakerOn = false;
+      let isAnswering = false;
+      let toastTimeout = null;
+      let otpCode = '123456'; // Fixed OTP for demo
+      let otpSent = false;
+      let otpTimerInterval = null;
+      let otpCooldown = 0;
 
-            // ─── ICE Servers ──────────────────────────────────────────────────
-            function getIceServers() {
-                return {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' },
-                        { urls: 'stun:stun.ekiga.net' },
-                        { urls: ['turn:numb.viagenie.ca:3478', 'turn:numb.viagenie.ca:443'],
-                            username: 'webrtc@live.com', credential: 'muazkh' }
-                    ],
-                    iceCandidatePoolSize: 10
-                };
+      // ─── Contacts (simulated) ──────────────────────────────────────────
+      const CONTACTS = [
+        { id: 'c1', name: 'Alice Johnson', phone: '9876543210', status: 'online', lastSeen: null },
+        { id: 'c2', name: 'Bob Smith', phone: '8765432109', status: 'offline', lastSeen: '2026-08-08T14:30:00' },
+        { id: 'c3', name: 'Carol White', phone: '7654321098', status: 'online', lastSeen: null },
+        { id: 'c4', name: 'David Brown', phone: '6543210987', status: 'offline', lastSeen: '2026-08-07T09:15:00' },
+        { id: 'c5', name: 'Eva Green', phone: '5432109876', status: 'online', lastSeen: null },
+        { id: 'c6', name: 'Frank Wilson', phone: '4321098765', status: 'offline', lastSeen: '2026-08-06T22:10:00' },
+        { id: 'c7', name: 'Grace Lee', phone: '3210987654', status: 'offline', lastSeen: '2026-08-05T16:45:00' },
+        { id: 'c8', name: 'Henry Davis', phone: '2109876543', status: 'online', lastSeen: null },
+      ];
+
+      // ─── Call History ──────────────────────────────────────────────────
+      let callHistory = JSON.parse(localStorage.getItem('premCallHistory')) || [];
+
+      // ─── ICE Servers ──────────────────────────────────────────────────
+      function getIceServers() {
+        return {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun.ekiga.net' },
+            { urls: ['turn:numb.viagenie.ca:3478', 'turn:numb.viagenie.ca:443'],
+              username: 'webrtc@live.com', credential: 'muazkh' }
+          ],
+          iceCandidatePoolSize: 10
+        };
+      }
+
+      // ─── Toast ──────────────────────────────────────────────────────────
+      function showToast(msg, type, duration) {
+        toast.textContent = msg;
+        toast.className = 'show' + (type ? ' ' + type : '');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => toast.className = '', duration || 2500);
+      }
+
+      // ─── Log (to console only) ──────────────────────────────────────
+      function log(msg, type) {
+        console.log('[PremCall]', msg);
+      }
+
+      // ─── Status Dot ──────────────────────────────────────────────────
+      function setStatusDot(state) {
+        headerStatusDot.className = 'status-dot ' + state;
+        if (state === 'online') {
+          statusLabel.textContent = 'Online';
+          profileStatus.textContent = 'Online';
+        } else if (state === 'offline') {
+          statusLabel.textContent = 'Offline';
+          profileStatus.textContent = 'Offline';
+        } else {
+          statusLabel.textContent = 'Connecting…';
+          profileStatus.textContent = 'Connecting…';
+        }
+      }
+
+      // ─── Format Phone ──────────────────────────────────────────────────
+      function formatPhone(phone) {
+        if (!phone) return '';
+        const p = phone.replace(/\D/g, '');
+        if (p.length === 10) return '+91 ' + p.slice(0, 5) + ' ' + p.slice(5);
+        return phone;
+      }
+
+      function maskPhone(phone) {
+        if (!phone || phone.length < 10) return phone;
+        return phone.slice(0, 2) + '*****' + phone.slice(-3);
+      }
+
+      // ─── Avatar Color ──────────────────────────────────────────────────
+      function getAvatarColor(name) {
+        const colors = ['#00a884', '#1a6b8a', '#8e44ad', '#e67e22', '#2c3e50', '#16a085', '#d35400', '#2980b9', '#7f8c8d',
+          '#c0392b'
+        ];
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        return colors[Math.abs(hash) % colors.length];
+      }
+
+      function getInitials(name) {
+        if (!name) return 'U';
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+
+      // ─── Render Contacts ──────────────────────────────────────────────
+      function renderContacts(filter) {
+        const search = (filter || '').toLowerCase().trim();
+        let list = CONTACTS;
+        if (search) {
+          list = list.filter(c =>
+            c.name.toLowerCase().includes(search) ||
+            c.phone.includes(search)
+          );
+        }
+        if (list.length === 0) {
+          contactList.innerHTML = `
+                <div class="empty-state">
+                  <i class="fas fa-users-slash"></i>
+                  <p>${search ? 'No contacts found' : 'No contacts available'}</p>
+                </div>
+              `;
+          return;
+        }
+        let html = '';
+        list.forEach(c => {
+          const initials = getInitials(c.name);
+          const color = getAvatarColor(c.name);
+          const isOnline = c.status === 'online';
+          const statusText = isOnline ? 'Online' : (c.lastSeen ? 'Last seen ' + timeAgo(c.lastSeen) : 'Offline');
+          html += `
+                <div class="contact-item" data-phone="${c.phone}" data-name="${c.name}">
+                  <div class="avatar" style="background:${color};">${initials}</div>
+                  <div class="info">
+                    <div class="name">${c.name}</div>
+                    <div class="sub">
+                      <span class="online-dot ${isOnline ? 'online' : 'offline'}"></span>
+                      ${statusText}
+                    </div>
+                  </div>
+                  <button class="action-btn" data-phone="${c.phone}" data-name="${c.name}" title="Call">
+                    <i class="fas fa-phone"></i>
+                  </button>
+                </div>
+              `;
+        });
+        contactList.innerHTML = html;
+
+        contactList.querySelectorAll('.contact-item .action-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const phone = btn.dataset.phone;
+            const name = btn.dataset.name;
+            dialedNumber = phone;
+            dialDisplay.textContent = phone;
+            makeCall(phone, name);
+          });
+        });
+        contactList.querySelectorAll('.contact-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const phone = item.dataset.phone;
+            const name = item.dataset.name;
+            dialedNumber = phone;
+            dialDisplay.textContent = phone;
+            makeCall(phone, name);
+          });
+        });
+      }
+
+      // ─── Render Call History ──────────────────────────────────────────
+      function renderCallHistory() {
+        if (callHistory.length === 0) {
+          callHistoryList.innerHTML = `
+                <div class="empty-state">
+                  <i class="fas fa-phone-slash"></i>
+                  <p>No calls yet</p>
+                </div>
+              `;
+          return;
+        }
+        const sorted = [...callHistory].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        let html = '';
+        sorted.forEach(call => {
+          const contact = CONTACTS.find(c => c.phone === call.phone) || { name: call.phone, phone: call.phone };
+          const initials = getInitials(contact.name);
+          const color = getAvatarColor(contact.name);
+          const icon = call.type === 'incoming' ? (call.status === 'missed' ? 'fa-arrow-down' :
+              'fa-arrow-down') : 'fa-arrow-up';
+          const iconClass = call.type === 'incoming' ? (call.status === 'missed' ? 'missed' : 'answered') :
+            'dialed';
+          const statusLabel = call.type === 'incoming' ? (call.status === 'missed' ? 'Missed' : 'Received') :
+            'Dialed';
+          const timeStr = timeAgo(call.timestamp);
+          const durationStr = call.duration ? formatDuration(call.duration) : '';
+          html += `
+                <div class="call-item">
+                  <div class="avatar" style="background:${color};">${initials}</div>
+                  <div class="info">
+                    <div class="name">${contact.name}</div>
+                    <div class="sub">
+                      <span class="call-icon ${iconClass}"><i class="fas ${icon}"></i></span>
+                      ${statusLabel} ${durationStr ? '· '+durationStr : ''}
+                    </div>
+                  </div>
+                  <div class="time">${timeStr}</div>
+                  <button class="call-again" data-phone="${call.phone}" data-name="${contact.name}" title="Call again">
+                    <i class="fas fa-phone"></i>
+                  </button>
+                </div>
+              `;
+        });
+        callHistoryList.innerHTML = html;
+
+        callHistoryList.querySelectorAll('.call-again').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const phone = btn.dataset.phone;
+            const name = btn.dataset.name;
+            dialedNumber = phone;
+            dialDisplay.textContent = phone;
+            makeCall(phone, name);
+          });
+        });
+      }
+
+      // ─── Helpers ──────────────────────────────────────────────────────
+      function timeAgo(dateStr) {
+        const now = new Date();
+        const past = new Date(dateStr);
+        const diff = Math.floor((now - past) / 1000);
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+        if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+        if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+        return past.toLocaleDateString();
+      }
+
+      function formatDuration(seconds) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return m + ':' + String(s).padStart(2, '0');
+      }
+
+      // ─── Registration ──────────────────────────────────────────────────
+      function sendOtp() {
+        const name = regName.value.trim();
+        const phone = regPhone.value.trim();
+
+        if (!name || name.length < 2) {
+          regStatus.textContent = 'Please enter your full name.';
+          regStatus.className = 'reg-status error';
+          return;
+        }
+        if (!/^\d{10}$/.test(phone)) {
+          regStatus.textContent = 'Enter exactly 10 digits.';
+          regStatus.className = 'reg-status error';
+          return;
+        }
+
+        if (localStorage.getItem('premCallUser_' + phone)) {
+          regStatus.textContent = 'This number is already registered and locked.';
+          regStatus.className = 'reg-status error';
+          return;
+        }
+
+        otpSent = true;
+        otpCode = '123456';
+        otpSection.classList.add('visible');
+        otpPhoneMask.textContent = maskPhone(phone);
+        regStatus.textContent = 'OTP sent to +91 ' + maskPhone(phone);
+        regStatus.className = 'reg-status info';
+        showToast('OTP sent! Use code 123456', 'success');
+
+        otpCooldown = 30;
+        updateOtpTimer();
+        if (otpTimerInterval) clearInterval(otpTimerInterval);
+        otpTimerInterval = setInterval(() => {
+          otpCooldown--;
+          updateOtpTimer();
+          if (otpCooldown <= 0) {
+            clearInterval(otpTimerInterval);
+            otpTimerInterval = null;
+            resendOtpBtn.disabled = false;
+            otpTimer.textContent = 'OTP expired. Resend to try again.';
+          }
+        }, 1000);
+
+        sendOtpBtn.disabled = true;
+        regPhone.disabled = true;
+        regName.disabled = true;
+      }
+
+      function updateOtpTimer() {
+        if (otpCooldown > 0) {
+          resendOtpBtn.disabled = true;
+          otpTimer.textContent = 'OTP valid for ' + otpCooldown + 's';
+        } else {
+          resendOtpBtn.disabled = false;
+          otpTimer.textContent = 'OTP expired. Click Resend.';
+        }
+      }
+
+      function verifyOtp() {
+        const code = regOtp.value.trim();
+        if (!code) {
+          regStatus.textContent = 'Enter the 6‑digit OTP.';
+          regStatus.className = 'reg-status error';
+          return;
+        }
+        if (code !== otpCode) {
+          regStatus.textContent = 'Invalid OTP. Try again.';
+          regStatus.className = 'reg-status error';
+          showToast('Invalid OTP', 'error');
+          return;
+        }
+
+        const name = regName.value.trim();
+        const phone = regPhone.value.trim();
+
+        userData = {
+          name: name,
+          phone: phone,
+          registered: true,
+          registeredAt: new Date().toISOString()
+        };
+        localStorage.setItem('premCallUser', JSON.stringify(userData));
+        localStorage.setItem('premCallUser_' + phone, 'locked');
+
+        regStatus.textContent = '✅ Verified! Welcome, ' + name;
+        regStatus.className = 'reg-status success';
+        showToast('Number locked! Welcome to PremCall 🎉', 'success');
+
+        setTimeout(() => {
+          enterMainApp();
+        }, 600);
+      }
+
+      function resendOtp() {
+        if (!otpSent) return;
+        otpCode = '123456';
+        otpCooldown = 30;
+        updateOtpTimer();
+        if (otpTimerInterval) clearInterval(otpTimerInterval);
+        otpTimerInterval = setInterval(() => {
+          otpCooldown--;
+          updateOtpTimer();
+          if (otpCooldown <= 0) {
+            clearInterval(otpTimerInterval);
+            otpTimerInterval = null;
+            resendOtpBtn.disabled = false;
+            otpTimer.textContent = 'OTP expired. Resend to try again.';
+          }
+        }, 1000);
+        regOtp.value = '';
+        regStatus.textContent = 'OTP resent to +91 ' + maskPhone(regPhone.value.trim());
+        regStatus.className = 'reg-status info';
+        showToast('OTP resent! Use 123456', 'success');
+      }
+
+      // ─── Enter Main App ──────────────────────────────────────────────
+      function enterMainApp() {
+        regScreen.classList.add('hidden');
+        mainApp.classList.add('active');
+        topAvatar.textContent = getInitials(userData.name);
+        topAvatar.style.background = getAvatarColor(userData.name);
+        profileAvatar.textContent = getInitials(userData.name);
+        profileAvatar.style.background = getAvatarColor(userData.name);
+        profileName.textContent = userData.name;
+        profilePhone.textContent = formatPhone(userData.phone);
+        renderContacts();
+        renderCallHistory();
+        initPeer();
+        switchTab('paneContacts');
+      }
+
+      // ─── Logout ──────────────────────────────────────────────────────
+      function logout() {
+        if (isInCall) endCall();
+        if (peer) { peer.destroy();
+          peer = null; }
+        if (localStream) {
+          localStream.getTracks().forEach(t => t.stop());
+          localStream = null;
+        }
+        userData = null;
+        localStorage.removeItem('premCallUser');
+        mainApp.classList.remove('active');
+        regScreen.classList.remove('hidden');
+        regName.value = '';
+        regPhone.value = '';
+        regOtp.value = '';
+        otpSection.classList.remove('visible');
+        regName.disabled = false;
+        regPhone.disabled = false;
+        sendOtpBtn.disabled = false;
+        regStatus.textContent = 'Enter your name &amp; 10‑digit number to get started.';
+        regStatus.className = 'reg-status';
+        setStatusDot('offline');
+        showToast('Signed out', 'error');
+        if (otpTimerInterval) { clearInterval(otpTimerInterval);
+          otpTimerInterval = null; }
+      }
+
+      // ─── PeerJS init ──────────────────────────────────────────────────
+      function initPeer() {
+        if (peer) { peer.destroy();
+          peer = null; }
+        if (!userData) return;
+        const id = userData.phone;
+        setStatusDot('connecting');
+        log('Connecting as ' + id);
+
+        peer = new Peer(id, { debug: 2, config: getIceServers() });
+
+        peer.on('open', (pid) => {
+          log('Connected: ' + pid, 'success');
+          setStatusDot('online');
+          showToast('Ready to call', 'success');
+        });
+
+        peer.on('error', (err) => {
+          log('Peer error: ' + err.type + ' – ' + err.message, 'error');
+          if (err.type === 'unavailable-id') {
+            showToast('Number conflict. Try re-registering.', 'error');
+            setStatusDot('offline');
+          } else {
+            setStatusDot('offline');
+            showToast('Connection error: ' + err.message, 'error');
+          }
+        });
+
+        peer.on('close', () => {
+          log('Peer closed', 'error');
+          setStatusDot('offline');
+          if (isInCall) endCall();
+        });
+
+        peer.on('disconnected', () => {
+          log('Disconnected – reconnecting...', 'warning');
+          setStatusDot('offline');
+          setTimeout(() => { if (peer && !isInCall) peer.reconnect(); }, 3000);
+        });
+
+        peer.on('call', (call) => {
+          log('Incoming from: ' + call.peer, 'warning');
+          if (isInCall) {
+            call.close();
+            showToast('Busy – call rejected', 'error');
+            return;
+          }
+          incomingCall = call;
+          const contact = CONTACTS.find(c => c.phone === call.peer) || { name: call.peer, phone: call.peer };
+          incomingName.textContent = contact.name;
+          incomingNumber.textContent = formatPhone(call.peer);
+          incomingAvatar.textContent = getInitials(contact.name);
+          incomingAvatar.style.background = getAvatarColor(contact.name);
+          incomingOverlay.classList.add('active');
+          playRingtone();
+
+          setTimeout(() => {
+            if (incomingCall && incomingOverlay.classList.contains('active')) {
+              log('Auto-missed from ' + call.peer, 'error');
+              showToast('Missed call from ' + contact.name, 'error');
+              rejectIncomingCall();
+              addCallHistory(call.peer, 'incoming', 'missed', 0);
+              renderCallHistory();
             }
+          }, 25000);
+        });
+      }
 
-            // ─── Toast ──────────────────────────────────────────────────────────
-            function showToast(msg, type, duration) {
-                toast.textContent = msg;
-                toast.className = 'show' + (type ? ' ' + type : '');
-                clearTimeout(toastTimeout);
-                toastTimeout = setTimeout(() => toast.className = '', duration || 2500);
+      // ─── Ringtone ──────────────────────────────────────────────────────
+      function playRingtone() {
+        stopRingtone();
+        try {
+          const ctx = new(window.AudioContext || window.webkitAudioContext)();
+          let count = 0;
+          ringtoneInterval = setInterval(() => {
+            if (count >= 20 || !incomingOverlay.classList.contains('active')) {
+              stopRingtone();
+              return;
             }
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = count % 2 === 0 ? 440 : 330;
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.10, ctx.currentTime);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.3);
+            count++;
+          }, 450);
+        } catch (e) { log('Ringtone error', 'error'); }
+      }
 
-            // ─── Log (to console only) ──────────────────────────────────────
-            function log(msg, type) {
-                console.log('[PremCall]', msg);
-            }
+      function stopRingtone() {
+        if (ringtoneInterval) { clearInterval(ringtoneInterval);
+          ringtoneInterval = null; }
+      }
 
-            // ─── Status Dot ──────────────────────────────────────────────────
-            function setStatusDot(state) {
-                headerStatusDot.className = 'status-dot ' + state;
-                if (state === 'online') {
-                    statusLabel.textContent = 'Online';
-                    profileStatus.textContent = 'Online';
-                } else if (state === 'offline') {
-                    statusLabel.textContent = 'Offline';
-                    profileStatus.textContent = 'Offline';
-                } else {
-                    statusLabel.textContent = 'Connecting…';
-                    profileStatus.textContent = 'Connecting…';
-                }
-            }
+      // ─── Microphone ──────────────────────────────────────────────────
+      async function getLocalStream() {
+        if (localStream && localStream.getAudioTracks().length > 0) {
+          return localStream;
+        }
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          });
+          localStream = stream;
+          log('Microphone acquired', 'success');
+          return stream;
+        } catch (err) {
+          log('Microphone error: ' + err.message, 'error');
+          showToast('Microphone access denied', 'error');
+          throw err;
+        }
+      }
 
-            // ─── Format Phone ──────────────────────────────────────────────────
-            function formatPhone(phone) {
-                if (!phone) return '';
-                const p = phone.replace(/\D/g, '');
-                if (p.length === 10) return '+91 ' + p.slice(0, 5) + ' ' + p.slice(5);
-                return phone;
-            }
+      // ─── Remote Audio ──────────────────────────────────────────────────
+      function attachRemoteStream(stream) {
+        log('Remote stream attached', 'success');
+        remoteAudio.srcObject = stream;
+        remoteAudio.muted = false;
+        remoteAudio.volume = 1.0;
+        remoteAudio.play().catch(() => {
+          const resume = () => {
+            remoteAudio.play().catch(() => {});
+            document.removeEventListener('click', resume);
+            document.removeEventListener('touchstart', resume);
+          };
+          document.addEventListener('click', resume, { once: true });
+          document.addEventListener('touchstart', resume, { once: true });
+          showToast('Tap anywhere for audio', '');
+        });
+      }
 
-            function maskPhone(phone) {
-                if (!phone || phone.length < 10) return phone;
-                return phone.slice(0, 2) + '*****' + phone.slice(-3);
-            }
+      // ─── Add Call History ──────────────────────────────────────────────
+      function addCallHistory(phone, type, status, duration) {
+        callHistory.push({
+          phone: phone,
+          type: type,
+          status: status,
+          duration: duration || 0,
+          timestamp: new Date().toISOString()
+        });
+        if (callHistory.length > 100) callHistory.shift();
+        localStorage.setItem('premCallHistory', JSON.stringify(callHistory));
+        renderCallHistory();
+      }
 
-            // ─── Avatar Color ──────────────────────────────────────────────────
-            function getAvatarColor(name) {
-                const colors = ['#00a884', '#1a6b8a', '#8e44ad', '#e67e22', '#2c3e50', '#16a085', '#d35400', '#2980b9', '#7f8c8d',
-                    '#c0392b'
-                ];
-                let hash = 0;
-                for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-                return colors[Math.abs(hash) % colors.length];
-            }
+      // ─── Make Call ──────────────────────────────────────────────────
+      async function makeCall(targetNumber, targetName) {
+        if (isInCall) { showToast('Already in a call', 'error'); return; }
+        if (!peer) { showToast('Not connected. Please wait.', 'error'); return; }
+        if (targetNumber === userData.phone) { showToast('Cannot call yourself', 'error'); return; }
+        if (!/^\d{10}$/.test(targetNumber)) { showToast('Enter a 10‑digit number', 'error'); return; }
 
-            function getInitials(name) {
-                if (!name) return 'U';
-                const parts = name.trim().split(/\s+/);
-                if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-                return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-            }
+        dialCallBtn.classList.add('disabled');
+        log('Calling ' + targetNumber + '...', 'warning');
+        callStatus.textContent = 'Calling...';
+        callName.textContent = targetName || targetNumber;
+        callNumber.textContent = formatPhone(targetNumber);
+        callAvatar.textContent = getInitials(targetName || targetNumber);
+        callAvatar.style.background = getAvatarColor(targetName || targetNumber);
+        callTimer.textContent = '00:00';
+        callScreen.classList.add('active');
+        incomingOverlay.classList.remove('active');
 
-            // ─── Render Contacts ──────────────────────────────────────────────
-            function renderContacts(filter) {
-                const search = (filter || '').toLowerCase().trim();
-                let list = CONTACTS;
-                if (search) {
-                    list = list.filter(c =>
-                        c.name.toLowerCase().includes(search) ||
-                        c.phone.includes(search)
-                    );
-                }
-                if (list.length === 0) {
-                    contactList.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-users-slash"></i>
-                            <p>${search ? 'No contacts found' : 'No contacts available'}</p>
-                        </div>
-                    `;
-                    return;
-                }
-                let html = '';
-                list.forEach(c => {
-                    const initials = getInitials(c.name);
-                    const color = getAvatarColor(c.name);
-                    const isOnline = c.status === 'online';
-                    const statusText = isOnline ? 'Online' : (c.lastSeen ? 'Last seen ' + timeAgo(c.lastSeen) : 'Offline');
-                    html += `
-                        <div class="contact-item" data-phone="${c.phone}" data-name="${c.name}">
-                            <div class="avatar" style="background:${color};">${initials}</div>
-                            <div class="info">
-                                <div class="name">${c.name}</div>
-                                <div class="sub">
-                                    <span class="online-dot ${isOnline ? 'online' : 'offline'}"></span>
-                                    ${statusText}
-                                </div>
-                            </div>
-                            <button class="action-btn" data-phone="${c.phone}" data-name="${c.name}" title="Call">
-                                <i class="fas fa-phone"></i>
-                            </button>
-                        </div>
-                    `;
-                });
-                contactList.innerHTML = html;
+        try {
+          const stream = await getLocalStream();
+          const call = peer.call(targetNumber, stream);
+          if (!call) {
+            log('peer.call() returned null', 'error');
+            showToast('Target offline', 'error');
+            dialCallBtn.classList.remove('disabled');
+            callScreen.classList.remove('active');
+            return;
+          }
+          currentCall = call;
+          isCaller = true;
+          isInCall = true;
+          callStartTime = Date.now();
 
-                // Click to call
-                contactList.querySelectorAll('.contact-item .action-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const phone = btn.dataset.phone;
-                        const name = btn.dataset.name;
-                        dialedNumber = phone;
-                        dialDisplay.textContent = phone;
-                        makeCall(phone, name);
-                    });
-                });
-                contactList.querySelectorAll('.contact-item').forEach(item => {
-                    item.addEventListener('click', () => {
-                        const phone = item.dataset.phone;
-                        const name = item.dataset.name;
-                        dialedNumber = phone;
-                        dialDisplay.textContent = phone;
-                        makeCall(phone, name);
-                    });
-                });
-            }
+          call.on('stream', (remoteStream) => {
+            log('Remote stream received', 'success');
+            attachRemoteStream(remoteStream);
+            callStatus.textContent = 'Connected';
+            startTimer();
+            showToast('Connected', 'success');
+            dialCallBtn.classList.remove('disabled');
+            addCallHistory(targetNumber, 'outgoing', 'answered', 0);
+          });
 
-            // ─── Render Call History ──────────────────────────────────────────
-            function renderCallHistory() {
-                if (callHistory.length === 0) {
-                    callHistoryList.innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-phone-slash"></i>
-                            <p>No calls yet</p>
-                        </div>
-                    `;
-                    return;
-                }
-                // Sort by timestamp descending
-                const sorted = [...callHistory].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                let html = '';
-                sorted.forEach(call => {
-                    const contact = CONTACTS.find(c => c.phone === call.phone) || { name: call.phone, phone: call
-                        .phone };
-                    const initials = getInitials(contact.name);
-                    const color = getAvatarColor(contact.name);
-                    const icon = call.type === 'incoming' ? (call.status === 'missed' ? 'fa-arrow-down' :
-                            'fa-arrow-down') : 'fa-arrow-up';
-                    const iconClass = call.type === 'incoming' ? (call.status === 'missed' ? 'missed' : 'answered') :
-                        'dialed';
-                    const statusLabel = call.type === 'incoming' ? (call.status === 'missed' ? 'Missed' : 'Received') :
-                        'Dialed';
-                    const timeStr = timeAgo(call.timestamp);
-                    const durationStr = call.duration ? formatDuration(call.duration) : '';
-                    html += `
-                        <div class="call-item">
-                            <div class="avatar" style="background:${color};">${initials}</div>
-                            <div class="info">
-                                <div class="name">${contact.name}</div>
-                                <div class="sub">
-                                    <span class="call-icon ${iconClass}"><i class="fas ${icon}"></i></span>
-                                    ${statusLabel} ${durationStr ? '· '+durationStr : ''}
-                                </div>
-                            </div>
-                            <div class="time">${timeStr}</div>
-                            <button class="call-again" data-phone="${call.phone}" data-name="${contact.name}" title="Call again">
-                                <i class="fas fa-phone"></i>
-                            </button>
-                        </div>
-                    `;
-                });
-                callHistoryList.innerHTML = html;
-
-                callHistoryList.querySelectorAll('.call-again').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const phone = btn.dataset.phone;
-                        const name = btn.dataset.name;
-                        dialedNumber = phone;
-                        dialDisplay.textContent = phone;
-                        makeCall(phone, name);
-                    });
-                });
-            }
-
-            // ─── Helpers ──────────────────────────────────────────────────────
-            function timeAgo(dateStr) {
-                const now = new Date();
-                const past = new Date(dateStr);
-                const diff = Math.floor((now - past) / 1000);
-                if (diff < 60) return 'Just now';
-                if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
-                if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
-                if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
-                return past.toLocaleDateString();
-            }
-
-            function formatDuration(seconds) {
-                const m = Math.floor(seconds / 60);
-                const s = seconds % 60;
-                return m + ':' + String(s).padStart(2, '0');
-            }
-
-            // ─── Registration ──────────────────────────────────────────────────
-            function sendOtp() {
-                const name = regName.value.trim();
-                const phone = regPhone.value.trim();
-
-                if (!name || name.length < 2) {
-                    regStatus.textContent = 'Please enter your full name.';
-                    regStatus.className = 'reg-status error';
-                    return;
-                }
-                if (!/^\d{10}$/.test(phone)) {
-                    regStatus.textContent = 'Enter exactly 10 digits.';
-                    regStatus.className = 'reg-status error';
-                    return;
-                }
-
-                // Check if number already registered (simulated)
-                if (localStorage.getItem('premCallUser_' + phone)) {
-                    regStatus.textContent = 'This number is already registered and locked.';
-                    regStatus.className = 'reg-status error';
-                    return;
-                }
-
-                // Simulate sending OTP
-                otpSent = true;
-                otpCode = '123456';
-                otpSection.classList.add('visible');
-                otpPhoneMask.textContent = maskPhone(phone);
-                regStatus.textContent = 'OTP sent to +91 ' + maskPhone(phone);
-                regStatus.className = 'reg-status info';
-                showToast('OTP sent! Use code 123456', 'success');
-
-                // Start cooldown
-                otpCooldown = 30;
-                updateOtpTimer();
-                if (otpTimerInterval) clearInterval(otpTimerInterval);
-                otpTimerInterval = setInterval(() => {
-                    otpCooldown--;
-                    updateOtpTimer();
-                    if (otpCooldown <= 0) {
-                        clearInterval(otpTimerInterval);
-                        otpTimerInterval = null;
-                        resendOtpBtn.disabled = false;
-                        otpTimer.textContent = 'OTP expired. Resend to try again.';
-                    }
-                }, 1000);
-
-                sendOtpBtn.disabled = true;
-                regPhone.disabled = true;
-                regName.disabled = true;
-            }
-
-            function updateOtpTimer() {
-                if (otpCooldown > 0) {
-                    resendOtpBtn.disabled = true;
-                    otpTimer.textContent = 'OTP valid for ' + otpCooldown + 's';
-                } else {
-                    resendOtpBtn.disabled = false;
-                    otpTimer.textContent = 'OTP expired. Click Resend.';
-                }
-            }
-
-            function verifyOtp() {
-                const code = regOtp.value.trim();
-                if (!code) {
-                    regStatus.textContent = 'Enter the 6‑digit OTP.';
-                    regStatus.className = 'reg-status error';
-                    return;
-                }
-                if (code !== otpCode) {
-                    regStatus.textContent = 'Invalid OTP. Try again.';
-                    regStatus.className = 'reg-status error';
-                    showToast('Invalid OTP', 'error');
-                    return;
-                }
-
-                // ✅ Verified – lock the number
-                const name = regName.value.trim();
-                const phone = regPhone.value.trim();
-
-                userData = {
-                    name: name,
-                    phone: phone,
-                    registered: true,
-                    registeredAt: new Date().toISOString()
-                };
-                localStorage.setItem('premCallUser', JSON.stringify(userData));
-                localStorage.setItem('premCallUser_' + phone, 'locked');
-
-                regStatus.textContent = '✅ Verified! Welcome, ' + name;
-                regStatus.className = 'reg-status success';
-                showToast('Number locked! Welcome to PremCall 🎉', 'success');
-
-                setTimeout(() => {
-                    enterMainApp();
-                }, 600);
-            }
-
-            function resendOtp() {
-                if (!otpSent) return;
-                otpCode = '123456';
-                otpCooldown = 30;
-                updateOtpTimer();
-                if (otpTimerInterval) clearInterval(otpTimerInterval);
-                otpTimerInterval = setInterval(() => {
-                    otpCooldown--;
-                    updateOtpTimer();
-                    if (otpCooldown <= 0) {
-                        clearInterval(otpTimerInterval);
-                        otpTimerInterval = null;
-                        resendOtpBtn.disabled = false;
-                        otpTimer.textContent = 'OTP expired. Resend to try again.';
-                    }
-                }, 1000);
-                regOtp.value = '';
-                regStatus.textContent = 'OTP resent to +91 ' + maskPhone(regPhone.value.trim());
-                regStatus.className = 'reg-status info';
-                showToast('OTP resent! Use 123456', 'success');
-            }
-
-            // ─── Enter Main App ──────────────────────────────────────────────
-            function enterMainApp() {
-                regScreen.classList.add('hidden');
-                mainApp.classList.add('active');
-                // Update UI
-                topAvatar.textContent = getInitials(userData.name);
-                topAvatar.style.background = getAvatarColor(userData.name);
-                profileAvatar.textContent = getInitials(userData.name);
-                profileAvatar.style.background = getAvatarColor(userData.name);
-                profileName.textContent = userData.name;
-                profilePhone.textContent = formatPhone(userData.phone);
-                renderContacts();
-                renderCallHistory();
-                initPeer();
-                // Navigate to contacts
-                switchTab('paneContacts');
-            }
-
-            // ─── Logout ──────────────────────────────────────────────────────
-            function logout() {
-                if (isInCall) endCall();
-                if (peer) { peer.destroy();
-                    peer = null; }
-                if (localStream) {
-                    localStream.getTracks().forEach(t => t.stop());
-                    localStream = null;
-                }
-                userData = null;
-                localStorage.removeItem('premCallUser');
-                // Keep history but clear user lock
-                mainApp.classList.remove('active');
-                regScreen.classList.remove('hidden');
-                regName.value = '';
-                regPhone.value = '';
-                regOtp.value = '';
-                otpSection.classList.remove('visible');
-                regName.disabled = false;
-                regPhone.disabled = false;
-                sendOtpBtn.disabled = false;
-                regStatus.textContent = 'Enter your name &amp; 10‑digit number to get started.';
-                regStatus.className = 'reg-status';
-                setStatusDot('offline');
-                showToast('Signed out', 'error');
-                if (otpTimerInterval) { clearInterval(otpTimerInterval);
-                    otpTimerInterval = null; }
-            }
-
-            // ─── PeerJS init ──────────────────────────────────────────────────
-            function initPeer() {
-                if (peer) { peer.destroy();
-                    peer = null; }
-                if (!userData) return;
-                const id = userData.phone;
-                setStatusDot('connecting');
-                log('Connecting as ' + id);
-
-                peer = new Peer(id, { debug: 2, config: getIceServers() });
-
-                peer.on('open', (pid) => {
-                    log('Connected: ' + pid, 'success');
-                    setStatusDot('online');
-                    showToast('Ready to call', 'success');
-                });
-
-                peer.on('error', (err) => {
-                    log('Peer error: ' + err.type + ' – ' + err.message, 'error');
-                    if (err.type === 'unavailable-id') {
-                        showToast('Number conflict. Try re-registering.', 'error');
-                        setStatusDot('offline');
-                    } else {
-                        setStatusDot('offline');
-                        showToast('Connection error: ' + err.message, 'error');
-                    }
-                });
-
-                peer.on('close', () => {
-                    log('Peer closed', 'error');
-                    setStatusDot('offline');
-                    if (isInCall) endCall();
-                });
-
-                peer.on('disconnected', () => {
-                    log('Disconnected – reconnecting...', 'warning');
-                    setStatusDot('offline');
-                    setTimeout(() => { if (peer && !isInCall) peer.reconnect(); }, 3000);
-                });
-
-                peer.on('call', (call) => {
-                    log('Incoming from: ' + call.peer, 'warning');
-                    if (isInCall) {
-                        call.close();
-                        showToast('Busy – call rejected', 'error');
-                        return;
-                    }
-                    incomingCall = call;
-                    const contact = CONTACTS.find(c => c.phone === call.peer) || { name: call.peer, phone: call.peer };
-                    incomingName.textContent = contact.name;
-                    incomingNumber.textContent = formatPhone(call.peer);
-                    incomingAvatar.textContent = getInitials(contact.name);
-                    incomingAvatar.style.background = getAvatarColor(contact.name);
-                    incomingOverlay.classList.add('active');
-                    playRingtone();
-
-                    // Auto-miss after 25s
-                    setTimeout(() => {
-                        if (incomingCall && incomingOverlay.classList.contains('active')) {
-                            log('Auto-missed from ' + call.peer, 'error');
-                            showToast('Missed call from ' + contact.name, 'error');
-                            rejectIncomingCall();
-                            // Add to history
-                            addCallHistory(call.peer, 'incoming', 'missed', 0);
-                            renderCallHistory();
-                        }
-                    }, 25000);
-                });
-            }
-
-            // ─── Ringtone ──────────────────────────────────────────────────────
-            function playRingtone() {
-                stopRingtone();
-                try {
-                    const ctx = new(window.AudioContext || window.webkitAudioContext)();
-                    let count = 0;
-                    ringtoneInterval = setInterval(() => {
-                        if (count >= 20 || !incomingOverlay.classList.contains('active')) {
-                            stopRingtone();
-                            return;
-                        }
-                        const osc = ctx.createOscillator();
-                        const gain = ctx.createGain();
-                        osc.connect(gain);
-                        gain.connect(ctx.destination);
-                        osc.frequency.value = count % 2 === 0 ? 440 : 330;
-                        osc.type = 'sine';
-                        gain.gain.setValueAtTime(0.10, ctx.currentTime);
-                        osc.start(ctx.currentTime);
-                        osc.stop(ctx.currentTime + 0.3);
-                        count++;
-                    }, 450);
-                } catch (e) { log('Ringtone error', 'error'); }
-            }
-
-            function stopRingtone() {
-                if (ringtoneInterval) { clearInterval(ringtoneInterval);
-                    ringtoneInterval = null; }
-            }
-
-            // ─── Microphone ──────────────────────────────────────────────────
-            async function getLocalStream() {
-                if (localStream && localStream.getAudioTracks().length > 0) {
-                    return localStream;
-                }
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({
-                        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-                    });
-                    localStream = stream;
-                    log('Microphone acquired', 'success');
-                    return stream;
-                } catch (err) {
-                    log('Microphone error: ' + err.message, 'error');
-                    showToast('Microphone access denied', 'error');
-                    throw err;
-                }
-            }
-
-            // ─── Remote Audio ──────────────────────────────────────────────────
-            function attachRemoteStream(stream) {
-                log('Remote stream attached', 'success');
-                remoteAudio.srcObject = stream;
-                remoteAudio.muted = false;
-                remoteAudio.volume = 1.0;
-                remoteAudio.play().catch(() => {
-                    const resume = () => {
-                        remoteAudio.play().catch(() => {});
-                        document.removeEventListener('click', resume);
-                        document.removeEventListener('touchstart', resume);
-                    };
-                    document.addEventListener('click', resume, { once: true });
-                    document.addEventListener('touchstart', resume, { once: true });
-                    showToast('Tap anywhere for audio', '');
-                });
-            }
-
-            // ─── Add Call History ──────────────────────────────────────────────
-            function addCallHistory(phone, type, status, duration) {
-                callHistory.push({
-                    phone: phone,
-                    type: type,
-                    status: status,
-                    duration: duration || 0,
-                    timestamp: new Date().toISOString()
-                });
-                if (callHistory.length > 100) callHistory.shift();
+          call.on('close', () => {
+            log('Call closed', 'warning');
+            const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
+            if (isInCall && isCaller && duration > 0) {
+              const last = callHistory[callHistory.length - 1];
+              if (last && last.phone === targetNumber && last.type === 'outgoing') {
+                last.duration = duration;
                 localStorage.setItem('premCallHistory', JSON.stringify(callHistory));
                 renderCallHistory();
+              }
             }
+            endCall();
+          });
 
-            // ─── Make Call ──────────────────────────────────────────────────
-            async function makeCall(targetNumber, targetName) {
-                if (isInCall) { showToast('Already in a call', 'error'); return; }
-                if (!peer) { showToast('Not connected. Please wait.', 'error'); return; }
-                if (targetNumber === userData.phone) { showToast('Cannot call yourself', 'error'); return; }
-                if (!/^\d{10}$/.test(targetNumber)) { showToast('Enter a 10‑digit number', 'error'); return; }
+          call.on('error', (err) => {
+            log('Call error: ' + err.message, 'error');
+            showToast('Call error: ' + err.message, 'error');
+            addCallHistory(targetNumber, 'outgoing', 'missed', 0);
+            endCall();
+          });
 
-                dialCallBtn.classList.add('disabled');
-                log('Calling ' + targetNumber + '...', 'warning');
-                callStatus.textContent = 'Calling...';
-                callName.textContent = targetName || targetNumber;
-                callNumber.textContent = formatPhone(targetNumber);
-                callAvatar.textContent = getInitials(targetName || targetNumber);
-                callAvatar.style.background = getAvatarColor(targetName || targetNumber);
-                callTimer.textContent = '00:00';
-                callScreen.classList.add('active');
-                incomingOverlay.classList.remove('active');
+          const pc = call.peerConnection;
+          if (pc) {
+            pc.oniceconnectionstatechange = () => {
+              const state = pc.iceConnectionState;
+              log('ICE: ' + state, 'warning');
+              if (state === 'failed' || state === 'disconnected') {
+                showToast('Connection lost', 'error');
+                endCall();
+              } else if (state === 'connected' || state === 'completed') {
+                callStatus.textContent = 'Connected';
+              } else if (state === 'checking') {
+                callStatus.textContent = 'Connecting...';
+              }
+            };
+          }
 
-                try {
-                    const stream = await getLocalStream();
-                    const call = peer.call(targetNumber, stream);
-                    if (!call) {
-                        log('peer.call() returned null', 'error');
-                        showToast('Target offline', 'error');
-                        dialCallBtn.classList.remove('disabled');
-                        callScreen.classList.remove('active');
-                        return;
-                    }
-                    currentCall = call;
-                    isCaller = true;
-                    isInCall = true;
-                    callStartTime = Date.now();
-
-                    call.on('stream', (remoteStream) => {
-                        log('Remote stream received', 'success');
-                        attachRemoteStream(remoteStream);
-                        callStatus.textContent = 'Connected';
-                        startTimer();
-                        showToast('Connected', 'success');
-                        dialCallBtn.classList.remove('disabled');
-                        // Add to history
-                        addCallHistory(targetNumber, 'outgoing', 'answered', 0);
-                    });
-
-                    call.on('close', () => {
-                        log('Call closed', 'warning');
-                        const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
-                        if (isInCall && isCaller && duration > 0) {
-                            // Update history with duration
-                            const last = callHistory[callHistory.length - 1];
-                            if (last && last.phone === targetNumber && last.type === 'outgoing') {
-                                last.duration = duration;
-                                localStorage.setItem('premCallHistory', JSON.stringify(callHistory));
-                                renderCallHistory();
-                            }
-                        }
-                        endCall();
-                    });
-
-                    call.on('error', (err) => {
-                        log('Call error: ' + err.message, 'error');
-                        showToast('Call error: ' + err.message, 'error');
-                        // Mark as missed/error
-                        addCallHistory(targetNumber, 'outgoing', 'missed', 0);
-                        endCall();
-                    });
-
-                    const pc = call.peerConnection;
-                    if (pc) {
-                        pc.oniceconnectionstatechange = () => {
-                            const state = pc.iceConnectionState;
-                            log('ICE: ' + state, 'warning');
-                            if (state === 'failed' || state === 'disconnected') {
-                                showToast('Connection lost', 'error');
-                                endCall();
-                            } else if (state === 'connected' || state === 'completed') {
-                                callStatus.textContent = 'Connected';
-                            } else if (state === 'checking') {
-                                callStatus.textContent = 'Connecting...';
-                            }
-                        };
-                    }
-
-                    // Timeout if no answer
-                    setTimeout(() => {
-                        if (isInCall && isCaller && currentCall && callStatus.textContent === 'Calling...') {
-                            log('Call timed out (no answer)', 'error');
-                            showToast('No answer', 'error');
-                            addCallHistory(targetNumber, 'outgoing', 'missed', 0);
-                            endCall();
-                        }
-                    }, 30000);
-
-                } catch (err) {
-                    log('Call failed: ' + err.message, 'error');
-                    showToast('Call failed', 'error');
-                    dialCallBtn.classList.remove('disabled');
-                    callScreen.classList.remove('active');
-                    isInCall = false;
-                    addCallHistory(targetNumber, 'outgoing', 'missed', 0);
-                }
+          setTimeout(() => {
+            if (isInCall && isCaller && currentCall && callStatus.textContent === 'Calling...') {
+              log('Call timed out (no answer)', 'error');
+              showToast('No answer', 'error');
+              addCallHistory(targetNumber, 'outgoing', 'missed', 0);
+              endCall();
             }
+          }, 30000);
 
-            // ─── Answer Incoming ──────────────────────────────────────────────
-            async function answerIncomingCall() {
-                if (isAnswering || !incomingCall) return;
-                isAnswering = true;
-                log('Answering from ' + incomingCall.peer, 'success');
+        } catch (err) {
+          log('Call failed: ' + err.message, 'error');
+          showToast('Call failed', 'error');
+          dialCallBtn.classList.remove('disabled');
+          callScreen.classList.remove('active');
+          isInCall = false;
+          addCallHistory(targetNumber, 'outgoing', 'missed', 0);
+        }
+      }
 
-                try {
-                    stopRingtone();
-                    const stream = await getLocalStream();
-                    incomingCall.answer(stream);
-                    currentCall = incomingCall;
-                    isCaller = false;
-                    isInCall = true;
-                    callStartTime = Date.now();
+      // ─── Answer Incoming ──────────────────────────────────────────────
+      async function answerIncomingCall() {
+        if (isAnswering || !incomingCall) return;
+        isAnswering = true;
+        log('Answering from ' + incomingCall.peer, 'success');
 
-                    const contact = CONTACTS.find(c => c.phone === incomingCall.peer) || { name: incomingCall.peer,
-                        phone: incomingCall.peer };
-                    callName.textContent = contact.name;
-                    callNumber.textContent = formatPhone(incomingCall.peer);
-                    callAvatar.textContent = getInitials(contact.name);
-                    callAvatar.style.background = getAvatarColor(contact.name);
-                    callStatus.textContent = 'Connecting...';
-                    callTimer.textContent = '00:00';
-                    callScreen.classList.add('active');
-                    incomingOverlay.classList.remove('active');
+        try {
+          stopRingtone();
+          const stream = await getLocalStream();
+          incomingCall.answer(stream);
+          currentCall = incomingCall;
+          isCaller = false;
+          isInCall = true;
+          callStartTime = Date.now();
 
-                    currentCall.on('stream', (remoteStream) => {
-                        log('Remote stream received (answerer)', 'success');
-                        attachRemoteStream(remoteStream);
-                        callStatus.textContent = 'Connected';
-                        startTimer();
-                        showToast('Connected', 'success');
-                        addCallHistory(incomingCall.peer, 'incoming', 'answered', 0);
-                    });
+          const contact = CONTACTS.find(c => c.phone === incomingCall.peer) || { name: incomingCall.peer,
+            phone: incomingCall.peer };
+          callName.textContent = contact.name;
+          callNumber.textContent = formatPhone(incomingCall.peer);
+          callAvatar.textContent = getInitials(contact.name);
+          callAvatar.style.background = getAvatarColor(contact.name);
+          callStatus.textContent = 'Connecting...';
+          callTimer.textContent = '00:00';
+          callScreen.classList.add('active');
+          incomingOverlay.classList.remove('active');
 
-                    currentCall.on('close', () => {
-                        const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
-                        if (isInCall && !isCaller && duration > 0) {
-                            const last = callHistory[callHistory.length - 1];
-                            if (last && last.phone === (currentCall ? currentCall.peer : '') && last.type ===
-                                'incoming') {
-                                last.duration = duration;
-                                localStorage.setItem('premCallHistory', JSON.stringify(callHistory));
-                                renderCallHistory();
-                            }
-                        }
-                        endCall();
-                    });
+          currentCall.on('stream', (remoteStream) => {
+            log('Remote stream received (answerer)', 'success');
+            attachRemoteStream(remoteStream);
+            callStatus.textContent = 'Connected';
+            startTimer();
+            showToast('Connected', 'success');
+            addCallHistory(incomingCall.peer, 'incoming', 'answered', 0);
+          });
 
-                    currentCall.on('error', (err) => {
-                        log('Call error (answerer): ' + err.message, 'error');
-                        showToast('Call error', 'error');
-                        endCall();
-                    });
-
-                    const pc = currentCall.peerConnection;
-                    if (pc) {
-                        pc.oniceconnectionstatechange = () => {
-                            const state = pc.iceConnectionState;
-                            if (state === 'connected' || state === 'completed') {
-                                callStatus.textContent = 'Connected';
-                            } else if (state === 'failed' || state === 'disconnected') {
-                                showToast('Connection lost', 'error');
-                                endCall();
-                            }
-                        };
-                    }
-
-                    incomingCall = null;
-                } catch (err) {
-                    log('Answer failed: ' + err.message, 'error');
-                    showToast('Answer failed', 'error');
-                    if (incomingCall) { incomingCall.close();
-                        incomingCall = null; }
-                    incomingOverlay.classList.remove('active');
-                    isInCall = false;
-                } finally {
-                    isAnswering = false;
-                }
+          currentCall.on('close', () => {
+            const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
+            if (isInCall && !isCaller && duration > 0) {
+              const last = callHistory[callHistory.length - 1];
+              if (last && last.phone === (currentCall ? currentCall.peer : '') && last.type ===
+                'incoming') {
+                last.duration = duration;
+                localStorage.setItem('premCallHistory', JSON.stringify(callHistory));
+                renderCallHistory();
+              }
             }
+            endCall();
+          });
 
-            // ─── Reject Incoming ──────────────────────────────────────────────
-            function rejectIncomingCall() {
-                if (incomingCall) {
-                    incomingCall.close();
-                    incomingCall = null;
-                }
-                stopRingtone();
-                incomingOverlay.classList.remove('active');
-                log('Call rejected', 'warning');
+          currentCall.on('error', (err) => {
+            log('Call error (answerer): ' + err.message, 'error');
+            showToast('Call error', 'error');
+            endCall();
+          });
+
+          const pc = currentCall.peerConnection;
+          if (pc) {
+            pc.oniceconnectionstatechange = () => {
+              const state = pc.iceConnectionState;
+              if (state === 'connected' || state === 'completed') {
+                callStatus.textContent = 'Connected';
+              } else if (state === 'failed' || state === 'disconnected') {
+                showToast('Connection lost', 'error');
+                endCall();
+              }
+            };
+          }
+
+          incomingCall = null;
+        } catch (err) {
+          log('Answer failed: ' + err.message, 'error');
+          showToast('Answer failed', 'error');
+          if (incomingCall) { incomingCall.close();
+            incomingCall = null; }
+          incomingOverlay.classList.remove('active');
+          isInCall = false;
+        } finally {
+          isAnswering = false;
+        }
+      }
+
+      // ─── Reject Incoming ──────────────────────────────────────────────
+      function rejectIncomingCall() {
+        if (incomingCall) {
+          incomingCall.close();
+          incomingCall = null;
+        }
+        stopRingtone();
+        incomingOverlay.classList.remove('active');
+        log('Call rejected', 'warning');
+      }
+
+      // ─── End Call ──────────────────────────────────────────────────────
+      function endCall() {
+        log('Ending call', 'warning');
+        if (currentCall) {
+          currentCall.close();
+          currentCall = null;
+        }
+        if (remoteAudio.srcObject) {
+          remoteAudio.pause();
+          remoteAudio.srcObject = null;
+        }
+        isInCall = false;
+        isCaller = false;
+        isMuted = false;
+        muteBtn.className = 'mute';
+        muteBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+
+        stopRingtone();
+        incomingOverlay.classList.remove('active');
+        callScreen.classList.remove('active');
+
+        if (callTimerInterval) { clearInterval(callTimerInterval);
+          callTimerInterval = null; }
+        callTimer.textContent = '00:00';
+        callStatus.textContent = '';
+        dialCallBtn.classList.remove('disabled');
+        log('Call ended', 'warning');
+      }
+
+      // ─── Timer ──────────────────────────────────────────────────────────
+      function startTimer() {
+        if (callTimerInterval) clearInterval(callTimerInterval);
+        let seconds = 0;
+        callTimerInterval = setInterval(() => {
+          seconds++;
+          const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+          const s = String(seconds % 60).padStart(2, '0');
+          callTimer.textContent = m + ':' + s;
+        }, 1000);
+      }
+
+      // ─── Check Status ──────────────────────────────────────────────────
+      function checkStatus() {
+        const num = dialedNumber || prompt('Enter 10‑digit number:');
+        if (!num) return;
+        if (!/^\d{10}$/.test(num)) { showToast('Enter 10 digits', 'error'); return; }
+        if (!peer) { statusResult.textContent = 'Not connected'; return; }
+        statusResult.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+        try {
+          const conn = peer.connect(num);
+          let done = false;
+          conn.on('open', () => {
+            if (!done) { done = true;
+              statusResult.innerHTML = '<i class="fas fa-circle-check" style="color:#00a884;"></i> Online';
+              showToast(num + ' is online', 'success');
+              conn.close(); }
+          });
+          conn.on('error', () => {
+            if (!done) { done = true;
+              statusResult.innerHTML = '<i class="fas fa-circle-xmark" style="color:#e74c3c;"></i> Offline';
+              showToast(num + ' is offline', 'error'); }
+          });
+          setTimeout(() => {
+            if (!done) { done = true;
+              statusResult.innerHTML = '<i class="fas fa-clock" style="color:#f5b342;"></i> Timeout';
+              conn.close(); }
+          }, 3000);
+        } catch (e) {
+          statusResult.textContent = 'Error';
+        }
+      }
+
+      // ─── Tab Switching ──────────────────────────────────────────────────
+      function switchTab(tabId) {
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        const target = document.getElementById(tabId);
+        if (target) target.classList.add('active');
+        document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
+        document.querySelector(`.bottom-nav .nav-item[data-tab="${tabId}"]`)?.classList.add('active');
+      }
+
+      // ─── Clear Calls ──────────────────────────────────────────────────
+      function clearCalls() {
+        if (callHistory.length === 0) return;
+        if (confirm('Clear all call history?')) {
+          callHistory = [];
+          localStorage.setItem('premCallHistory', JSON.stringify(callHistory));
+          renderCallHistory();
+          showToast('Call history cleared', '');
+        }
+      }
+
+      // ─── Edit Profile ──────────────────────────────────────────────────
+      function editProfile() {
+        const newName = prompt('Enter your full name:', userData.name);
+        if (newName && newName.trim().length >= 2) {
+          userData.name = newName.trim();
+          localStorage.setItem('premCallUser', JSON.stringify(userData));
+          topAvatar.textContent = getInitials(userData.name);
+          topAvatar.style.background = getAvatarColor(userData.name);
+          profileAvatar.textContent = getInitials(userData.name);
+          profileAvatar.style.background = getAvatarColor(userData.name);
+          profileName.textContent = userData.name;
+          renderContacts();
+          showToast('Profile updated', 'success');
+        }
+      }
+
+      // ─── About ──────────────────────────────────────────────────────────
+      function openAbout() {
+        aboutModal.classList.add('active');
+      }
+
+      function closeAbout() {
+        aboutModal.classList.remove('active');
+      }
+
+      // ─── Dialer ──────────────────────────────────────────────────────────
+      dialPad.addEventListener('click', (e) => {
+        const key = e.target.closest('.key');
+        if (!key) return;
+        const digit = key.dataset.digit;
+        const action = key.dataset.action;
+
+        if (digit) {
+          if (dialedNumber.length < 15) {
+            dialedNumber += digit;
+            dialDisplay.textContent = dialedNumber;
+          }
+        } else if (action === 'delete') {
+          dialedNumber = dialedNumber.slice(0, -1);
+          dialDisplay.textContent = dialedNumber || 'Enter number';
+          if (!dialedNumber) dialDisplay.innerHTML = '<span class="hint">Enter number</span>';
+        } else if (action === 'clear') {
+          dialedNumber = '';
+          dialDisplay.innerHTML = '<span class="hint">Enter number</span>';
+        } else if (action === 'call') {
+          if (dialedNumber) {
+            const contact = CONTACTS.find(c => c.phone === dialedNumber);
+            makeCall(dialedNumber, contact ? contact.name : dialedNumber);
+          }
+        }
+      });
+
+      // Keyboard support
+      document.addEventListener('keydown', (e) => {
+        if (!mainApp.classList.contains('active')) return;
+        if (e.key >= '0' && e.key <= '9') {
+          if (dialedNumber.length < 15) {
+            dialedNumber += e.key;
+            dialDisplay.textContent = dialedNumber;
+          }
+        } else if (e.key === 'Backspace') {
+          dialedNumber = dialedNumber.slice(0, -1);
+          dialDisplay.textContent = dialedNumber || 'Enter number';
+          if (!dialedNumber) dialDisplay.innerHTML = '<span class="hint">Enter number</span>';
+        } else if (e.key === 'Enter') {
+          if (dialedNumber) {
+            const contact = CONTACTS.find(c => c.phone === dialedNumber);
+            makeCall(dialedNumber, contact ? contact.name : dialedNumber);
+          }
+        }
+      });
+
+      // ─── Call Controls ──────────────────────────────────────────────────
+      hangupCallBtn.addEventListener('click', endCall);
+
+      muteBtn.addEventListener('click', () => {
+        if (!localStream) { showToast('No microphone', 'error'); return; }
+        isMuted = !isMuted;
+        localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+        muteBtn.className = isMuted ? 'mute active' : 'mute';
+        muteBtn.innerHTML = isMuted ? '<i class="fas fa-microphone-slash"></i>' :
+          '<i class="fas fa-microphone"></i>';
+        showToast(isMuted ? 'Muted' : 'Unmuted', '');
+      });
+
+      speakerBtn.addEventListener('click', () => {
+        isSpeakerOn = !isSpeakerOn;
+        speakerBtn.className = isSpeakerOn ? 'speaker active' : 'speaker';
+        showToast(isSpeakerOn ? 'Speaker on' : 'Earpiece', '');
+        if (remoteAudio) {
+          if (typeof remoteAudio.setSinkId === 'function') {
+            try {
+              remoteAudio.setSinkId(isSpeakerOn ? 'speaker' : 'default').catch(() => {});
+            } catch (e) {}
+          }
+        }
+      });
+
+      // ─── Incoming Overlay ──────────────────────────────────────────────
+      answerBtn.addEventListener('click', answerIncomingCall);
+      rejectBtn.addEventListener('click', rejectIncomingCall);
+
+      // ─── Check Status ──────────────────────────────────────────────────
+      checkStatusBtn.addEventListener('click', checkStatus);
+
+      // ─── Clear Calls ──────────────────────────────────────────────────
+      clearCallsBtn.addEventListener('click', clearCalls);
+
+      // ─── Logout ──────────────────────────────────────────────────────────
+      logoutBtn.addEventListener('click', logout);
+      logoutProfileBtn.addEventListener('click', logout);
+
+      // ─── Edit Profile ──────────────────────────────────────────────────
+      editProfileBtn.addEventListener('click', editProfile);
+
+      // ─── About ──────────────────────────────────────────────────────────
+      aboutBtn.addEventListener('click', openAbout);
+      closeAboutBtn.addEventListener('click', closeAbout);
+      aboutModal.addEventListener('click', (e) => {
+        if (e.target === aboutModal) closeAbout();
+      });
+
+      // ─── Contact Search ──────────────────────────────────────────────────
+      contactSearch.addEventListener('input', (e) => {
+        renderContacts(e.target.value);
+      });
+
+      // ─── Bottom Nav ──────────────────────────────────────────────────
+      document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const tab = item.dataset.tab;
+          if (tab) switchTab(tab);
+        });
+      });
+
+      // ─── Registration Events ──────────────────────────────────────────
+      sendOtpBtn.addEventListener('click', sendOtp);
+      verifyOtpBtn.addEventListener('click', verifyOtp);
+      resendOtpBtn.addEventListener('click', resendOtp);
+
+      regPhone.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+      });
+      regOtp.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+      });
+
+      regOtp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') verifyOtp();
+      });
+      regPhone.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendOtp();
+      });
+      regName.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendOtp();
+      });
+
+      // ─── Auto-load from URL ──────────────────────────────────────────
+      (function autoLoad() {
+        const params = new URLSearchParams(window.location.search);
+        const num = params.get('number');
+        if (num && /^\d{10}$/.test(num) && userData) {
+          setTimeout(() => {
+            if (peer) {
+              const contact = CONTACTS.find(c => c.phone === num);
+              makeCall(num, contact ? contact.name : num);
             }
+          }, 2000);
+        }
+      })();
 
-            // ─── End Call ──────────────────────────────────────────────────────
-            function endCall() {
-                log('Ending call', 'warning');
-                if (currentCall) {
-                    currentCall.close();
-                    currentCall = null;
-                }
-                if (remoteAudio.srcObject) {
-                    remoteAudio.pause();
-                    remoteAudio.srcObject = null;
-                }
-                isInCall = false;
-                isCaller = false;
-                isMuted = false;
-                muteBtn.className = 'mute';
-                muteBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+      // ─── Init ──────────────────────────────────────────────────────────
+      if (userData && userData.registered) {
+        enterMainApp();
+        log('User loaded: ' + userData.name, 'success');
+      } else {
+        regScreen.classList.remove('hidden');
+        mainApp.classList.remove('active');
+        log('Not registered. Show registration.', 'warning');
+      }
 
-                stopRingtone();
-                incomingOverlay.classList.remove('active');
-                callScreen.classList.remove('active');
+      // ─── Expose for debugging ──────────────────────────────────────────
+      window.premCall = { makeCall, endCall, peer, userData, getLocalStream };
 
-                if (callTimerInterval) { clearInterval(callTimerInterval);
-                    callTimerInterval = null; }
-                callTimer.textContent = '00:00';
-                callStatus.textContent = '';
-                dialCallBtn.classList.remove('disabled');
-                log('Call ended', 'warning');
-            }
+      log('PremCall v2.0 ready.', 'success');
 
-            // ─── Timer ──────────────────────────────────────────────────────────
-            function startTimer() {
-                if (callTimerInterval) clearInterval(callTimerInterval);
-                let seconds = 0;
-                callTimerInterval = setInterval(() => {
-                    seconds++;
-                    const m = String(Math.floor(seconds / 60)).padStart(2, '0');
-                    const s = String(seconds % 60).padStart(2, '0');
-                    callTimer.textContent = m + ':' + s;
-                }, 1000);
-            }
-
-            // ─── Check Status ──────────────────────────────────────────────────
-            function checkStatus() {
-                const num = dialedNumber || prompt('Enter 10‑digit number:');
-                if (!num) return;
-                if (!/^\d{10}$/.test(num)) { showToast('Enter 10 digits', 'error'); return; }
-                if (!peer) { statusResult.textContent = 'Not connected'; return; }
-                statusResult.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
-                try {
-                    const conn = peer.connect(num);
-                    let done = false;
-                    conn.on('open', () => {
-                        if (!done) { done = true;
-                            statusResult.innerHTML = '<i class="fas fa-circle-check" style="color:#00a884;"></i> Online';
-                            showToast(num + ' is online', 'success');
-                            conn.close(); }
-                    });
-                    conn.on('error', () => {
-                        if (!done) { done = true;
-                            statusResult.innerHTML = '<i class="fas fa-circle-xmark" style="color:#e74c3c;"></i> Offline';
-                            showToast(num + ' is offline', 'error'); }
-                    });
-                    setTimeout(() => {
-                        if (!done) { done = true;
-                            statusResult.innerHTML = '<i class="fas fa-clock" style="color:#f5b342;"></i> Timeout';
-                            conn.close(); }
-                    }, 3000);
-                } catch (e) {
-                    statusResult.textContent = 'Error';
-                }
-            }
-
-            // ─── Tab Switching ──────────────────────────────────────────────────
-            function switchTab(tabId) {
-                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-                const target = document.getElementById(tabId);
-                if (target) target.classList.add('active');
-                document.querySelectorAll('.bottom-nav .nav-item').forEach(n => n.classList.remove('active'));
-                document.querySelector(`.bottom-nav .nav-item[data-tab="${tabId}"]`)?.classList.add('active');
-            }
-
-            // ─── Clear Calls ──────────────────────────────────────────────────
-            function clearCalls() {
-                if (callHistory.length === 0) return;
-                if (confirm('Clear all call history?')) {
-                    callHistory = [];
-                    localStorage.setItem('premCallHistory', JSON.stringify(callHistory));
-                    renderCallHistory();
-                    showToast('Call history cleared', '');
-                }
-            }
-
-            // ─── Edit Profile ──────────────────────────────────────────────────
-            function editProfile() {
-                const newName = prompt('Enter your full name:', userData.name);
-                if (newName && newName.trim().length >= 2) {
-                    userData.name = newName.trim();
-                    localStorage.setItem('premCallUser', JSON.stringify(userData));
-                    topAvatar.textContent = getInitials(userData.name);
-                    topAvatar.style.background = getAvatarColor(userData.name);
-                    profileAvatar.textContent = getInitials(userData.name);
-                    profileAvatar.style.background = getAvatarColor(userData.name);
-                    profileName.textContent = userData.name;
-                    renderContacts();
-                    showToast('Profile updated', 'success');
-                }
-            }
-
-            // ─── About ──────────────────────────────────────────────────────────
-            function showAbout() {
-                showToast('PremCall v2.0 · Secure WebRTC calls', '');
-            }
-
-            // ─── Dialer ──────────────────────────────────────────────────────────
-            dialPad.addEventListener('click', (e) => {
-                const key = e.target.closest('.key');
-                if (!key) return;
-                const digit = key.dataset.digit;
-                const action = key.dataset.action;
-
-                if (digit) {
-                    if (dialedNumber.length < 15) {
-                        dialedNumber += digit;
-                        dialDisplay.textContent = dialedNumber;
-                    }
-                } else if (action === 'delete') {
-                    dialedNumber = dialedNumber.slice(0, -1);
-                    dialDisplay.textContent = dialedNumber || 'Enter number';
-                    if (!dialedNumber) dialDisplay.innerHTML = '<span class="hint">Enter number</span>';
-                } else if (action === 'clear') {
-                    dialedNumber = '';
-                    dialDisplay.innerHTML = '<span class="hint">Enter number</span>';
-                } else if (action === 'call') {
-                    if (dialedNumber) {
-                        const contact = CONTACTS.find(c => c.phone === dialedNumber);
-                        makeCall(dialedNumber, contact ? contact.name : dialedNumber);
-                    }
-                }
-            });
-
-            // Keyboard support
-            document.addEventListener('keydown', (e) => {
-                if (!mainApp.classList.contains('active')) return;
-                if (e.key >= '0' && e.key <= '9') {
-                    if (dialedNumber.length < 15) {
-                        dialedNumber += e.key;
-                        dialDisplay.textContent = dialedNumber;
-                    }
-                } else if (e.key === 'Backspace') {
-                    dialedNumber = dialedNumber.slice(0, -1);
-                    dialDisplay.textContent = dialedNumber || 'Enter number';
-                    if (!dialedNumber) dialDisplay.innerHTML = '<span class="hint">Enter number</span>';
-                } else if (e.key === 'Enter') {
-                    if (dialedNumber) {
-                        const contact = CONTACTS.find(c => c.phone === dialedNumber);
-                        makeCall(dialedNumber, contact ? contact.name : dialedNumber);
-                    }
-                }
-            });
-
-            // ─── Call Controls ──────────────────────────────────────────────────
-            hangupCallBtn.addEventListener('click', endCall);
-
-            muteBtn.addEventListener('click', () => {
-                if (!localStream) { showToast('No microphone', 'error'); return; }
-                isMuted = !isMuted;
-                localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
-                muteBtn.className = isMuted ? 'mute active' : 'mute';
-                muteBtn.innerHTML = isMuted ? '<i class="fas fa-microphone-slash"></i>' :
-                '<i class="fas fa-microphone"></i>';
-                showToast(isMuted ? 'Muted' : 'Unmuted', '');
-            });
-
-            speakerBtn.addEventListener('click', () => {
-                isSpeakerOn = !isSpeakerOn;
-                speakerBtn.className = isSpeakerOn ? 'speaker active' : 'speaker';
-                // In real browsers, setSinkId could be used, but we'll just toggle UI
-                showToast(isSpeakerOn ? 'Speaker on' : 'Earpiece', '');
-                if (remoteAudio) {
-                    // @ts-ignore
-                    if (typeof remoteAudio.setSinkId === 'function') {
-                        try {
-                            // @ts-ignore
-                            remoteAudio.setSinkId(isSpeakerOn ? 'speaker' : 'default').catch(() => {});
-                        } catch (e) {}
-                    }
-                }
-            });
-
-            // ─── Incoming Overlay ──────────────────────────────────────────────
-            answerBtn.addEventListener('click', answerIncomingCall);
-            rejectBtn.addEventListener('click', rejectIncomingCall);
-
-            // ─── Check Status ──────────────────────────────────────────────────
-            checkStatusBtn.addEventListener('click', checkStatus);
-
-            // ─── Clear Calls ──────────────────────────────────────────────────
-            clearCallsBtn.addEventListener('click', clearCalls);
-
-            // ─── Logout ──────────────────────────────────────────────────────────
-            logoutBtn.addEventListener('click', logout);
-            logoutProfileBtn.addEventListener('click', logout);
-
-            // ─── Edit Profile ──────────────────────────────────────────────────
-            editProfileBtn.addEventListener('click', editProfile);
-            aboutBtn.addEventListener('click', showAbout);
-
-            // ─── Contact Search ──────────────────────────────────────────────────
-            contactSearch.addEventListener('input', (e) => {
-                renderContacts(e.target.value);
-            });
-
-            // ─── Bottom Nav ──────────────────────────────────────────────────
-            document.querySelectorAll('.bottom-nav .nav-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const tab = item.dataset.tab;
-                    if (tab) switchTab(tab);
-                });
-            });
-
-            // ─── Registration Events ──────────────────────────────────────────
-            sendOtpBtn.addEventListener('click', sendOtp);
-            verifyOtpBtn.addEventListener('click', verifyOtp);
-            resendOtpBtn.addEventListener('click', resendOtp);
-
-            regPhone.addEventListener('input', (e) => {
-                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
-            });
-            regOtp.addEventListener('input', (e) => {
-                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
-            });
-
-            // Enter key on OTP field
-            regOtp.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') verifyOtp();
-            });
-            regPhone.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') sendOtp();
-            });
-            regName.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') sendOtp();
-            });
-
-            // ─── Auto-load from URL ──────────────────────────────────────────
-            (function autoLoad() {
-                const params = new URLSearchParams(window.location.search);
-                const num = params.get('number');
-                if (num && /^\d{10}$/.test(num) && userData) {
-                    setTimeout(() => {
-                        if (peer) {
-                            const contact = CONTACTS.find(c => c.phone === num);
-                            makeCall(num, contact ? contact.name : num);
-                        }
-                    }, 2000);
-                }
-            })();
-
-            // ─── Init ──────────────────────────────────────────────────────────
-            if (userData && userData.registered) {
-                enterMainApp();
-                log('User loaded: ' + userData.name, 'success');
-            } else {
-                regScreen.classList.remove('hidden');
-                mainApp.classList.remove('active');
-                log('Not registered. Show registration.', 'warning');
-            }
-
-            // ─── Expose for debugging ──────────────────────────────────────────
-            window.premCall = { makeCall, endCall, peer, userData, getLocalStream };
-
-            log('PremCall v2.0 ready.', 'success');
-
-        })();
-    </script>
+    })();
+  </script>
 </body>
 </html>
