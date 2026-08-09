@@ -35,6 +35,7 @@
     .reg-input-group input { flex: 2; }
     #otpSection { display: none; flex-direction: column; align-items: center; gap: 0.5rem; width: 100%; max-width: 300px; }
     #otpSection .otp-code { font-size: 2rem; font-weight: 700; color: #4f8cf7; letter-spacing: 0.5rem; }
+    #otpSection input { padding: 0.75rem; border-radius: 12px; border: 1px solid #2a3a5a; background: #0f1629; color: #e2e8f0; font-size: 1rem; width: 100%; text-align: center; letter-spacing: 0.3rem; }
     .btn { padding: 0.75rem 2rem; border: none; border-radius: 40px; font-weight: 600; cursor: pointer; transition: 0.2s; background: #2a3a5a; color: #fff; font-size: 1rem; }
     .btn-primary { background: #1a4a8a; }
     .btn-primary:hover { background: #2563d6; }
@@ -61,23 +62,26 @@
     .tab-content.active { display: block; }
 
     /* ─── Dialer ─── */
-    .dialer-display { background: #0f1629; border-radius: 12px; padding: 0.75rem; font-size: 1.5rem; text-align: center; margin-bottom: 1rem; }
+    .dialer-display { background: #0f1629; border-radius: 12px; padding: 0.75rem; font-size: 1.5rem; text-align: center; margin-bottom: 1rem; min-height: 3.2rem; word-break: break-all; }
     .dialer-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; max-width: 300px; margin: 0 auto; }
     .dialer-pad .key { background: #1a2338; border-radius: 50%; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 600; cursor: pointer; transition: 0.1s; user-select: none; }
     .dialer-pad .key:active { background: #2a3a5a; }
     .dialer-pad .key.call { background: #1a7a4a; color: #fff; }
     .dialer-pad .key.call:active { background: #1f9b5e; }
+    .dialer-pad .key.call:disabled, .dialer-pad .key.disabled { opacity: 0.4; pointer-events: none; }
     .dialer-pad .key.hangup { background: #8a1a2a; color: #fff; }
     .dialer-pad .key.hangup:active { background: #b52238; }
     .dialer-pad .key.mute { background: #a67c1a; }
     .dialer-pad .key.mute:active { background: #ca9a2a; }
+    .dialer-pad .key.mute.active-state, .dialer-pad .key.speaker.active-state { background: #4f8cf7; color: #fff; }
 
     /* ─── Call History ─── */
-    .call-item { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #1a2338; }
+    .call-item { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #1a2338; gap: 0.5rem; }
     .call-item .direction { font-weight: 600; }
     .call-item .direction.incoming { color: #fbbf24; }
     .call-item .direction.outgoing { color: #4ade80; }
-    .call-item .status { font-size: 0.8rem; color: #94a3b8; }
+    .call-item .status { font-size: 0.8rem; color: #94a3b8; white-space: nowrap; }
+    .call-item .status.missed, .call-item .status.declined, .call-item .status.busy, .call-item .status.rejected { color: #f87171; }
 
     /* ─── Incoming Call Overlay ─── */
     #incomingOverlay {
@@ -117,6 +121,29 @@
     #callScreen .caller-info .name { font-size: 2rem; font-weight: 700; }
     #callScreen .caller-info .number { color: #94a3b8; }
     #callScreen .call-timer { font-size: 1.2rem; color: #4ade80; margin-bottom: 2rem; }
+    #callScreen .call-substatus { color: #fbbf24; margin-bottom: 0.5rem; min-height: 1.2rem; }
+
+    /* ─── Toast ─── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1a2338;
+      border: 1px solid #2a3a5a;
+      color: #e2e8f0;
+      padding: 0.7rem 1.2rem;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 2000;
+      max-width: 90%;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     /* ─── Responsive ─── */
     @media (max-width: 480px) {
@@ -215,7 +242,7 @@
         <div class="key" data-digit="0">0</div>
         <div class="key" data-digit="#">#</div>
         <div class="key" data-action="delete">⌫</div>
-        <div class="key call" data-action="call">📞</div>
+        <div class="key call" data-action="call" id="dialCallKey">📞</div>
         <div class="key" data-action="clear">✕</div>
       </div>
       <div style="margin-top:1rem;">
@@ -262,13 +289,20 @@
       <div class="name" id="activeCallerName">Calling...</div>
       <div class="number" id="activeCallerNumber">+1234567890</div>
     </div>
+    <div class="call-substatus" id="callSubstatus"></div>
     <div class="call-timer" id="callTimer">00:00</div>
     <div class="dialer-pad" style="max-width:280px;">
-      <div class="key" data-action="mute">🔇</div>
+      <div class="key mute" data-action="mute" id="muteKey">🔇</div>
       <div class="key hangup" data-action="hangup">📴</div>
-      <div class="key" data-action="speaker">🔊</div>
+      <div class="key speaker" data-action="speaker" id="speakerKey">🔊</div>
     </div>
   </div>
+
+  <!-- ========================================== -->
+  <!-- Persistent remote audio + toast            -->
+  <!-- ========================================== -->
+  <audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
+  <div id="toast"></div>
 
   <!-- ========================================== -->
   <!-- SCRIPTS                                    -->
@@ -294,6 +328,7 @@
       const shareLinkBtn = document.getElementById('shareLinkBtn');
       const dialDisplay = document.getElementById('dialDisplay');
       const dialPad = document.getElementById('dialPad');
+      const dialCallKey = document.getElementById('dialCallKey');
       const checkStatusBtn = document.getElementById('checkStatusBtn');
       const statusResult = document.getElementById('statusResult');
       const callHistoryList = document.getElementById('callHistoryList');
@@ -312,26 +347,44 @@
       const activeCallerName = document.getElementById('activeCallerName');
       const activeCallerNumber = document.getElementById('activeCallerNumber');
       const callTimer = document.getElementById('callTimer');
+      const callSubstatus = document.getElementById('callSubstatus');
+      const muteKey = document.getElementById('muteKey');
+      const speakerKey = document.getElementById('speakerKey');
+
+      const remoteAudioEl = document.getElementById('remoteAudio');
+      const toastEl = document.getElementById('toast');
 
       // ─── State ──────────────────────────────────────────────────
-      let myNumber = localStorage.getItem('premCallNumber') || null;
+      let myNumber = localStorage.getItem('premCallNumber') || null; // digits-only, used as the actual PeerJS ID
+      let myDisplayNumber = localStorage.getItem('premCallDisplayNumber') || null; // "+91 9876543210", for UI only
       let myCountryCode = localStorage.getItem('premCallCountry') || '+91';
       let peer = null;
       let currentCall = null;
       let localStream = null;
       let remoteStream = null;
       let isMuted = false;
+      let isSpeakerOn = true;
       let isInCall = false;
       let isCaller = false;
       let incomingCall = null;
       let ringtoneInterval = null;
-      let remoteAudioElement = null;
       let callHistory = JSON.parse(localStorage.getItem('premCallHistory') || '[]');
       let contacts = JSON.parse(localStorage.getItem('premCallContacts') || '[]');
-      let callStartTime = null;
       let callTimerInterval = null;
       let dialedNumber = '';
       let isAnswering = false;
+      let wakeLock = null;
+      let missedCallTimeoutId = null;
+
+      // Per-call bookkeeping used to log accurate history when the call ends
+      let currentCallPeerId = null;
+      let currentCallDirection = null; // 'incoming' | 'outgoing'
+      let callConnectedTime = null;    // set the moment audio actually starts flowing
+      let callWasAnswered = false;
+      let remoteOutcome = null;        // 'declined' | 'busy' set via signaling channel
+
+      const MUTE_ICON = '🔇';
+      const UNMUTE_ICON = '🔊';
 
       // ─── ICE Servers ──────────────────────────────────────────────
       function getIceServers() {
@@ -355,13 +408,49 @@
       }
 
       // ─── Helpers ──────────────────────────────────────────────────
+      // PeerJS IDs are used directly in the signaling server's URL path, so
+      // only letters, digits, "-" and "_" are safe. "+" (from a country
+      // code) or spaces will make Peer() throw "ID is invalid" — strip
+      // everything down to digits before it's ever used as an ID.
+      function sanitizeId(str) {
+        return String(str || '').replace(/\D/g, '');
+      }
+
       function setStatus(el, text, type) {
         el.textContent = text;
         el.className = 'status-badge';
         if (type) el.classList.add('status-' + type);
       }
 
-      function showError(msg) { alert('Error: ' + msg); }
+      let toastTimeoutId = null;
+      function showToast(msg, duration) {
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        clearTimeout(toastTimeoutId);
+        toastTimeoutId = setTimeout(() => toastEl.classList.remove('show'), duration || 2500);
+      }
+
+      // ─── Screen Wake Lock (keeps the screen/audio alive during a call) ──
+      async function requestWakeLock() {
+        try {
+          if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+          }
+        } catch (err) {
+          console.warn('Wake lock request failed:', err);
+        }
+      }
+      function releaseWakeLock() {
+        if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+      }
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          if (isInCall && !wakeLock) requestWakeLock();
+          if (remoteAudioEl.paused && remoteAudioEl.srcObject) {
+            remoteAudioEl.play().catch(() => {});
+          }
+        }
+      });
 
       // ─── Registration ──────────────────────────────────────────────
       function registerNumber() {
@@ -371,44 +460,63 @@
           regStatus.textContent = 'Enter exactly 10 digits.';
           return;
         }
-        const fullNumber = cc + num;
-        // Check if already registered
-        if (localStorage.getItem('premCallNumber') === fullNumber) {
-          regStatus.textContent = 'Number already registered.';
-          return;
-        }
-        // Generate OTP (simulated)
+        // Peer ID must be digits-only (no "+"); keep the "+cc num" form
+        // separately purely for display.
+        const peerId = sanitizeId(cc + num);
+        const displayNumber = cc + ' ' + num;
         const otp = Math.floor(1000 + Math.random() * 9000).toString();
         otpDisplay.textContent = otp;
         otpSection.style.display = 'flex';
         regStatus.textContent = 'Enter OTP to confirm.';
-        // Store temp
-        window._tempNumber = fullNumber;
+        window._tempNumber = peerId;
+        window._tempDisplayNumber = displayNumber;
         window._tempOtp = otp;
       }
 
       function verifyOtp() {
         const entered = otpInput.value.trim();
         if (entered === window._tempOtp) {
-          // Fixed number
           myNumber = window._tempNumber;
+          myDisplayNumber = window._tempDisplayNumber;
           myCountryCode = countryCode.value;
           localStorage.setItem('premCallNumber', myNumber);
+          localStorage.setItem('premCallDisplayNumber', myDisplayNumber);
           localStorage.setItem('premCallCountry', myCountryCode);
           regStatus.textContent = '✅ Number registered!';
-          registrationScreen.style.display = 'none';
-          mainApp.style.display = 'block';
-          myNumberDisplay.textContent = myNumber;
-          initPeer();
-          renderHistory();
-          renderContacts();
-          // Clean
+          enterMainApp();
           window._tempNumber = null;
+          window._tempDisplayNumber = null;
           window._tempOtp = null;
         } else {
           regStatus.textContent = '❌ Invalid OTP. Try again.';
           otpInput.value = '';
         }
+      }
+
+      function enterMainApp() {
+        registrationScreen.style.display = 'none';
+        mainApp.style.display = 'block';
+        myNumberDisplay.textContent = myDisplayNumber || myNumber;
+        if (myCountryCode) countryCode.value = myCountryCode;
+        initPeer();
+        renderHistory();
+        renderContacts();
+      }
+
+      // If the chosen number turns out to be taken by someone else already
+      // online, kick the user back to registration instead of leaving them
+      // stuck on a permanently "offline" main screen.
+      function resetRegistrationDueToConflict() {
+        localStorage.removeItem('premCallNumber');
+        localStorage.removeItem('premCallDisplayNumber');
+        myNumber = null;
+        myDisplayNumber = null;
+        mainApp.style.display = 'none';
+        registrationScreen.style.display = 'flex';
+        otpSection.style.display = 'none';
+        otpInput.value = '';
+        regStatus.textContent = 'That number is already taken on this network — pick another.';
+        showToast('Number unavailable, please choose a different one.');
       }
 
       registerBtn.addEventListener('click', registerNumber);
@@ -431,33 +539,57 @@
         peer.on('error', (err) => {
           console.error('PeerJS error:', err);
           if (err.type === 'unavailable-id') {
-            setStatus(peerStatus, 'number taken', 'offline');
+            resetRegistrationDueToConflict();
           } else {
             setStatus(peerStatus, 'error: ' + err.type, 'offline');
           }
         });
 
+        // Incoming media calls
         peer.on('call', (call) => {
           if (isInCall) {
+            notifyPeer(call.peer, 'busy');
             call.close();
             console.log('Rejected incoming call from ' + call.peer + ' (already in call)');
             return;
           }
-          console.log('📞 Incoming call from:', call.peer);
           incomingCall = call;
           const displayName = getContactName(call.peer) || call.peer;
           callerName.textContent = displayName;
           callerNumber.textContent = call.peer;
           incomingOverlay.classList.add('active');
           playRingtone();
-          // Auto-reject after 20 seconds (missed call)
-          setTimeout(() => {
+
+          clearTimeout(missedCallTimeoutId);
+          missedCallTimeoutId = setTimeout(() => {
             if (incomingCall && incomingOverlay.classList.contains('active')) {
-              // Missed
-              addCallHistory(call.peer, 'incoming', 'missed');
-              rejectIncomingCall();
+              addCallHistory(call.peer, 'incoming', 'missed', null);
+              incomingCall.close();
+              incomingCall = null;
+              stopRingtone();
+              incomingOverlay.classList.remove('active');
             }
           }, 20000);
+        });
+
+        // Incoming data connections — used for reject/busy signaling between peers
+        peer.on('connection', (conn) => {
+          if (conn.metadata && conn.metadata.type === 'signal') {
+            conn.on('data', (data) => {
+              if (!data || !data.type) return;
+              if (currentCall && conn.peer === currentCall.peer) {
+                if (data.type === 'reject') {
+                  remoteOutcome = 'declined';
+                  showToast('Call declined');
+                  endCall();
+                } else if (data.type === 'busy') {
+                  remoteOutcome = 'busy';
+                  showToast((getContactName(conn.peer) || conn.peer) + ' is busy');
+                  endCall();
+                }
+              }
+            });
+          }
         });
 
         peer.on('close', () => {
@@ -469,6 +601,20 @@
           setStatus(peerStatus, 'disconnected', 'offline');
           setTimeout(() => { if (peer && !isInCall) peer.reconnect(); }, 3000);
         });
+      }
+
+      // Send a small signaling message to a peer without an active media call
+      // (used to tell a caller their call was declined or the line is busy).
+      function notifyPeer(peerId, type) {
+        try {
+          const conn = peer.connect(peerId, { reliable: true, metadata: { type: 'signal' } });
+          conn.on('open', () => {
+            conn.send({ type: type });
+            setTimeout(() => conn.close(), 300);
+          });
+        } catch (err) {
+          console.warn('Failed to notify peer:', err);
+        }
       }
 
       // ─── Ringtone ──────────────────────────────────────────────────
@@ -499,57 +645,117 @@
 
       // ─── Microphone ──────────────────────────────────────────────
       async function getLocalStream() {
-        if (!localStream) {
-          try {
-            localStream = await navigator.mediaDevices.getUserMedia({
-              audio: { echoCancellation: true, noiseSuppression: true }
+        if (!localStream || localStream.getAudioTracks().every(t => t.readyState === 'ended')) {
+          localStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true }
+          });
+          localStream.getAudioTracks().forEach(track => {
+            track.addEventListener('ended', () => {
+              console.warn('Local mic track ended, attempting to restart...');
+              if (isInCall) {
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                  .then(stream => {
+                    localStream = stream;
+                    if (currentCall && currentCall.peerConnection) {
+                      const senders = currentCall.peerConnection.getSenders();
+                      const audioTrack = stream.getAudioTracks()[0];
+                      senders.forEach(sender => {
+                        if (sender.track && sender.track.kind === 'audio') sender.replaceTrack(audioTrack);
+                      });
+                    }
+                  })
+                  .catch(err => console.error('Failed to restart local stream:', err));
+              }
             });
-            localStream.addEventListener('inactive', () => { localStream = null; });
-          } catch (err) { throw err; }
+          });
         }
         return localStream;
       }
 
       // ─── Remote Audio ──────────────────────────────────────────────
-      function getRemoteAudioElement() {
-        if (!remoteAudioElement) {
-          remoteAudioElement = document.createElement('audio');
-          remoteAudioElement.id = 'remoteAudio';
-          remoteAudioElement.setAttribute('playsInline', '');
-          remoteAudioElement.autoplay = true;
-          remoteAudioElement.style.display = 'none';
-          document.body.appendChild(remoteAudioElement);
-        }
-        return remoteAudioElement;
-      }
-
       function attachRemoteStream(stream) {
         remoteStream = stream;
-        const audio = getRemoteAudioElement();
-        audio.srcObject = stream;
-        audio.play().catch(() => {});
-        stream.onremovetrack = () => {
-          if (stream.getTracks().length === 0) {
-            audio.pause();
-            audio.srcObject = null;
-            remoteStream = null;
+        remoteAudioEl.srcObject = stream;
+        remoteAudioEl.muted = false;
+        remoteAudioEl.volume = 1.0;
+
+        const tryPlay = () => {
+          remoteAudioEl.play().catch(err => {
+            console.warn('Autoplay blocked, will resume on next interaction:', err);
+            const resume = () => remoteAudioEl.play().catch(() => {});
+            document.addEventListener('click', resume, { once: true });
+            document.addEventListener('touchstart', resume, { once: true });
+          });
+        };
+        tryPlay();
+
+        stream.getAudioTracks().forEach(track => {
+          track.onended = () => {
+            console.warn('Remote audio track ended unexpectedly');
+            if (isInCall) {
+              callSubstatus.textContent = 'Reconnecting...';
+              const pc = currentCall && currentCall.peerConnection;
+              if (pc && pc.restartIce) pc.restartIce();
+            }
+          };
+        });
+      }
+
+      // ─── Call timer ──────────────────────────────────────────────
+      function startCallTimer() {
+        callConnectedTime = Date.now();
+        callWasAnswered = true;
+        if (callTimerInterval) clearInterval(callTimerInterval);
+        callTimer.textContent = '00:00';
+        callTimerInterval = setInterval(() => {
+          const seconds = Math.floor((Date.now() - callConnectedTime) / 1000);
+          const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+          const s = String(seconds % 60).padStart(2, '0');
+          callTimer.textContent = `${m}:${s}`;
+        }, 1000);
+      }
+      function stopCallTimer() {
+        if (callTimerInterval) { clearInterval(callTimerInterval); callTimerInterval = null; }
+      }
+
+      // Shared handler for both outgoing and incoming calls once audio starts flowing
+      function onCallConnected(stream) {
+        attachRemoteStream(stream);
+        callSubstatus.textContent = '';
+        startCallTimer();
+        requestWakeLock();
+      }
+
+      // Shared ICE monitoring for both call directions
+      function attachIceMonitoring(pc) {
+        if (!pc) return;
+        pc.oniceconnectionstatechange = () => {
+          const state = pc.iceConnectionState;
+          console.log('ICE state:', state);
+          if (state === 'failed') {
+            if (pc.restartIce) {
+              pc.restartIce();
+            } else {
+              showToast('Connection lost');
+              endCall();
+            }
+          } else if (state === 'disconnected') {
+            callSubstatus.textContent = 'Connection unstable...';
+          } else if (state === 'connected' || state === 'completed') {
+            callSubstatus.textContent = '';
           }
         };
       }
 
       // ─── Call History ──────────────────────────────────────────────
-      function addCallHistory(number, direction, status) {
+      function addCallHistory(number, direction, status, durationSeconds) {
         const entry = {
           number,
           direction,
           status,
           timestamp: new Date().toISOString(),
-          duration: null
+          duration: (typeof durationSeconds === 'number') ? durationSeconds : null
         };
-        if (status === 'answered' && callStartTime) {
-          const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
-          entry.duration = elapsed;
-        }
         callHistory.unshift(entry);
         if (callHistory.length > 100) callHistory.pop();
         localStorage.setItem('premCallHistory', JSON.stringify(callHistory));
@@ -564,17 +770,31 @@
         let html = '';
         callHistory.forEach(entry => {
           const dir = entry.direction === 'incoming' ? '📥' : '📤';
-          const statusText = entry.status === 'answered' ? (entry.duration ? entry.duration + 's' : 'Answered') :
-                             entry.status === 'missed' ? 'Missed' : entry.status;
+          const labels = { answered: entry.duration != null ? formatDuration(entry.duration) : 'Answered',
+                            missed: 'Missed', declined: 'Declined', busy: 'Busy',
+                            rejected: 'Rejected', 'no answer': 'No answer' };
+          const statusText = labels[entry.status] || entry.status;
           html += `<div class="call-item">
             <div>
               <span class="direction ${entry.direction}">${dir}</span>
-              ${getContactName(entry.number) || entry.number}
+              ${escapeHtml(getContactName(entry.number) || entry.number)}
             </div>
-            <div class="status">${statusText} ${new Date(entry.timestamp).toLocaleTimeString()}</div>
+            <div class="status ${entry.status}">${statusText} · ${new Date(entry.timestamp).toLocaleTimeString()}</div>
           </div>`;
         });
         callHistoryList.innerHTML = html;
+      }
+
+      function formatDuration(seconds) {
+        const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+        const s = String(seconds % 60).padStart(2, '0');
+        return `${m}:${s}`;
+      }
+
+      function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
       }
 
       clearHistoryBtn.addEventListener('click', () => {
@@ -597,12 +817,11 @@
         let html = '';
         contacts.forEach(c => {
           html += `<div class="call-item">
-            <span>${c.name} (${c.number})</span>
-            <button class="btn btn-outline" style="padding:0.2rem 0.6rem;font-size:0.7rem;" data-number="${c.number}">Call</button>
+            <span>${escapeHtml(c.name)} (${escapeHtml(c.number)})</span>
+            <button class="btn btn-outline" style="padding:0.2rem 0.6rem;font-size:0.7rem;" data-number="${escapeHtml(c.number)}">Call</button>
           </div>`;
         });
         contactList.innerHTML = html;
-        // Attach call events to buttons
         contactList.querySelectorAll('button[data-number]').forEach(btn => {
           btn.addEventListener('click', () => {
             const num = btn.dataset.number;
@@ -614,8 +833,8 @@
       }
 
       addContactBtn.addEventListener('click', () => {
-        const num = contactInput.value.trim();
-        if (!/^\d{10}$/.test(num)) { alert('Enter 10-digit number'); return; }
+        const num = sanitizeId(contactInput.value);
+        if (num.length < 7 || num.length > 15) { showToast('Enter a valid number (include country code)'); return; }
         const name = prompt('Enter name for this contact:');
         if (name) {
           contacts.push({ number: num, name });
@@ -649,8 +868,8 @@
         }
       });
 
-      // Also support keyboard
       document.addEventListener('keydown', (e) => {
+        if (mainApp.style.display !== 'block' || callScreen.classList.contains('active')) return;
         if (e.key >= '0' && e.key <= '9') {
           dialedNumber += e.key;
           updateDialDisplay();
@@ -671,17 +890,25 @@
 
       function checkPeerOnline(number) {
         if (!peer) { statusResult.textContent = 'Peer not ready.'; return; }
+        const targetId = sanitizeId(number);
+        if (!targetId) { statusResult.textContent = 'Enter a valid number.'; return; }
         statusResult.textContent = 'Checking...';
-        const conn = peer.connect(number);
+        let settled = false;
+        const conn = peer.connect(targetId, { metadata: { type: 'probe' } });
         conn.on('open', () => {
+          if (settled) return;
+          settled = true;
           statusResult.textContent = '✅ Online';
           conn.close();
         });
         conn.on('error', () => {
+          if (settled) return;
+          settled = true;
           statusResult.textContent = '❌ Offline or unreachable';
         });
         setTimeout(() => {
-          if (statusResult.textContent === 'Checking...') {
+          if (!settled) {
+            settled = true;
             statusResult.textContent = '⏳ Timeout (offline)';
             conn.close();
           }
@@ -689,55 +916,41 @@
       }
 
       // ─── Make Call ──────────────────────────────────────────────────
-      async function makeCall(targetNumber) {
-        if (isInCall) { setStatus(callStatus, 'Already in a call.', 'error'); return; }
-        if (!peer) { alert('Peer not ready.'); return; }
-        if (targetNumber === myNumber) { alert('Cannot call yourself.'); return; }
+      async function makeCall(rawTargetNumber) {
+        if (isInCall) { showToast('Already in a call.'); return; }
+        if (!peer) { showToast('Peer not ready.'); return; }
+        const targetNumber = sanitizeId(rawTargetNumber);
+        if (!targetNumber) { showToast('Enter a valid number.'); return; }
+        if (targetNumber === myNumber) { showToast('Cannot call yourself.'); return; }
+
+        dialCallKey.classList.add('disabled');
         try {
-          setStatus(peerStatus, 'calling', 'online');
           await getLocalStream();
           const call = peer.call(targetNumber, localStream);
           currentCall = call;
+          currentCallPeerId = targetNumber;
+          currentCallDirection = 'outgoing';
+          callWasAnswered = false;
+          remoteOutcome = null;
           isCaller = true;
           isInCall = true;
-          callStartTime = Date.now();
           showCallScreen(targetNumber);
+          callSubstatus.textContent = 'Ringing...';
 
-          call.on('stream', (stream) => {
-            attachRemoteStream(stream);
-            addCallHistory(targetNumber, 'outgoing', 'answered');
-            // Timer start
-            if (callTimerInterval) clearInterval(callTimerInterval);
-            let seconds = 0;
-            callTimerInterval = setInterval(() => {
-              seconds++;
-              const m = String(Math.floor(seconds / 60)).padStart(2, '0');
-              const s = String(seconds % 60).padStart(2, '0');
-              callTimer.textContent = `${m}:${s}`;
-            }, 1000);
-          });
-
-          call.on('close', () => {
-            endCall();
-          });
-
+          call.on('stream', onCallConnected);
+          call.on('close', () => endCall());
           call.on('error', (err) => {
             console.error('Call error:', err);
+            showToast('Call failed');
             endCall();
           });
 
-          // ICE monitoring
-          const pc = call.peerConnection;
-          if (pc) {
-            pc.oniceconnectionstatechange = () => {
-              if (pc.iceConnectionState === 'failed') {
-                endCall();
-              }
-            };
-          }
+          attachIceMonitoring(call.peerConnection);
         } catch (err) {
-          alert('Call failed: ' + err.message);
-          endCall();
+          showToast('Call failed: ' + err.message);
+          isInCall = false;
+        } finally {
+          dialCallKey.classList.remove('disabled');
         }
       }
 
@@ -746,52 +959,43 @@
         const name = getContactName(number) || number;
         activeCallerName.textContent = name;
         activeCallerNumber.textContent = number;
+        callSubstatus.textContent = '';
+        callTimer.textContent = '00:00';
         callScreen.classList.add('active');
         incomingOverlay.classList.remove('active');
-        // Hide dialer? We keep it but overlay is active.
       }
 
       // ─── Answer Incoming ──────────────────────────────────────────
       async function answerIncomingCall() {
         if (isAnswering || !incomingCall) return;
         isAnswering = true;
+        clearTimeout(missedCallTimeoutId);
         try {
           stopRingtone();
           await getLocalStream();
           incomingCall.answer(localStream);
           currentCall = incomingCall;
+          currentCallPeerId = currentCall.peer;
+          currentCallDirection = 'incoming';
+          callWasAnswered = false;
+          remoteOutcome = null;
           isCaller = false;
           isInCall = true;
-          callStartTime = Date.now();
-          const number = currentCall.peer;
-          addCallHistory(number, 'incoming', 'answered');
-          showCallScreen(number);
+          showCallScreen(currentCallPeerId);
           incomingOverlay.classList.remove('active');
 
-          currentCall.on('stream', (stream) => {
-            attachRemoteStream(stream);
-            if (callTimerInterval) clearInterval(callTimerInterval);
-            let seconds = 0;
-            callTimerInterval = setInterval(() => {
-              seconds++;
-              const m = String(Math.floor(seconds / 60)).padStart(2, '0');
-              const s = String(seconds % 60).padStart(2, '0');
-              callTimer.textContent = `${m}:${s}`;
-            }, 1000);
-          });
-
-          currentCall.on('close', () => {
-            endCall();
-          });
-
+          currentCall.on('stream', onCallConnected);
+          currentCall.on('close', () => endCall());
           currentCall.on('error', (err) => {
             console.error('Call error:', err);
+            showToast('Call error');
             endCall();
           });
 
+          attachIceMonitoring(currentCall.peerConnection);
           incomingCall = null;
         } catch (err) {
-          alert('Answer failed: ' + err.message);
+          showToast('Answer failed: ' + err.message);
           if (incomingCall) incomingCall.close();
           incomingCall = null;
           incomingOverlay.classList.remove('active');
@@ -802,10 +1006,16 @@
       }
 
       function rejectIncomingCall() {
-        if (incomingCall) { incomingCall.close(); incomingCall = null; }
+        clearTimeout(missedCallTimeoutId);
+        if (incomingCall) {
+          const peerId = incomingCall.peer;
+          notifyPeer(peerId, 'reject');
+          addCallHistory(peerId, 'incoming', 'rejected', null);
+          incomingCall.close();
+          incomingCall = null;
+        }
         stopRingtone();
         incomingOverlay.classList.remove('active');
-        addCallHistory(callerNumber.textContent, 'incoming', 'rejected');
       }
 
       answerOverlayBtn.addEventListener('click', answerIncomingCall);
@@ -813,22 +1023,51 @@
 
       // ─── End Call ──────────────────────────────────────────────────
       function endCall() {
+        if (!isInCall) return; // guard against the async 'close' event firing twice
+        isInCall = false;
+
+        // Log accurate history now that we know how the call actually ended
+        if (currentCallPeerId) {
+          let status, duration = null;
+          if (callWasAnswered) {
+            status = 'answered';
+            duration = callConnectedTime ? Math.floor((Date.now() - callConnectedTime) / 1000) : 0;
+          } else if (remoteOutcome) {
+            status = remoteOutcome; // 'declined' | 'busy'
+          } else if (isCaller) {
+            status = 'no answer';
+          } else {
+            status = null; // incoming, unanswered — already logged by reject/missed-timeout paths
+          }
+          if (status) addCallHistory(currentCallPeerId, currentCallDirection, status, duration);
+        }
+
         if (currentCall) { currentCall.close(); currentCall = null; }
         if (remoteStream) { remoteStream.getTracks().forEach(t => t.stop()); remoteStream = null; }
-        const audio = getRemoteAudioElement();
-        audio.pause(); audio.srcObject = null;
+        remoteAudioEl.pause();
+        remoteAudioEl.srcObject = null;
+        releaseWakeLock();
 
-        isInCall = false;
         isCaller = false;
+        isMuted = false;
+        isSpeakerOn = true;
+        if (localStream) localStream.getAudioTracks().forEach(t => t.enabled = true);
+        muteKey.textContent = MUTE_ICON;
+        muteKey.classList.remove('active-state');
+        speakerKey.classList.add('active-state');
+
         stopRingtone();
+        stopCallTimer();
         incomingOverlay.classList.remove('active');
         callScreen.classList.remove('active');
-        if (callTimerInterval) clearInterval(callTimerInterval);
         callTimer.textContent = '00:00';
         setStatus(peerStatus, 'online', 'online');
-        // If call was active and we haven't logged it yet, log as ended.
-        // Already logged on stream.
-        callStartTime = null;
+
+        currentCallPeerId = null;
+        currentCallDirection = null;
+        callConnectedTime = null;
+        callWasAnswered = false;
+        remoteOutcome = null;
       }
 
       // ─── Call Screen Actions ──────────────────────────────────────
@@ -842,18 +1081,44 @@
           if (!localStream) return;
           isMuted = !isMuted;
           localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
-          key.textContent = isMuted ? '🔊' : '🔇';
+          key.textContent = isMuted ? UNMUTE_ICON : MUTE_ICON;
+          key.classList.toggle('active-state', isMuted);
         } else if (action === 'speaker') {
-          // Toggle speaker (not fully implemented)
+          toggleSpeaker(key);
         }
       });
+
+      // Best-effort output-device toggle. setSinkId is only supported on a
+      // subset of browsers (mainly desktop Chrome/Edge); elsewhere we just
+      // tell the user it isn't available rather than pretending it worked.
+      async function toggleSpeaker(key) {
+        if (typeof remoteAudioEl.setSinkId !== 'function') {
+          showToast('Output switching not supported on this browser');
+          return;
+        }
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const outputs = devices.filter(d => d.kind === 'audiooutput');
+          if (outputs.length < 2) {
+            showToast('No alternate audio output found');
+            return;
+          }
+          isSpeakerOn = !isSpeakerOn;
+          const target = isSpeakerOn ? outputs[0] : outputs[1];
+          await remoteAudioEl.setSinkId(target.deviceId);
+          key.classList.toggle('active-state', isSpeakerOn);
+        } catch (err) {
+          console.warn('setSinkId failed:', err);
+          showToast('Could not switch audio output');
+        }
+      }
 
       // ─── Share Link ──────────────────────────────────────────────
       shareLinkBtn.addEventListener('click', () => {
         if (!myNumber) return;
         const url = window.location.href.split('?')[0] + '?number=' + encodeURIComponent(myNumber);
         navigator.clipboard.writeText(url).then(() => {
-          alert('Share link copied!\n' + url);
+          showToast('Share link copied!');
         }).catch(() => {
           prompt('Share this link:', url);
         });
@@ -874,25 +1139,15 @@
         const params = new URLSearchParams(window.location.search);
         const num = params.get('number');
         if (num) {
-          dialedNumber = num;
+          dialedNumber = num.replace(/\D/g, '');
           updateDialDisplay();
-          // If already registered, optionally auto-call after delay?
-          // We'll just fill the dialer.
         }
       })();
 
       // ─── Initialize ──────────────────────────────────────────────
       if (myNumber) {
-        registrationScreen.style.display = 'none';
-        mainApp.style.display = 'block';
-        myNumberDisplay.textContent = myNumber;
-        initPeer();
-        renderHistory();
-        renderContacts();
-        // Restore country code
-        if (myCountryCode) countryCode.value = myCountryCode;
+        enterMainApp();
       } else {
-        // Show registration
         registrationScreen.style.display = 'flex';
         mainApp.style.display = 'none';
       }
