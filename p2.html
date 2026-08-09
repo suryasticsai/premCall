@@ -7,7 +7,6 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js">
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" />
   <style>
     /* ─── Reset & Base ─── */
@@ -1572,12 +1571,13 @@
       let isSpeakerOn = false;
       let isAnswering = false;
       let toastTimeout = null;
-      let otpCode = '123456'; // Fixed OTP for demo
+      let otpCode = '123456';
       let otpSent = false;
       let otpTimerInterval = null;
       let otpCooldown = 0;
+      let peerReady = false;
 
-      // ─── Contacts (simulated) ──────────────────────────────────────────
+      // ─── Contacts ──────────────────────────────────────────────────
       const CONTACTS = [
         { id: 'c1', name: 'Alice Johnson', phone: '9876543210', status: 'online', lastSeen: null },
         { id: 'c2', name: 'Bob Smith', phone: '8765432109', status: 'offline', lastSeen: '2026-08-08T14:30:00' },
@@ -1592,17 +1592,30 @@
       // ─── Call History ──────────────────────────────────────────────────
       let callHistory = JSON.parse(localStorage.getItem('premCallHistory')) || [];
 
-      // ─── ICE Servers ──────────────────────────────────────────────────
+      // ─── ICE Servers (Improved) ──────────────────────────────────────
       function getIceServers() {
         return {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
             { urls: 'stun:stun.ekiga.net' },
-            { urls: ['turn:numb.viagenie.ca:3478', 'turn:numb.viagenie.ca:443'],
-              username: 'webrtc@live.com', credential: 'muazkh' }
+            { urls: 'stun:stun.ideasip.com' },
+            {
+              urls: 'turn:openrelay.metered.ca:80',
+              username: 'openrelayproject',
+              credential: 'openrelayproject'
+            },
+            {
+              urls: 'turn:openrelay.metered.ca:443',
+              username: 'openrelayproject',
+              credential: 'openrelayproject'
+            }
           ],
-          iceCandidatePoolSize: 10
+          iceCandidatePoolSize: 10,
+          iceTransportPolicy: 'all'
         };
       }
 
@@ -1614,7 +1627,6 @@
         toastTimeout = setTimeout(() => toast.className = '', duration || 2500);
       }
 
-      // ─── Log (to console only) ──────────────────────────────────────
       function log(msg, type) {
         console.log('[PremCall]', msg);
       }
@@ -1625,12 +1637,15 @@
         if (state === 'online') {
           statusLabel.textContent = 'Online';
           profileStatus.textContent = 'Online';
+          peerReady = true;
         } else if (state === 'offline') {
           statusLabel.textContent = 'Offline';
           profileStatus.textContent = 'Offline';
+          peerReady = false;
         } else {
           statusLabel.textContent = 'Connecting…';
           profileStatus.textContent = 'Connecting…';
+          peerReady = false;
         }
       }
 
@@ -1943,6 +1958,7 @@
           localStream.getTracks().forEach(t => t.stop());
           localStream = null;
         }
+        peerReady = false;
         userData = null;
         localStorage.removeItem('premCallUser');
         mainApp.classList.remove('active');
@@ -1984,6 +2000,8 @@
           if (err.type === 'unavailable-id') {
             showToast('Number conflict. Try re-registering.', 'error');
             setStatusDot('offline');
+          } else if (err.type === 'peer-unavailable') {
+            // handled in makeCall
           } else {
             setStatusDot('offline');
             showToast('Connection error: ' + err.message, 'error');
@@ -2009,6 +2027,7 @@
             showToast('Busy – call rejected', 'error');
             return;
           }
+          // Store the call and show overlay
           incomingCall = call;
           const contact = CONTACTS.find(c => c.phone === call.peer) || { name: call.peer, phone: call.peer };
           incomingName.textContent = contact.name;
@@ -2018,6 +2037,7 @@
           incomingOverlay.classList.add('active');
           playRingtone();
 
+          // Auto-miss after 30s
           setTimeout(() => {
             if (incomingCall && incomingOverlay.classList.contains('active')) {
               log('Auto-missed from ' + call.peer, 'error');
@@ -2026,7 +2046,7 @@
               addCallHistory(call.peer, 'incoming', 'missed', 0);
               renderCallHistory();
             }
-          }, 25000);
+          }, 30000);
         });
       }
 
@@ -2037,7 +2057,7 @@
           const ctx = new(window.AudioContext || window.webkitAudioContext)();
           let count = 0;
           ringtoneInterval = setInterval(() => {
-            if (count >= 20 || !incomingOverlay.classList.contains('active')) {
+            if (count >= 24 || !incomingOverlay.classList.contains('active')) {
               stopRingtone();
               return;
             }
@@ -2062,7 +2082,8 @@
 
       // ─── Microphone ──────────────────────────────────────────────────
       async function getLocalStream() {
-        if (localStream && localStream.getAudioTracks().length > 0) {
+        if (localStream && localStream.getAudioTracks().length > 0 && localStream.getAudioTracks()[0].readyState ===
+          'live') {
           return localStream;
         }
         try {
@@ -2074,7 +2095,7 @@
           return stream;
         } catch (err) {
           log('Microphone error: ' + err.message, 'error');
-          showToast('Microphone access denied', 'error');
+          showToast('Microphone access denied. Please allow mic permissions.', 'error');
           throw err;
         }
       }
@@ -2085,7 +2106,8 @@
         remoteAudio.srcObject = stream;
         remoteAudio.muted = false;
         remoteAudio.volume = 1.0;
-        remoteAudio.play().catch(() => {
+        remoteAudio.play().catch((err) => {
+          log('Autoplay blocked: ' + err.message, 'warning');
           const resume = () => {
             remoteAudio.play().catch(() => {});
             document.removeEventListener('click', resume);
@@ -2093,7 +2115,7 @@
           };
           document.addEventListener('click', resume, { once: true });
           document.addEventListener('touchstart', resume, { once: true });
-          showToast('Tap anywhere for audio', '');
+          showToast('Tap anywhere to hear audio', '');
         });
       }
 
@@ -2111,10 +2133,11 @@
         renderCallHistory();
       }
 
-      // ─── Make Call ──────────────────────────────────────────────────
+      // ─── Make Call (FIXED) ──────────────────────────────────────────
       async function makeCall(targetNumber, targetName) {
         if (isInCall) { showToast('Already in a call', 'error'); return; }
         if (!peer) { showToast('Not connected. Please wait.', 'error'); return; }
+        if (!peerReady) { showToast('Peer not ready. Please wait.', 'error'); return; }
         if (targetNumber === userData.phone) { showToast('Cannot call yourself', 'error'); return; }
         if (!/^\d{10}$/.test(targetNumber)) { showToast('Enter a 10‑digit number', 'error'); return; }
 
@@ -2131,24 +2154,29 @@
 
         try {
           const stream = await getLocalStream();
+
+          // Create the call
           const call = peer.call(targetNumber, stream);
           if (!call) {
             log('peer.call() returned null', 'error');
-            showToast('Target offline', 'error');
+            showToast('Target offline or unreachable', 'error');
             dialCallBtn.classList.remove('disabled');
             callScreen.classList.remove('active');
+            addCallHistory(targetNumber, 'outgoing', 'missed', 0);
             return;
           }
+
           currentCall = call;
           isCaller = true;
           isInCall = true;
           callStartTime = Date.now();
 
+          // Attach stream handler BEFORE any other events
           call.on('stream', (remoteStream) => {
-            log('Remote stream received', 'success');
+            log('Remote stream received (caller)', 'success');
             attachRemoteStream(remoteStream);
             callStatus.textContent = 'Connected';
-            startTimer();
+            if (!callTimerInterval) startTimer();
             showToast('Connected', 'success');
             dialCallBtn.classList.remove('disabled');
             addCallHistory(targetNumber, 'outgoing', 'answered', 0);
@@ -2175,6 +2203,7 @@
             endCall();
           });
 
+          // Monitor ICE connection state
           const pc = call.peerConnection;
           if (pc) {
             pc.oniceconnectionstatechange = () => {
@@ -2189,8 +2218,15 @@
                 callStatus.textContent = 'Connecting...';
               }
             };
+            // Log ICE candidates
+            pc.onicecandidate = (evt) => {
+              if (evt.candidate) {
+                log('ICE candidate: ' + evt.candidate.candidate, '');
+              }
+            };
           }
 
+          // Timeout if no answer
           setTimeout(() => {
             if (isInCall && isCaller && currentCall && callStatus.textContent === 'Calling...') {
               log('Call timed out (no answer)', 'error');
@@ -2198,11 +2234,11 @@
               addCallHistory(targetNumber, 'outgoing', 'missed', 0);
               endCall();
             }
-          }, 30000);
+          }, 35000);
 
         } catch (err) {
           log('Call failed: ' + err.message, 'error');
-          showToast('Call failed', 'error');
+          showToast('Call failed: ' + err.message, 'error');
           dialCallBtn.classList.remove('disabled');
           callScreen.classList.remove('active');
           isInCall = false;
@@ -2210,15 +2246,30 @@
         }
       }
 
-      // ─── Answer Incoming ──────────────────────────────────────────────
+      // ─── Answer Incoming (FIXED) ──────────────────────────────────
       async function answerIncomingCall() {
-        if (isAnswering || !incomingCall) return;
+        if (isAnswering || !incomingCall) {
+          log('No incoming call to answer', 'error');
+          return;
+        }
         isAnswering = true;
         log('Answering from ' + incomingCall.peer, 'success');
 
         try {
           stopRingtone();
           const stream = await getLocalStream();
+
+          // Attach stream handler BEFORE answering
+          incomingCall.on('stream', (remoteStream) => {
+            log('Remote stream received (answerer)', 'success');
+            attachRemoteStream(remoteStream);
+            callStatus.textContent = 'Connected';
+            if (!callTimerInterval) startTimer();
+            showToast('Connected', 'success');
+            addCallHistory(incomingCall.peer, 'incoming', 'answered', 0);
+          });
+
+          // Now answer
           incomingCall.answer(stream);
           currentCall = incomingCall;
           isCaller = false;
@@ -2236,21 +2287,11 @@
           callScreen.classList.add('active');
           incomingOverlay.classList.remove('active');
 
-          currentCall.on('stream', (remoteStream) => {
-            log('Remote stream received (answerer)', 'success');
-            attachRemoteStream(remoteStream);
-            callStatus.textContent = 'Connected';
-            startTimer();
-            showToast('Connected', 'success');
-            addCallHistory(incomingCall.peer, 'incoming', 'answered', 0);
-          });
-
           currentCall.on('close', () => {
             const duration = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
             if (isInCall && !isCaller && duration > 0) {
               const last = callHistory[callHistory.length - 1];
-              if (last && last.phone === (currentCall ? currentCall.peer : '') && last.type ===
-                'incoming') {
+              if (last && last.phone === (currentCall ? currentCall.peer : '') && last.type === 'incoming') {
                 last.duration = duration;
                 localStorage.setItem('premCallHistory', JSON.stringify(callHistory));
                 renderCallHistory();
@@ -2269,11 +2310,14 @@
           if (pc) {
             pc.oniceconnectionstatechange = () => {
               const state = pc.iceConnectionState;
+              log('ICE: ' + state, 'warning');
               if (state === 'connected' || state === 'completed') {
                 callStatus.textContent = 'Connected';
               } else if (state === 'failed' || state === 'disconnected') {
                 showToast('Connection lost', 'error');
                 endCall();
+              } else if (state === 'checking') {
+                callStatus.textContent = 'Connecting...';
               }
             };
           }
@@ -2281,7 +2325,7 @@
           incomingCall = null;
         } catch (err) {
           log('Answer failed: ' + err.message, 'error');
-          showToast('Answer failed', 'error');
+          showToast('Answer failed: ' + err.message, 'error');
           if (incomingCall) { incomingCall.close();
             incomingCall = null; }
           incomingOverlay.classList.remove('active');
@@ -2348,7 +2392,7 @@
         const num = dialedNumber || prompt('Enter 10‑digit number:');
         if (!num) return;
         if (!/^\d{10}$/.test(num)) { showToast('Enter 10 digits', 'error'); return; }
-        if (!peer) { statusResult.textContent = 'Not connected'; return; }
+        if (!peer || !peerReady) { statusResult.textContent = 'Not connected'; return; }
         statusResult.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
         try {
           const conn = peer.connect(num);
@@ -2483,12 +2527,10 @@
         isSpeakerOn = !isSpeakerOn;
         speakerBtn.className = isSpeakerOn ? 'speaker active' : 'speaker';
         showToast(isSpeakerOn ? 'Speaker on' : 'Earpiece', '');
-        if (remoteAudio) {
-          if (typeof remoteAudio.setSinkId === 'function') {
-            try {
-              remoteAudio.setSinkId(isSpeakerOn ? 'speaker' : 'default').catch(() => {});
-            } catch (e) {}
-          }
+        if (remoteAudio && typeof remoteAudio.setSinkId === 'function') {
+          try {
+            remoteAudio.setSinkId(isSpeakerOn ? 'speaker' : 'default').catch(() => {});
+          } catch (e) {}
         }
       });
 
@@ -2557,11 +2599,11 @@
         const num = params.get('number');
         if (num && /^\d{10}$/.test(num) && userData) {
           setTimeout(() => {
-            if (peer) {
+            if (peer && peerReady) {
               const contact = CONTACTS.find(c => c.phone === num);
               makeCall(num, contact ? contact.name : num);
             }
-          }, 2000);
+          }, 2500);
         }
       })();
 
@@ -2576,7 +2618,7 @@
       }
 
       // ─── Expose for debugging ──────────────────────────────────────────
-      window.premCall = { makeCall, endCall, peer, userData, getLocalStream };
+      window.premCall = { makeCall, endCall, peer, userData, getLocalStream, peerReady };
 
       log('PremCall v2.0 ready.', 'success');
 
