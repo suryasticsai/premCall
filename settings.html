@@ -1,170 +1,529 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Settings – PremCall</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0b0e17;
-      color: #e8edf5;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 1rem;
-    }
-    .settings-card {
-      max-width: 400px;
-      width: 100%;
-      background: #131a26;
-      padding: 2rem 1.5rem;
-      border-radius: 28px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
-    }
-    h1 {
-      font-size: 1.8rem;
-      margin-bottom: 0.5rem;
-      color: #4f8cf7;
-    }
-    p {
-      color: #8892b0;
-      margin-bottom: 1.5rem;
-    }
-    label {
-      display: block;
-      font-weight: 600;
-      font-size: 0.9rem;
-      margin-bottom: 0.4rem;
-      color: #94a3b8;
-    }
-    .input-group {
-      display: flex;
-      gap: 0.5rem;
-    }
-    input {
-      flex: 1;
-      padding: 0.6rem 1rem;
-      border-radius: 40px;
-      border: 1px solid #2a3a5a;
-      background: #0b0e17;
-      color: #e8edf5;
-      font-size: 1rem;
-      outline: none;
-      transition: border 0.2s;
-    }
-    input:focus { border-color: #4f8cf7; }
-    input::placeholder { color: #4a5a6a; }
-    .btn {
-      padding: 0.6rem 1.4rem;
-      border: none;
-      border-radius: 40px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: #1a4a8a;
-      color: #fff;
-    }
-    .btn:hover { background: #2563d6; }
-    .btn-success { background: #1a7a4a; }
-    .btn-success:hover { background: #1f9b5e; }
-    .btn-danger { background: #8a1a2a; }
-    .btn-danger:hover { background: #b52238; }
-    .status {
-      margin-top: 0.8rem;
-      font-size: 0.9rem;
-      color: #8892b0;
-      min-height: 1.5rem;
-    }
-    .status.success { color: #4ade80; }
-    .status.error { color: #f87171; }
-    .actions {
-      display: flex;
-      gap: 0.5rem;
-      margin-top: 1rem;
-      flex-wrap: wrap;
-    }
-    .actions a {
-      color: #4f8cf7;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 0.9rem;
-      padding: 0.4rem 1rem;
-      border-radius: 40px;
-      background: #1a2338;
-    }
-    .actions a:hover { background: #2a3a5a; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#070a12" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Register – PremCall</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+<style>
+  :root{
+    --bg-0:#05070d; --bg-1:#0a0e18; --surface:#0e1424; --surface-2:#141c30; --surface-3:#1b2540;
+    --line:#1e2a42; --text:#eef2fb; --text-dim:#8891ab; --text-faint:#525d78;
+    --signal:#4f8cf7; --signal-soft:#2f5fc4;
+    --go:#2fd992; --go-deep:#12683f;
+    --stop:#ff5470; --stop-deep:#7a1730;
+    --warn:#ffb648; --warn-deep:#5c3d10;
+    --radius-xl:30px; --radius-lg:22px; --radius-md:16px;
+    --font-display:'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:var(--font-body); color:var(--text);
+    background:
+      radial-gradient(1100px 700px at 15% -10%, #10203f 0%, transparent 55%),
+      radial-gradient(900px 600px at 110% 10%, #1a1035 0%, transparent 50%),
+      var(--bg-0);
+    min-height:100vh; min-height:100dvh;
+    display:flex; justify-content:center; align-items:center;
+    padding: calc(1.25rem + var(--safe-t)) 1.25rem calc(1.25rem + var(--safe-b));
+  }
+  @media (prefers-reduced-motion: reduce){ *{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; } }
+
+  .card{
+    width:100%; max-width:420px;
+    background:linear-gradient(180deg, var(--bg-1), var(--surface));
+    border:1px solid var(--line); border-radius:var(--radius-xl);
+    padding:1.9rem 1.6rem;
+    box-shadow:0 30px 80px -20px rgba(0,0,0,0.7);
+    position:relative; overflow:hidden;
+  }
+  .card::before{
+    content:""; position:absolute; top:-60px; right:-60px; width:180px; height:180px; border-radius:50%;
+    background:radial-gradient(circle, rgba(79,140,247,0.16), transparent 70%); pointer-events:none;
+  }
+
+  .top-icon{
+    width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(155deg, var(--surface-3), var(--surface)); border:1px solid var(--line);
+    color:var(--signal); font-size:1.35rem; margin-bottom:1rem;
+  }
+  h1{ font-family:var(--font-display); font-size:1.55rem; font-weight:700; letter-spacing:-0.01em; margin-bottom:0.3rem; }
+  .lede{ color:var(--text-dim); font-size:0.88rem; line-height:1.5; margin-bottom:1.5rem; }
+
+  .steps{ display:flex; gap:0.4rem; margin-bottom:1.5rem; }
+  .steps .dot{ height:4px; flex:1; border-radius:4px; background:var(--line); transition:background .3s; }
+  .steps .dot.done{ background:var(--go); }
+  .steps .dot.active{ background:var(--signal); }
+
+  label{ display:block; font-weight:600; font-size:0.78rem; color:var(--text-dim); margin-bottom:0.5rem; letter-spacing:0.01em; }
+
+  .phone-group{ display:flex; gap:0.5rem; }
+  .cc{
+    display:flex; align-items:center; justify-content:center; padding:0 0.9rem; border-radius:var(--radius-md);
+    background:var(--surface-2); border:1px solid var(--line); color:var(--text-dim); font-weight:600; font-size:0.95rem;
+    font-family:var(--font-display); flex-shrink:0;
+  }
+  input[type="tel"], input[type="text"]{
+    flex:1; width:100%; padding:0.75rem 1rem; border-radius:var(--radius-md); border:1px solid var(--line);
+    background:var(--bg-0); color:var(--text); font-size:1.02rem; outline:none; font-family:var(--font-display);
+    letter-spacing:0.05em; transition:border-color .15s, box-shadow .15s;
+  }
+  input:focus{ border-color:var(--signal); box-shadow:0 0 0 3px rgba(79,140,247,0.15); }
+  input::placeholder{ color:var(--text-faint); font-family:var(--font-body); letter-spacing:0; }
+  input.invalid{ border-color:var(--stop); box-shadow:0 0 0 3px rgba(255,84,112,0.15); }
+
+  .field{ margin-bottom:1.1rem; }
+  .hint-line{ font-size:0.74rem; color:var(--text-faint); margin-top:0.4rem; }
+
+  /* agreement switch */
+  .agree-row{
+    display:flex; align-items:flex-start; gap:0.7rem; background:var(--surface-2); border:1px solid var(--line);
+    border-radius:var(--radius-md); padding:0.85rem 0.9rem; margin-bottom:1.3rem;
+  }
+  .switch{ position:relative; width:42px; height:24px; flex-shrink:0; margin-top:1px; }
+  .switch input{ opacity:0; width:0; height:0; position:absolute; }
+  .switch .track{
+    position:absolute; inset:0; background:var(--surface-3); border:1px solid var(--line); border-radius:20px; cursor:pointer; transition:background .2s, border-color .2s;
+  }
+  .switch .track::before{
+    content:""; position:absolute; width:18px; height:18px; left:2px; top:2px; border-radius:50%;
+    background:var(--text-dim); transition:transform .2s, background .2s;
+  }
+  .switch input:checked + .track{ background:var(--go-deep); border-color:var(--go); }
+  .switch input:checked + .track::before{ transform:translateX(18px); background:var(--go); }
+  .agree-text{ font-size:0.8rem; color:var(--text-dim); line-height:1.45; }
+  .agree-text a{ color:var(--signal); text-decoration:none; font-weight:600; cursor:pointer; }
+  .agree-text a:hover{ text-decoration:underline; }
+
+  .terms-box{
+    display:none; max-height:150px; overflow-y:auto; background:var(--bg-0); border:1px solid var(--line);
+    border-radius:var(--radius-md); padding:0.8rem 0.9rem; font-size:0.74rem; line-height:1.55; color:var(--text-faint);
+    margin:-0.6rem 0 1.1rem;
+  }
+  .terms-box.open{ display:block; }
+  .terms-box p{ margin-bottom:0.6rem; }
+  .terms-box p:last-child{ margin-bottom:0; }
+
+  .btn-primary{
+    width:100%; padding:0.85rem; border:none; border-radius:var(--radius-md); font-weight:700; font-size:0.95rem;
+    cursor:pointer; color:#04140c; background:linear-gradient(160deg, var(--go), #17a06a);
+    box-shadow:0 10px 26px -8px rgba(47,217,146,0.5); transition:opacity .15s, transform .08s;
+    display:flex; align-items:center; justify-content:center; gap:0.5rem; font-family:var(--font-body);
+  }
+  .btn-primary:active{ transform:scale(0.98); }
+  .btn-primary:disabled{ opacity:0.35; cursor:not-allowed; box-shadow:none; }
+
+  .btn-ghost{
+    width:100%; padding:0.7rem; border-radius:var(--radius-md); font-weight:600; font-size:0.85rem; cursor:pointer;
+    background:transparent; border:1px solid var(--line); color:var(--text-dim); margin-top:0.6rem;
+    transition:background .15s, color .15s;
+  }
+  .btn-ghost:hover{ background:var(--surface-2); color:var(--text); }
+  .btn-danger{ border-color:var(--stop-deep); color:var(--stop); }
+  .btn-danger:hover{ background:var(--stop-deep); color:#fff; }
+
+  .link-row{ display:flex; justify-content:space-between; align-items:center; margin-top:0.9rem; font-size:0.8rem; }
+  .link-row button{ background:none; border:none; color:var(--signal); font-weight:600; cursor:pointer; font-size:0.8rem; padding:0.2rem; }
+  .link-row button:disabled{ color:var(--text-faint); cursor:not-allowed; }
+  .link-row .muted{ color:var(--text-faint); }
+
+  .masked-number{
+    display:flex; align-items:center; justify-content:space-between; background:var(--surface-2); border:1px solid var(--line);
+    border-radius:var(--radius-md); padding:0.75rem 1rem; margin-bottom:1.2rem;
+  }
+  .masked-number .num{ font-family:var(--font-display); font-size:1.1rem; letter-spacing:0.06em; }
+  .masked-number button{ background:none; border:none; color:var(--signal); font-size:0.78rem; font-weight:600; cursor:pointer; }
+
+  .otp-row{ display:flex; gap:0.5rem; margin-bottom:0.4rem; }
+  .otp-row input{
+    width:100%; aspect-ratio:1/1; text-align:center; padding:0; font-size:1.35rem; font-weight:700; letter-spacing:0;
+  }
+  .otp-error{ color:var(--stop); font-size:0.78rem; min-height:1.1rem; margin-bottom:0.9rem; display:flex; align-items:center; gap:0.4rem; }
+  .otp-row.shake{ animation:shake .4s; }
+  @keyframes shake{ 20%,60%{ transform:translateX(-8px); } 40%,80%{ transform:translateX(8px); } }
+
+  .demo-banner{
+    background:linear-gradient(155deg, var(--warn-deep), #22160a); border:1px dashed var(--warn); border-radius:var(--radius-md);
+    padding:0.75rem 0.9rem; font-size:0.76rem; color:#ffd7a0; margin-bottom:1.2rem; line-height:1.5;
+    display:flex; gap:0.6rem; align-items:flex-start;
+  }
+  .demo-banner i{ margin-top:2px; color:var(--warn); }
+  .demo-banner .code{
+    display:inline-flex; align-items:center; gap:0.4rem; font-family:var(--font-display); font-weight:700; letter-spacing:0.15em;
+    background:rgba(0,0,0,0.25); padding:0.15rem 0.55rem; border-radius:8px; margin-top:0.35rem; color:#fff; font-size:0.85rem;
+  }
+  .demo-banner .code button{ background:none; border:none; color:var(--warn); cursor:pointer; font-size:0.8rem; }
+
+  /* success / registered state */
+  .success-hero{ display:flex; flex-direction:column; align-items:center; text-align:center; padding:0.5rem 0 1.5rem; }
+  .success-ring{
+    width:78px; height:78px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(circle, rgba(47,217,146,0.18), transparent 70%); margin-bottom:0.9rem; position:relative;
+  }
+  .success-ring::before{ content:""; position:absolute; inset:0; border-radius:50%; border:1.5px solid var(--go); opacity:0.5; animation:pulse-ring 2.4s ease-out infinite; }
+  @keyframes pulse-ring{ 0%{ transform:scale(0.8); opacity:0.5; } 100%{ transform:scale(1.6); opacity:0; } }
+  .success-ring i{ font-size:1.9rem; color:var(--go); z-index:1; }
+  .success-hero .num{ font-family:var(--font-display); font-size:1.3rem; font-weight:700; letter-spacing:0.04em; margin-bottom:0.2rem; }
+  .success-hero .since{ font-size:0.78rem; color:var(--text-faint); }
+  .badge{
+    display:inline-flex; align-items:center; gap:0.35rem; font-size:0.72rem; font-weight:700; color:var(--go);
+    background:rgba(47,217,146,0.12); border:1px solid var(--go-deep); padding:0.25rem 0.65rem; border-radius:20px; margin-top:0.6rem;
+  }
+  .lock-note{
+    display:flex; gap:0.6rem; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-md);
+    padding:0.8rem 0.9rem; font-size:0.78rem; color:var(--text-dim); line-height:1.5; margin:1.2rem 0;
+  }
+  .lock-note i{ color:var(--text-faint); margin-top:2px; }
+
+  #toast{
+    position:fixed; bottom:calc(28px + var(--safe-b)); left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--surface-3); border:1px solid var(--line); color:var(--text); padding:0.7rem 1.3rem; border-radius:40px;
+    font-size:0.85rem; font-weight:500; opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease; z-index:4000;
+    max-width:88%; text-align:center; box-shadow:0 10px 34px rgba(0,0,0,0.55);
+  }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .step{ display:none; }
+  .step.active{ display:block; }
+</style>
 </head>
 <body>
-  <div class="settings-card">
-    <h1>⚙️ Settings</h1>
-    <p>Change your 10‑digit phone number.</p>
 
-    <label for="phoneInput">Your Number (10 digits)</label>
-    <div class="input-group">
-      <input type="tel" id="phoneInput" placeholder="e.g. 1234567890" maxlength="10" inputmode="numeric" />
-      <button class="btn" id="saveBtn">Save</button>
+<div class="card">
+  <div class="top-icon"><i class="fas fa-shield-halved"></i></div>
+
+  <div class="steps">
+    <div class="dot" id="dot1"></div>
+    <div class="dot" id="dot2"></div>
+  </div>
+
+  <!-- STEP 1: Register -->
+  <div class="step" id="step1">
+    <h1>Register your number</h1>
+    <p class="lede">This number becomes your permanent PremCall ID. It can't be changed once verified — choose carefully.</p>
+
+    <div class="field">
+      <label for="phoneInput">Phone number</label>
+      <div class="phone-group">
+        <span class="cc">+91</span>
+        <input type="tel" id="phoneInput" placeholder="10-digit number" maxlength="10" inputmode="numeric" autocomplete="tel-national" />
+      </div>
+      <div class="hint-line" id="phoneHint">We'll send a one-time code to confirm it's yours.</div>
     </div>
-    <div class="status" id="statusMsg"></div>
 
-    <div class="actions">
-      <button class="btn btn-danger" id="clearBtn">Clear saved</button>
-      <a href="index.html">← Back to dialer</a>
+    <div class="agree-row">
+      <label class="switch">
+        <input type="checkbox" id="agreeSwitch" />
+        <span class="track"></span>
+      </label>
+      <div class="agree-text">
+        I agree to the <a id="termsToggle">Terms &amp; Registration Agreement</a> and confirm this number belongs to me.
+      </div>
+    </div>
+
+    <div class="terms-box" id="termsBox">
+      <p><strong>1. One number, one identity.</strong> Each phone number may register once. After verification the number is locked to this device's local storage and cannot be edited from this screen.</p>
+      <p><strong>2. Verification.</strong> A one-time code confirms ownership before the number becomes your PremCall ID.</p>
+      <p><strong>3. Local data.</strong> Your number and registration status are stored only in this browser's local storage — nothing is sent to a remote account system.</p>
+      <p><strong>4. Resetting.</strong> You can clear your registration at any time from the Registered screen if you need to start over on this device.</p>
+    </div>
+
+    <button class="btn-primary" id="sendOtpBtn" disabled>
+      <i class="fas fa-paper-plane"></i> Send verification code
+    </button>
+  </div>
+
+  <!-- STEP 2: Verify -->
+  <div class="step" id="step2">
+    <h1>Verify your number</h1>
+    <p class="lede">Enter the 6-digit code sent to your registered number.</p>
+
+    <div class="masked-number">
+      <span class="num" id="maskedNumber">+91 •••• ••789</span>
+      <button id="changeNumberBtn">Change</button>
+    </div>
+
+    <div class="demo-banner" id="demoBanner">
+      <i class="fas fa-flask"></i>
+      <div>
+        No SMS gateway is wired up yet, so here's your demo code for testing:
+        <div class="code"><span id="demoCode">••••••</span><button id="copyCodeBtn"><i class="fas fa-copy"></i></button></div>
+      </div>
+    </div>
+
+    <label>Verification code</label>
+    <div class="otp-row" id="otpRow">
+      <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
+      <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
+      <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
+      <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
+      <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
+      <input type="text" inputmode="numeric" maxlength="1" class="otp-box" />
+    </div>
+    <div class="otp-error" id="otpError"></div>
+
+    <button class="btn-primary" id="verifyBtn">
+      <i class="fas fa-check"></i> Verify &amp; register
+    </button>
+
+    <div class="link-row">
+      <span class="muted" id="resendHint">Resend available in <span id="cooldown">30</span>s</span>
+      <button id="resendBtn" disabled>Resend code</button>
     </div>
   </div>
 
-  <script>
-    (function() {
-      const input = document.getElementById('phoneInput');
-      const saveBtn = document.getElementById('saveBtn');
-      const clearBtn = document.getElementById('clearBtn');
-      const status = document.getElementById('statusMsg');
+  <!-- STEP 3: Registered (locked) -->
+  <div class="step" id="step3">
+    <div class="success-hero">
+      <div class="success-ring"><i class="fas fa-circle-check"></i></div>
+      <div class="num" id="registeredNumber">+91 8341277189</div>
+      <div class="since" id="registeredSince">Registered Jan 1, 2026</div>
+      <span class="badge"><i class="fas fa-lock"></i> Verified &amp; locked</span>
+    </div>
 
-      function loadNumber() {
-        const num = localStorage.getItem('premCallNumber');
-        if (num) {
-          input.value = num;
-          status.textContent = 'Current number: ' + num;
-          status.className = 'status success';
-        } else {
-          status.textContent = 'No number saved.';
-          status.className = 'status';
-        }
+    <div class="lock-note">
+      <i class="fas fa-circle-info"></i>
+      <span>Your number is locked to keep your PremCall ID stable across calls. To use a different number, reset your registration below — this clears all local call history too.</span>
+    </div>
+
+    <a href="index.html" class="btn-primary" style="text-decoration:none;"><i class="fas fa-phone"></i> Back to dialer</a>
+    <button class="btn-ghost btn-danger" id="resetBtn"><i class="fas fa-rotate-left"></i> Reset registration</button>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  const step1 = document.getElementById('step1');
+  const step2 = document.getElementById('step2');
+  const step3 = document.getElementById('step3');
+  const dot1 = document.getElementById('dot1');
+  const dot2 = document.getElementById('dot2');
+
+  const phoneInput   = document.getElementById('phoneInput');
+  const phoneHint    = document.getElementById('phoneHint');
+  const agreeSwitch  = document.getElementById('agreeSwitch');
+  const termsToggle  = document.getElementById('termsToggle');
+  const termsBox     = document.getElementById('termsBox');
+  const sendOtpBtn   = document.getElementById('sendOtpBtn');
+
+  const maskedNumber   = document.getElementById('maskedNumber');
+  const changeNumberBtn= document.getElementById('changeNumberBtn');
+  const demoCode       = document.getElementById('demoCode');
+  const copyCodeBtn    = document.getElementById('copyCodeBtn');
+  const otpRow         = document.getElementById('otpRow');
+  const otpBoxes        = Array.from(document.querySelectorAll('.otp-box'));
+  const otpError        = document.getElementById('otpError');
+  const verifyBtn       = document.getElementById('verifyBtn');
+  const resendBtn       = document.getElementById('resendBtn');
+  const resendHint      = document.getElementById('resendHint');
+  const cooldownEl      = document.getElementById('cooldown');
+
+  const registeredNumber = document.getElementById('registeredNumber');
+  const registeredSince  = document.getElementById('registeredSince');
+  const resetBtn         = document.getElementById('resetBtn');
+
+  const toast = document.getElementById('toast');
+
+  let pendingNumber = '';
+  let currentOtp = '';
+  let cooldownTimer = null;
+  let wrongAttempts = 0;
+  let lockedOutUntil = 0;
+
+  function vibrate(p){ if (navigator.vibrate) { try { navigator.vibrate(p); } catch(e){} } }
+
+  function showToast(msg, dur){
+    toast.textContent = msg; toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => toast.classList.remove('show'), dur || 2500);
+  }
+
+  function showStep(n){
+    [step1, step2, step3].forEach(s => s.classList.remove('active'));
+    dot1.className = 'dot'; dot2.className = 'dot';
+    if (n === 1) { step1.classList.add('active'); dot1.className = 'dot active'; }
+    if (n === 2) { step2.classList.add('active'); dot1.className = 'dot done'; dot2.className = 'dot active'; }
+    if (n === 3) { step3.classList.add('active'); dot1.className = 'dot done'; dot2.className = 'dot done'; }
+  }
+
+  function maskNumber(num){
+    return '+91 ' + num.slice(0,4) + ' •• ' + num.slice(-3);
+  }
+
+  /* ---------- Step 1: entry + agreement ---------- */
+  function validateStep1(){
+    const digitsOk = /^\d{10}$/.test(phoneInput.value.trim());
+    sendOtpBtn.disabled = !(digitsOk && agreeSwitch.checked);
+    phoneInput.classList.toggle('invalid', phoneInput.value.length > 0 && !digitsOk);
+    phoneHint.textContent = digitsOk
+      ? 'Looks good — we\'ll send a one-time code to confirm it\'s yours.'
+      : 'Enter exactly 10 digits, no spaces or symbols.';
+  }
+  phoneInput.addEventListener('input', () => {
+    phoneInput.value = phoneInput.value.replace(/\D/g, '').slice(0, 10);
+    validateStep1();
+  });
+  agreeSwitch.addEventListener('change', validateStep1);
+
+  termsToggle.addEventListener('click', () => {
+    termsBox.classList.toggle('open');
+  });
+
+  function genOtp(){ return String(Math.floor(100000 + Math.random() * 900000)); }
+
+  function startCooldown(seconds){
+    clearInterval(cooldownTimer);
+    let remaining = seconds;
+    resendBtn.disabled = true;
+    resendHint.style.display = 'inline';
+    cooldownEl.textContent = remaining;
+    cooldownTimer = setInterval(() => {
+      remaining--;
+      cooldownEl.textContent = remaining;
+      if (remaining <= 0) {
+        clearInterval(cooldownTimer);
+        resendBtn.disabled = false;
+        resendHint.textContent = '';
       }
+    }, 1000);
+  }
 
-      function saveNumber() {
-        const val = input.value.trim();
-        if (!/^\d{10}$/.test(val)) {
-          status.textContent = 'Enter exactly 10 digits.';
-          status.className = 'status error';
-          return;
-        }
-        localStorage.setItem('premCallNumber', val);
-        status.textContent = 'Saved! Number: ' + val;
-        status.className = 'status success';
-        // Optionally reload the main page or show success
-        setTimeout(() => { window.location.href = 'index.html'; }, 1500);
+  function sendOtp(isResend){
+    currentOtp = genOtp();
+    demoCode.textContent = currentOtp;
+    maskedNumber.querySelector ? null : null;
+    document.getElementById('maskedNumber').firstElementChild.textContent = maskNumber(pendingNumber);
+    otpBoxes.forEach(b => b.value = '');
+    otpError.textContent = '';
+    otpBoxes[0].focus();
+    startCooldown(30);
+    showToast(isResend ? 'New code sent to your registered number' : 'OTP sent to your registered number');
+    vibrate(15);
+  }
+
+  sendOtpBtn.addEventListener('click', () => {
+    if (sendOtpBtn.disabled) return;
+    pendingNumber = phoneInput.value.trim();
+    showStep(2);
+    sendOtp(false);
+  });
+
+  /* ---------- Step 2: OTP verification ---------- */
+  changeNumberBtn.addEventListener('click', () => {
+    clearInterval(cooldownTimer);
+    showStep(1);
+  });
+
+  copyCodeBtn.addEventListener('click', () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(currentOtp).then(() => showToast('Code copied')).catch(() => {});
+    }
+  });
+
+  otpBoxes.forEach((box, i) => {
+    box.addEventListener('input', () => {
+      box.value = box.value.replace(/\D/g, '').slice(0, 1);
+      if (box.value && i < otpBoxes.length - 1) otpBoxes[i + 1].focus();
+      otpError.textContent = '';
+    });
+    box.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !box.value && i > 0) otpBoxes[i - 1].focus();
+    });
+    box.addEventListener('paste', (e) => {
+      const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+      if (!text) return;
+      e.preventDefault();
+      text.slice(0, 6).split('').forEach((ch, idx) => { if (otpBoxes[idx]) otpBoxes[idx].value = ch; });
+      const nextEmpty = otpBoxes.findIndex(b => !b.value);
+      (nextEmpty === -1 ? otpBoxes[otpBoxes.length - 1] : otpBoxes[nextEmpty]).focus();
+    });
+  });
+
+  resendBtn.addEventListener('click', () => { if (!resendBtn.disabled) sendOtp(true); });
+
+  verifyBtn.addEventListener('click', () => {
+    if (Date.now() < lockedOutUntil) {
+      const secs = Math.ceil((lockedOutUntil - Date.now()) / 1000);
+      otpError.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Too many attempts — try again in ' + secs + 's';
+      return;
+    }
+    const entered = otpBoxes.map(b => b.value).join('');
+    if (entered.length < 6) {
+      otpError.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Enter all 6 digits';
+      otpRow.classList.add('shake');
+      setTimeout(() => otpRow.classList.remove('shake'), 400);
+      return;
+    }
+    if (entered !== currentOtp) {
+      wrongAttempts++;
+      vibrate([40, 40, 40]);
+      otpRow.classList.add('shake');
+      setTimeout(() => otpRow.classList.remove('shake'), 400);
+      if (wrongAttempts >= 5) {
+        lockedOutUntil = Date.now() + 60000;
+        otpError.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Too many wrong attempts — locked for 60s';
+        wrongAttempts = 0;
+      } else {
+        otpError.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Incorrect code — ' + (5 - wrongAttempts) + ' attempt(s) left';
       }
+      return;
+    }
 
-      function clearNumber() {
-        localStorage.removeItem('premCallNumber');
-        input.value = '';
-        status.textContent = 'Cleared.';
-        status.className = 'status';
-        // reload to reflect changes
-        setTimeout(() => { window.location.href = 'index.html'; }, 1000);
-      }
+    // success
+    localStorage.setItem('premCallNumber', pendingNumber);
+    localStorage.setItem('premCallVerified', 'true');
+    localStorage.setItem('premCallRegisteredAt', String(Date.now()));
+    vibrate(20);
+    showToast('Number verified — you\'re all set');
+    setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+  });
 
-      saveBtn.addEventListener('click', saveNumber);
-      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveNumber(); });
-      clearBtn.addEventListener('click', clearNumber);
+  /* ---------- Step 3: already registered ---------- */
+  resetBtn.addEventListener('click', () => {
+    const ok = confirm('Reset registration? This clears your number and call history on this device.');
+    if (!ok) return;
+    localStorage.removeItem('premCallNumber');
+    localStorage.removeItem('premCallVerified');
+    localStorage.removeItem('premCallRegisteredAt');
+    localStorage.removeItem('premCallHistory');
+    showToast('Registration reset');
+    setTimeout(() => { phoneInput.value = ''; agreeSwitch.checked = false; validateStep1(); showStep(1); }, 600);
+  });
 
-      loadNumber();
-    })();
-  </script>
+  /* ---------- boot ---------- */
+  (function init(){
+    const num = localStorage.getItem('premCallNumber');
+    const verified = localStorage.getItem('premCallVerified') === 'true';
+    const since = localStorage.getItem('premCallRegisteredAt');
+    if (num && verified) {
+      registeredNumber.textContent = maskNumber(num).replace('••', num.slice(4, -3) || '••');
+      registeredNumber.textContent = '+91 ' + num.slice(0, 4) + ' ' + num.slice(4, 7) + ' ' + num.slice(7);
+      registeredSince.textContent = since
+        ? 'Registered ' + new Date(Number(since)).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+        : 'Registered';
+      showStep(3);
+    } else {
+      validateStep1();
+      showStep(1);
+    }
+  })();
+})();
+</script>
 </body>
 </html>
