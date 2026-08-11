@@ -291,7 +291,7 @@
       </div>
     </div>
 
-    <a href="settings.html" class="settings-link"><i class="fas fa-sliders"></i> Change number</a>
+    <a href="settings.html" class="settings-link"><i class="fas fa-shield-halved"></i> <span id="settingsLinkText">Registration</span></a>
 
     <div class="dialer-section">
       <div class="dialer-display" id="dialDisplay">
@@ -530,7 +530,11 @@
   }
 
   function setStatusDot(state) { if (headerStatusDot) headerStatusDot.className = 'status-dot ' + state; }
-  function getStoredNumber() { return localStorage.getItem('premCallNumber') || null; }
+  function getStoredNumber() {
+    const num = localStorage.getItem('premCallNumber');
+    const verified = localStorage.getItem('premCallVerified') === 'true';
+    return (num && verified) ? num : null;
+  }
 
   function startTimer() {
     if (callTimerInterval) clearInterval(callTimerInterval);
@@ -599,9 +603,10 @@
   function initPremCall() {
     const number = getStoredNumber();
     if (!number) {
-      if (myNumberDisplay) myNumberDisplay.textContent = 'Not set';
+      if (myNumberDisplay) myNumberDisplay.textContent = 'Not registered';
       setStatusDot('offline');
-      log('No number set. Go to Settings to set your number.', 'warning');
+      log('No verified number yet. Tap Registration to set one up.', 'warning');
+      showToast('Register your number to start calling');
       return;
     }
     if (!/^\d{10}$/.test(number)) {
