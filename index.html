@@ -17,30 +17,23 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 <style>
   :root{
-    --bg-0:#05070d;
-    --bg-1:#0a0e18;
-    --surface:#0e1424;
-    --surface-2:#141c30;
-    --surface-3:#1b2540;
-    --line:#1e2a42;
-    --text:#eef2fb;
-    --text-dim:#8891ab;
-    --text-faint:#525d78;
-    --signal:#4f8cf7;
-    --signal-soft:#2f5fc4;
-    --go:#2fd992;
-    --go-deep:#12683f;
-    --stop:#ff5470;
-    --stop-deep:#7a1730;
-    --warn:#ffb648;
-    --warn-deep:#5c3d10;
-    --radius-xl:30px;
-    --radius-lg:22px;
-    --radius-md:16px;
+    --bg-0:#05070d; --bg-1:#0a0e18; --surface:#0e1424; --surface-2:#141c30; --surface-3:#1b2540;
+    --line:#1e2a42; --text:#eef2fb; --text-dim:#8891ab; --text-faint:#525d78;
+    --signal:#4f8cf7; --signal-soft:#2f5fc4; --go:#2fd992; --go-deep:#12683f;
+    --stop:#ff5470; --stop-deep:#7a1730; --warn:#ffb648; --warn-deep:#5c3d10;
+    --radius-xl:30px; --radius-lg:22px; --radius-md:16px;
     --font-display:'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-body:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     --safe-t: env(safe-area-inset-top, 0px);
     --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Light mode overrides */
+  body.light-mode{
+    --bg-0:#f0f2f5; --bg-1:#ffffff; --surface:#ffffff; --surface-2:#f8fafc; --surface-3:#f1f5f9;
+    --line:#d1d5db; --text:#111827; --text-dim:#4b5563; --text-faint:#9ca3af;
+    --signal:#2563eb; --signal-soft:#1d4ed8; --go:#10b981; --go-deep:#047857;
+    --stop:#ef4444; --stop-deep:#b91c1c; --warn:#f59e0b; --warn-deep:#b45309;
   }
 
   *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
@@ -49,67 +42,48 @@
     font-family:var(--font-body);
     color:var(--text);
     background:
-      radial-gradient(1100px 700px at 15% -10%, #10203f 0%, transparent 55%),
-      radial-gradient(900px 600px at 110% 10%, #1a1035 0%, transparent 50%),
+      radial-gradient(1100px 700px at 15% -10%, var(--bg-1) 0%, transparent 55%),
+      radial-gradient(900px 600px at 110% 10%, var(--bg-1) 0%, transparent 50%),
       var(--bg-0);
-    min-height:100vh;
-    min-height:100dvh;
-    display:flex;
-    justify-content:center;
-    align-items:flex-start;
-    overflow-x:hidden;
+    min-height:100vh; min-height:100dvh;
+    display:flex; justify-content:center; align-items:flex-start; overflow-x:hidden;
+    transition:background .3s ease, color .3s ease;
   }
 
   @media (prefers-reduced-motion: reduce){
     *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
   }
 
-  .stage{
-    width:100%;
-    display:flex;
-    justify-content:center;
-    padding:0;
-  }
+  .stage{ width:100%; display:flex; justify-content:center; padding:0; }
 
   .phone-frame{
-    position:relative;
-    width:100%;
-    max-width:428px;
-    min-height:100vh;
-    min-height:100dvh;
+    position:relative; width:100%; max-width:428px; min-height:100vh; min-height:100dvh;
     background:linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%);
-    display:flex;
-    flex-direction:column;
-    padding: calc(1.1rem + var(--safe-t)) 1.15rem calc(1.1rem + var(--safe-b));
+    display:flex; flex-direction:column; padding: calc(1.1rem + var(--safe-t)) 1.15rem calc(1.1rem + var(--safe-b));
+    transition:background .3s ease;
   }
 
   @media (min-width: 620px){
     body{ align-items:center; padding:3rem 1.5rem; }
     .phone-frame{
-      min-height:auto;
-      height:min(860px, 92vh);
-      border-radius:44px;
-      box-shadow:
-        0 0 0 10px #050810,
-        0 0 0 11px #23304e,
-        0 40px 100px -20px rgba(0,0,0,0.75),
-        0 0 90px -10px rgba(79,140,247,0.18);
+      min-height:auto; height:min(860px, 92vh); border-radius:44px;
+      box-shadow: 0 0 0 10px #050810, 0 0 0 11px #23304e, 0 40px 100px -20px rgba(0,0,0,0.75), 0 0 90px -10px rgba(79,140,247,0.18);
       overflow:hidden;
     }
+    body.light-mode .phone-frame{
+      box-shadow: 0 0 0 10px #d1d5db, 0 0 0 11px #9ca3af, 0 40px 100px -20px rgba(0,0,0,0.2), 0 0 90px -10px rgba(37,99,235,0.15);
+    }
     .phone-frame::before{
-      content:"";
-      position:absolute; top:14px; left:50%; transform:translateX(-50%);
+      content:""; position:absolute; top:14px; left:50%; transform:translateX(-50%);
       width:120px; height:22px; background:#050810; border-radius:0 0 16px 16px; z-index:5;
     }
+    body.light-mode .phone-frame::before{ background:#d1d5db; }
     .phone-frame{ padding-top: calc(2.2rem); }
   }
 
-  .header{
-    display:flex; justify-content:space-between; align-items:center;
-    padding-bottom:0.85rem; border-bottom:1px solid var(--line); flex-shrink:0;
-  }
-  .brand{ display:flex; align-items:center; gap:0.55rem; }
-  .brand img{ height:30px; width:30px; border-radius:9px; object-fit:cover; }
+  .header{ display:flex; justify-content:space-between; align-items:center; padding-bottom:0.85rem; border-bottom:1px solid var(--line); flex-shrink:0; }
+  .brand{ display:flex; align-items:center; gap:0.55rem; cursor:default; }
+  .brand img{ height:30px; width:30px; border-radius:9px; object-fit:cover; pointer-events:none; }
   .brand span{ font-family:var(--font-display); font-weight:700; font-size:1.15rem; letter-spacing:-0.02em; color:var(--text); }
   .header-right{ display:flex; align-items:center; gap:0.5rem; font-size:0.72rem; color:var(--text-dim); font-variant-numeric:tabular-nums; }
   .status-dot{ width:8px; height:8px; border-radius:50%; display:inline-block; flex-shrink:0; box-shadow:0 0 0 3px transparent; transition:background .3s, box-shadow .3s; }
@@ -139,10 +113,15 @@
   .dialer-display .hint{ font-size:0.86rem; font-weight:400; letter-spacing:0; color:var(--text-faint); font-family:var(--font-body); display:flex; align-items:center; gap:0.5rem; }
   .dialer-display .cursor{ display:inline-block; width:2px; height:1.6rem; background:var(--signal); margin-left:2px; animation:caret 1s steps(1) infinite; }
   @keyframes caret{ 50%{ opacity:0; } }
-  .dialer-display .clear-btn{
-    position:absolute; right:8px; top:50%; transform:translateY(-50%);
-    background:none; border:none; color:var(--text-faint); font-size:1.1rem; cursor:pointer; padding:5px;
+
+  .dialer-display .left-btn, .dialer-display .right-btn{
+    position:absolute; top:50%; transform:translateY(-50%);
+    background:none; border:none; color:var(--text-faint); font-size:1.2rem; cursor:pointer; padding:5px;
+    transition:color .15s;
   }
+  .dialer-display .left-btn:hover, .dialer-display .right-btn:hover{ color:var(--text); }
+  .dialer-display .left-btn{ left:8px; }
+  .dialer-display .right-btn{ right:8px; }
 
   .dialer-pad{ display:grid; grid-template-columns:repeat(3, 1fr); gap:0.8rem; max-width:300px; margin:0 auto; width:100%; }
   .dialer-pad .key{
@@ -178,9 +157,7 @@
     display:none; position:absolute; inset:0; z-index:999;
     flex-direction:column; justify-content:center; align-items:center;
     padding:2rem 1.5rem calc(2rem + var(--safe-b));
-    background:
-      radial-gradient(600px 400px at 50% 20%, rgba(79,140,247,0.14), transparent 60%),
-      var(--bg-0);
+    background: radial-gradient(600px 400px at 50% 20%, rgba(79,140,247,0.14), transparent 60%), var(--bg-0);
   }
   #callScreen.active, #incomingOverlay.active{ display:flex; }
 
@@ -189,10 +166,7 @@
   .ring-anim .ring{ animation:signal-pulse 2.4s ease-out infinite; }
   .ring-anim .ring:nth-child(2){ animation-delay:.8s; }
   .ring-anim .ring:nth-child(3){ animation-delay:1.6s; }
-  @keyframes signal-pulse{
-    0%{ transform:scale(0.72); opacity:0.55; }
-    100%{ transform:scale(1.65); opacity:0; }
-  }
+  @keyframes signal-pulse{ 0%{ transform:scale(0.72); opacity:0.55; } 100%{ transform:scale(1.65); opacity:0; } }
   .avatar{
     position:relative; width:96px; height:96px; border-radius:50%;
     background:linear-gradient(155deg, var(--surface-3), var(--surface));
@@ -305,7 +279,7 @@
   <div class="phone-frame" id="phoneFrame">
 
     <div class="header">
-      <div class="brand">
+      <div class="brand" id="brandLogo" title="Double-tap to toggle theme">
         <img src="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" alt="PremCall" />
         <span>PremCall</span>
       </div>
@@ -319,8 +293,11 @@
 
     <div class="dialer-section">
       <div class="dialer-display" id="dialDisplay">
-        <span class="hint"><i class="fas fa-phone"></i> Enter a 10-digit number</span>
-        <button class="clear-btn" id="clearInputBtn" title="Clear" style="display:none;"><i class="fas fa-xmark"></i></button>
+        <button class="left-btn" id="addBtn" style="display:none;" title="Add contact"><i class="fas fa-plus"></i></button>
+        <span id="dialText">
+          <span class="hint"><i class="fas fa-phone"></i> Enter a 10-digit number</span>
+        </span>
+        <button class="right-btn" id="backspaceBtn" style="display:none;" title="Backspace"><i class="fas fa-delete-left"></i></button>
       </div>
 
       <div class="dialer-pad" id="dialPad">
@@ -357,7 +334,6 @@
 
     <div class="log-area" id="logArea"><div class="log-entry"><i class="fas fa-circle-info"></i> Ready.</div></div>
 
-    <!-- Incoming call -->
     <div id="incomingOverlay">
       <div class="avatar-wrap ring-anim">
         <div class="ring"></div><div class="ring"></div><div class="ring"></div>
@@ -372,7 +348,6 @@
       </div>
     </div>
 
-    <!-- Active call -->
     <div id="callScreen">
       <div class="avatar-wrap" id="callRingWrap">
         <div class="ring"></div><div class="ring"></div><div class="ring"></div>
@@ -392,7 +367,6 @@
   </div>
 </div>
 
-<!-- Account modal -->
 <div id="accountModal">
   <div class="account-card">
     <h2>Account Info</h2>
@@ -406,275 +380,10 @@
 <div id="toast"></div>
 <audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
 
-<!-- PeerJS official CDN -->
+<!-- PremCall bundle (PeerJS + PremCall) -->
+<script src="https://cdn.jsdelivr.net/gh/suryasticsai/premCall@main/premcall.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
-<!-- PremCall library (inline) -->
-<script>
-(function(global) {
-  'use strict';
-
-  const CONFIG = {
-    ICE: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' },
-        { urls: 'stun:stun.ekiga.net' },
-        { urls: 'stun:stun.ideasip.com' },
-        {
-          urls: ['turn:numb.viagenie.ca:3478', 'turn:numb.viagenie.ca:443'],
-          username: 'webrtc@live.com',
-          credential: 'muazkh'
-        }
-      ],
-      iceCandidatePoolSize: 10
-    }
-  };
-
-  let myNumber = null;
-  let peer = null;
-  let currentCall = null;
-  let localStream = null;
-  let remoteStream = null;
-  let isInCall = false;
-  let isCaller = false;
-  let incomingCall = null;
-  let isMuted = false;
-  let isSpeakerOn = false;
-  let callbacks = {};
-
-  function log(msg, level) {
-    console.log('[PremCall]', msg);
-    if (callbacks.onLog) callbacks.onLog(msg, level);
-  }
-
-  function notify(event, data) {
-    if (callbacks[event]) callbacks[event](data);
-  }
-
-  function hangup() {
-    if (currentCall) { currentCall.close(); currentCall = null; }
-    if (remoteStream) { remoteStream = null; }
-    isInCall = false;
-    isCaller = false;
-    isMuted = false;
-    incomingCall = null;
-    notify('onCallEnded', null);
-    log('Call ended', 'info');
-  }
-
-  async function getLocalStream() {
-    if (localStream && localStream.getAudioTracks().length > 0) return localStream;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-      });
-      localStream = stream;
-      log('Microphone acquired', 'info');
-      return stream;
-    } catch (err) {
-      log('Microphone error: ' + err.message, 'error');
-      throw err;
-    }
-  }
-
-  function initPeer(number, options) {
-    if (peer) { peer.destroy(); peer = null; }
-    myNumber = number;
-    callbacks = options || {};
-
-    log('Initializing Peer with ID: ' + myNumber, 'info');
-    peer = new Peer(myNumber, { debug: 2, config: CONFIG.ICE });
-
-    peer.on('open', (id) => {
-      log('Connected with ID: ' + id, 'info');
-      notify('online', id);
-      // Removed onConnected here to avoid early timer
-      notify('onPeerConnected', id);
-    });
-
-    peer.on('error', (err) => {
-      log('Peer error: ' + err.type + ' – ' + err.message, 'error');
-      if (err.type === 'unavailable-id') {
-        notify('onError', new Error('Number already taken'));
-      } else {
-        notify('onError', err);
-      }
-    });
-
-    peer.on('close', () => {
-      log('Connection closed', 'warn');
-      notify('offline', null);
-      notify('onDisconnected', null);
-      if (isInCall) hangup();
-    });
-
-    peer.on('disconnected', () => {
-      log('Disconnected – reconnecting...', 'warn');
-      notify('offline', null);
-      notify('onDisconnected', null);
-      setTimeout(() => { if (peer && !isInCall) peer.reconnect(); }, 3000);
-    });
-
-    peer.on('call', (call) => {
-      log('Incoming call from: ' + call.peer, 'info');
-      if (isInCall) {
-        call.close();
-        log('Rejected – already in call', 'warn');
-        return;
-      }
-      incomingCall = call;
-      notify('onIncoming', call.peer);
-    });
-  }
-
-  const PremCall = {
-    init(number, options) {
-      if (!/^\d{10}$/.test(number)) throw new Error('Number must be exactly 10 digits');
-      initPeer(number, options);
-    },
-
-    async call(target) {
-      if (isInCall) throw new Error('Already in a call');
-      if (!peer) throw new Error('Not initialized. Call init() first.');
-      if (!/^\d{10}$/.test(target)) throw new Error('Target must be exactly 10 digits');
-      if (target === myNumber) throw new Error('Cannot call yourself');
-
-      log('Calling ' + target + '...', 'info');
-      try {
-        const stream = await getLocalStream();
-        const call = peer.call(target, stream);
-        if (!call) throw new Error('Target unreachable');
-
-        currentCall = call;
-        isCaller = true;
-        isInCall = true;
-        incomingCall = null;
-        notify('onCallStarted', { target, isCaller: true });
-
-        call.on('stream', (remoteStream) => {
-          remoteStream = remoteStream;
-          notify('onRemoteStream', remoteStream);
-        });
-
-        call.on('close', () => { PremCall.hangup(); });
-
-        call.on('error', (err) => {
-          log('Call error: ' + err.message, 'error');
-          PremCall.hangup();
-          notify('onError', err);
-        });
-
-        const pc = call.peerConnection;
-        if (pc) {
-          pc.oniceconnectionstatechange = () => {
-            const state = pc.iceConnectionState;
-            log('ICE state: ' + state, 'info');
-            if (state === 'connected' || state === 'completed') {
-              notify('onConnected', null); // Media connected – timer starts here
-            } else if (state === 'failed' || state === 'disconnected') {
-              PremCall.hangup();
-              notify('onError', new Error('Connection lost'));
-            }
-          };
-        }
-      } catch (err) {
-        log('Call failed: ' + err.message, 'error');
-        throw err;
-      }
-    },
-
-    async answer() {
-      if (!incomingCall) throw new Error('No incoming call');
-      try {
-        const stream = await getLocalStream();
-        incomingCall.answer(stream);
-        currentCall = incomingCall;
-        isCaller = false;
-        isInCall = true;
-        const caller = incomingCall.peer;
-        incomingCall = null;
-        notify('onCallStarted', { target: caller, isCaller: false });
-
-        currentCall.on('stream', (remoteStream) => {
-          remoteStream = remoteStream;
-          notify('onRemoteStream', remoteStream);
-        });
-
-        currentCall.on('close', () => { PremCall.hangup(); });
-
-        currentCall.on('error', (err) => {
-          log('Call error (answer): ' + err.message, 'error');
-          PremCall.hangup();
-          notify('onError', err);
-        });
-
-        const pc = currentCall.peerConnection;
-        if (pc) {
-          pc.oniceconnectionstatechange = () => {
-            const state = pc.iceConnectionState;
-            log('ICE state: ' + state, 'info');
-            if (state === 'connected' || state === 'completed') {
-              notify('onConnected', null);
-            } else if (state === 'failed' || state === 'disconnected') {
-              PremCall.hangup();
-              notify('onError', new Error('Connection lost'));
-            }
-          };
-        }
-      } catch (err) {
-        log('Answer failed: ' + err.message, 'error');
-        throw err;
-      }
-    },
-
-    hangup() { hangup(); },
-
-    mute() {
-      if (!localStream) return;
-      isMuted = !isMuted;
-      localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
-      notify('onMuteToggled', isMuted);
-      return isMuted;
-    },
-
-    speaker() {
-      isSpeakerOn = !isSpeakerOn;
-      notify('onSpeakerToggled', isSpeakerOn);
-      return isSpeakerOn;
-    },
-
-    checkStatus(target) {
-      return new Promise((resolve) => {
-        if (!peer) return resolve(false);
-        const conn = peer.connect(target);
-        let done = false;
-        conn.on('open', () => { if (!done) { done = true; resolve(true); conn.close(); } });
-        conn.on('error', () => { if (!done) { done = true; resolve(false); } });
-        setTimeout(() => { if (!done) { done = true; resolve(false); conn.close(); } }, 3000);
-      });
-    },
-
-    getNumber() { return myNumber; },
-    isInCall() { return isInCall; },
-
-    destroy() {
-      if (peer) { peer.destroy(); peer = null; }
-      if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-      if (remoteStream) { remoteStream = null; }
-      isInCall = false;
-      incomingCall = null;
-      currentCall = null;
-      myNumber = null;
-    }
-  };
-
-  global.PremCall = PremCall;
-})(window);
-</script>
 
 <!-- UI Logic -->
 <script>
@@ -687,7 +396,9 @@
   }
 
   const dialDisplay    = document.getElementById('dialDisplay');
-  const clearInputBtn  = document.getElementById('clearInputBtn');
+  const dialText       = document.getElementById('dialText');
+  const addBtn         = document.getElementById('addBtn');
+  const backspaceBtn   = document.getElementById('backspaceBtn');
   const dialPad        = document.getElementById('dialPad');
   const dialCallBtn    = document.getElementById('dialCallBtn');
   const checkStatusBtn = document.getElementById('checkStatusBtn');
@@ -717,6 +428,7 @@
   const clearHistoryBtn = document.getElementById('clearHistoryBtn');
   const registerLink    = document.getElementById('registerLink');
   const accountModal    = document.getElementById('accountModal');
+  const brandLogo       = document.getElementById('brandLogo');
 
   let dialedNumber = '';
   let callTimerInterval = null;
@@ -724,18 +436,28 @@
   let pendingCallDirection = null;
   let getCallDuration = null;
 
+  /* ---------- Theme toggle (double-tap on logo) ---------- */
+  let lastLogoTap = 0;
+  brandLogo.addEventListener('click', function() {
+    const now = Date.now();
+    if (now - lastLogoTap < 350) {
+      document.body.classList.toggle('light-mode');
+      showToast(document.body.classList.contains('light-mode') ? 'Bright mode' : 'Dark mode');
+      lastLogoTap = 0;
+    } else {
+      lastLogoTap = now;
+    }
+  });
+
   /* ---------- WebAudio helpers ---------- */
   let actx = null;
   function audioCtx() {
-    if (!actx) {
-      try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
-    }
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
     if (actx && actx.state === 'suspended') actx.resume().catch(()=>{});
     return actx;
   }
   function beep(freq1, freq2, dur) {
-    const ctx = audioCtx();
-    if (!ctx) return;
+    const ctx = audioCtx(); if (!ctx) return;
     const now = ctx.currentTime;
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.0001, now);
@@ -744,12 +466,8 @@
     gain.connect(ctx.destination);
     [freq1, freq2].forEach(f => {
       if (!f) return;
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.value = f;
-      osc.connect(gain);
-      osc.start(now);
-      osc.stop(now + dur);
+      const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = f;
+      osc.connect(gain); osc.start(now); osc.stop(now + dur);
     });
   }
   const DTMF = {
@@ -761,41 +479,31 @@
   function playDtmf(d) { const t = DTMF[d]; if (t) beep(t[0], t[1], 0.08); }
 
   let ringtoneTimer = null;
-  function startRingtone() {
-    stopRingtone();
-    let tick = () => { beep(440, 480, 0.35); };
-    tick();
-    ringtoneTimer = setInterval(tick, 1600);
-  }
+  function startRingtone() { stopRingtone(); const tick = () => beep(440,480,0.35); tick(); ringtoneTimer = setInterval(tick,1600); }
   function stopRingtone() { if (ringtoneTimer) { clearInterval(ringtoneTimer); ringtoneTimer = null; } }
-
-  function vibrate(pattern) { if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} } }
+  function vibrate(pattern) { if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch(e){} } }
 
   /* ---------- ripple ---------- */
   function addRipple(el, evt) {
     const rect = el.getBoundingClientRect();
     const size = Math.max(rect.width, rect.height);
     const point = evt.touches ? evt.touches[0] : evt;
-    const x = (point ? point.clientX : rect.left + rect.width / 2) - rect.left - size / 2;
-    const y = (point ? point.clientY : rect.top + rect.height / 2) - rect.top - size / 2;
+    const x = (point ? point.clientX : rect.left + rect.width/2) - rect.left - size/2;
+    const y = (point ? point.clientY : rect.top + rect.height/2) - rect.top - size/2;
     const span = document.createElement('span');
-    span.className = 'ripple';
-    span.style.width = span.style.height = size + 'px';
-    span.style.left = x + 'px';
-    span.style.top = y + 'px';
-    el.appendChild(span);
-    setTimeout(() => span.remove(), 520);
+    span.className = 'ripple'; span.style.width = span.style.height = size+'px';
+    span.style.left = x+'px'; span.style.top = y+'px';
+    el.appendChild(span); setTimeout(() => span.remove(), 520);
   }
 
   /* ---------- history ---------- */
-  function getHistory() { try { return JSON.parse(localStorage.getItem('premCallHistory')) || []; } catch (e) { return []; } }
+  function getHistory() { try { return JSON.parse(localStorage.getItem('premCallHistory')) || []; } catch(e) { return []; } }
   function saveHistory(h) { localStorage.setItem('premCallHistory', JSON.stringify(h)); }
   function addHistoryEntry(number, direction, duration) {
     const history = getHistory();
     history.unshift({ number, direction, duration: duration || '—', timestamp: Date.now() });
     if (history.length > 50) history.length = 50;
-    saveHistory(history);
-    renderHistory();
+    saveHistory(history); renderHistory();
   }
   function renderHistory() {
     if (!historyList) return;
@@ -808,10 +516,7 @@
       const dirClass = entry.direction === 'incoming' ? 'incoming' : entry.direction === 'outgoing' ? 'outgoing' : 'missed';
       const date = new Date(entry.timestamp);
       const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      li.innerHTML =
-        '<span class="chip ' + dirClass + '"><i class="fas ' + dirIcon + '"></i></span>' +
-        '<span class="num">' + entry.number + '</span>' +
-        '<span class="time">' + entry.duration + '<br>' + timeStr + '</span>';
+      li.innerHTML = `<span class="chip ${dirClass}"><i class="fas ${dirIcon}"></i></span><span class="num">${entry.number}</span><span class="time">${entry.duration}<br>${timeStr}</span>`;
       historyList.appendChild(li);
     });
   }
@@ -819,12 +524,9 @@
 
   function showToast(msg, duration) {
     if (!toast) return;
-    toast.textContent = msg;
-    toast.classList.add('show');
-    clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => toast.classList.remove('show'), duration || 2500);
+    toast.textContent = msg; toast.classList.add('show');
+    clearTimeout(toastTimeout); toastTimeout = setTimeout(() => toast.classList.remove('show'), duration || 2500);
   }
-
   function log(msg, type) {
     if (!logArea) return;
     const now = new Date().toLocaleTimeString();
@@ -834,14 +536,12 @@
     logArea.prepend(entry);
     if (logArea.children.length > 50) logArea.removeChild(logArea.lastChild);
   }
-
   function setStatusDot(state) { if (headerStatusDot) headerStatusDot.className = 'status-dot ' + state; }
   function getStoredNumber() {
     const num = localStorage.getItem('premCallNumber');
     const verified = localStorage.getItem('premCallVerified') === 'true';
     return (num && verified) ? num : null;
   }
-
   function startTimer() {
     if (callTimerInterval) clearInterval(callTimerInterval);
     let seconds = 0;
@@ -853,7 +553,6 @@
     }, 1000);
     return () => { clearInterval(callTimerInterval); callTimerInterval = null; return seconds; };
   }
-
   function initials(label) {
     if (!label) return '👤';
     const digitsOnly = /^[\d+\s-]+$/.test(label);
@@ -864,43 +563,33 @@
   function showIncomingOverlay(callerId) {
     if (!incomingOverlay) return;
     incomingAvatar.textContent = initials(callerId);
-    incomingName.textContent = callerId;
-    incomingNumber.textContent = callerId;
+    incomingName.textContent = callerId; incomingNumber.textContent = callerId;
     incomingOverlay.classList.add('active');
-    startRingtone();
-    vibrate([300, 200, 300, 200, 300]);
+    startRingtone(); vibrate([300,200,300,200,300]);
     showToast('Incoming call from ' + callerId);
     log('Incoming call from ' + callerId, 'warning');
   }
-
   function hideIncomingOverlay() {
     if (!incomingOverlay) return;
-    incomingOverlay.classList.remove('active');
-    stopRingtone();
-    incomingOverlay.style.transform = '';
-    incomingOverlay.style.opacity = '';
+    incomingOverlay.classList.remove('active'); stopRingtone();
+    incomingOverlay.style.transform = ''; incomingOverlay.style.opacity = '';
   }
-
   function showCallScreen(name, isCaller) {
     if (!callScreen) return;
     stopRingtone();
     callAvatar.textContent = initials(name);
-    callName.textContent = name;
-    callNumber.textContent = name;
+    callName.textContent = name; callNumber.textContent = name;
     callSubstatus.textContent = isCaller ? 'Ringing…' : 'Connecting…';
     callTimer.textContent = '00:00';
     callRingWrap.classList.add('ring-anim');
     callScreen.classList.add('active');
     hideIncomingOverlay();
     if (callTimerInterval) clearInterval(callTimerInterval);
-    callTimerInterval = null;
-    getCallDuration = null;
+    callTimerInterval = null; getCallDuration = null;
   }
-
   function hideCallScreen() {
     if (!callScreen) return;
-    callScreen.classList.remove('active');
-    callRingWrap.classList.remove('ring-anim');
+    callScreen.classList.remove('active'); callRingWrap.classList.remove('ring-anim');
     if (callTimerInterval) clearInterval(callTimerInterval);
     callTimer.textContent = '00:00';
     if (remoteAudio) remoteAudio.srcObject = null;
@@ -924,7 +613,6 @@
       registerLink.classList.remove('hidden');
       return;
     }
-
     registerLink.classList.add('hidden');
     if (myNumberDisplay) myNumberDisplay.textContent = number;
     setStatusDot('connecting');
@@ -933,11 +621,8 @@
     try {
       PremCall.init(number, {
         onIncoming: (callerId) => { showIncomingOverlay(callerId); },
-        onPeerConnected: () => {
-          setStatusDot('online');
-        },
+        onPeerConnected: () => { setStatusDot('online'); },
         onConnected: () => {
-          // Media connected – start timer only if call screen is active
           if (callScreen.classList.contains('active')) {
             if (callSubstatus) callSubstatus.textContent = 'Connected';
             callRingWrap.classList.remove('ring-anim');
@@ -947,8 +632,7 @@
         onDisconnected: () => setStatusDot('offline'),
         onRemoteStream: (stream) => {
           if (remoteAudio) {
-            remoteAudio.srcObject = stream;
-            remoteAudio.muted = false;
+            remoteAudio.srcObject = stream; remoteAudio.muted = false;
             remoteAudio.play().catch(() => {
               document.addEventListener('click', () => remoteAudio.play(), { once: true });
               document.addEventListener('touchstart', () => remoteAudio.play(), { once: true });
@@ -974,84 +658,57 @@
             addHistoryEntry(currentNumber, pendingCallDirection || 'incoming', duration);
           }
           pendingCallDirection = null;
-          hideCallScreen();
-          hideIncomingOverlay();
-          showToast('Call ended');
+          hideCallScreen(); hideIncomingOverlay(); showToast('Call ended');
         },
         onError: (err) => {
-          log('Error: ' + err.message, 'error');
-          showToast('Error: ' + err.message);
-          setStatusDot('offline');
+          log('Error: ' + err.message, 'error'); showToast('Error: ' + err.message); setStatusDot('offline');
         },
         onLog: (msg, level) => log(msg, level)
       });
       setStatusDot('online');
     } catch (err) {
-      log('Init failed: ' + err.message, 'error');
-      setStatusDot('offline');
-      showToast('Init failed: ' + err.message);
+      log('Init failed: ' + err.message, 'error'); setStatusDot('offline'); showToast('Init failed: ' + err.message);
     }
   }
 
   /* ---------- dialpad ---------- */
   function updateDisplay() {
     if (dialedNumber) {
-      dialDisplay.innerHTML = dialedNumber + '<span class="cursor"></span>';
-      clearInputBtn.style.display = 'block';
+      dialText.innerHTML = dialedNumber + '<span class="cursor"></span>';
+      addBtn.style.display = 'block'; backspaceBtn.style.display = 'block';
     } else {
-      dialDisplay.innerHTML = '<span class="hint"><i class="fas fa-phone"></i> Enter a 10-digit number</span>';
-      clearInputBtn.style.display = 'none';
+      dialText.innerHTML = '<span class="hint"><i class="fas fa-phone"></i> Enter a 10-digit number</span>';
+      addBtn.style.display = 'none'; backspaceBtn.style.display = 'none';
     }
   }
 
-  clearInputBtn.addEventListener('click', () => {
-    dialedNumber = '';
-    updateDisplay();
-    vibrate(8);
-  });
+  backspaceBtn.addEventListener('click', () => { dialedNumber = dialedNumber.slice(0, -1); updateDisplay(); vibrate(8); });
+  addBtn.addEventListener('click', () => { showToast('Add contact feature coming soon'); vibrate(10); });
 
-  dialPad.addEventListener('pointerdown', (e) => {
-    const key = e.target.closest('.key');
-    if (key) addRipple(key, e);
-  });
+  dialPad.addEventListener('pointerdown', (e) => { const key = e.target.closest('.key'); if (key) addRipple(key, e); });
 
   dialPad.addEventListener('click', (e) => {
-    const key = e.target.closest('.key');
-    if (!key) return;
+    const key = e.target.closest('.key'); if (!key) return;
     const digit = key.dataset.digit;
     const action = key.dataset.action;
 
     if (digit) {
       if (dialedNumber.length < 15) { dialedNumber += digit; updateDisplay(); }
-      playDtmf(digit);
-      vibrate(10);
-    } else if (action === 'message') {
-      showToast('Message feature coming soon');
-      vibrate(10);
-    } else if (action === 'contacts') {
-      showToast('Contacts feature coming soon');
-      vibrate(10);
-    } else if (action === 'call') {
+      playDtmf(digit); vibrate(10);
+    } else if (action === 'message') { showToast('Message feature coming soon'); vibrate(10); }
+    else if (action === 'contacts') { showToast('Contacts feature coming soon'); vibrate(10); }
+    else if (action === 'call') {
       if (!dialedNumber || !/^\d{10}$/.test(dialedNumber)) {
         const reason = !dialedNumber ? 'No number entered' : 'Number is ' + dialedNumber.length + ' characters, need exactly 10 digits (no * or #)';
-        log(reason, 'error');
-        showToast('Enter exactly 10 digits');
-        vibrate([40, 40, 40]);
-        return;
+        log(reason, 'error'); showToast('Enter exactly 10 digits'); vibrate([40,40,40]); return;
       }
       if (headerStatusDot.className.indexOf('online') === -1) {
         log('Not connected to signaling server yet — wait for the status dot to turn green.', 'warning');
-        showToast('Still connecting, try again in a moment');
-        vibrate([40, 40, 40]);
-        return;
+        showToast('Still connecting, try again in a moment'); vibrate([40,40,40]); return;
       }
-      dialCallBtn.classList.add('disabled');
-      vibrate(15);
-      try { PremCall.call(dialedNumber); }
-      catch (err) {
-        log('Call failed: ' + err.message, 'error');
-        showToast('Call failed: ' + err.message);
-        dialCallBtn.classList.remove('disabled');
+      dialCallBtn.classList.add('disabled'); vibrate(15);
+      try { PremCall.call(dialedNumber); } catch (err) {
+        log('Call failed: ' + err.message, 'error'); showToast('Call failed: ' + err.message); dialCallBtn.classList.remove('disabled');
       }
     }
   });
@@ -1059,47 +716,33 @@
   document.addEventListener('keydown', (e) => {
     if (e.key >= '0' && e.key <= '9') {
       if (dialedNumber.length < 15) { dialedNumber += e.key; updateDisplay(); playDtmf(e.key); }
-    } else if (e.key === 'Backspace') {
-      dialedNumber = dialedNumber.slice(0, -1);
-      updateDisplay();
-    } else if (e.key === 'Enter') {
-      if (dialedNumber && /^\d{10}$/.test(dialedNumber)) dialCallBtn.click();
-    }
+    } else if (e.key === 'Backspace') { dialedNumber = dialedNumber.slice(0, -1); updateDisplay(); }
+    else if (e.key === 'Enter') { if (dialedNumber && /^\d{10}$/.test(dialedNumber)) dialCallBtn.click(); }
   });
 
   hangupCallBtn.addEventListener('click', () => { PremCall.hangup(); dialCallBtn.classList.remove('disabled'); vibrate(15); });
-
   muteBtn.addEventListener('click', () => {
     const muted = PremCall.mute();
     muteBtn.innerHTML = muted ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>';
     muteBtn.className = muted ? 'mute active' : 'mute';
-    showToast(muted ? 'Muted' : 'Unmuted');
-    vibrate(10);
+    showToast(muted ? 'Muted' : 'Unmuted'); vibrate(10);
   });
-
   speakerBtn.addEventListener('click', () => {
     const on = PremCall.speaker();
     speakerBtn.className = on ? 'speaker active' : 'speaker';
     speakerBtn.innerHTML = on ? '<i class="fas fa-volume-high"></i>' : '<i class="fas fa-volume-xmark"></i>';
-    showToast(on ? 'Speaker on' : 'Earpiece');
-    vibrate(10);
+    showToast(on ? 'Speaker on' : 'Earpiece'); vibrate(10);
   });
-
   answerBtn.addEventListener('click', async () => {
-    try { await PremCall.answer(); hideIncomingOverlay(); vibrate(15); }
-    catch (err) { showToast('Answer failed: ' + err.message); }
+    try { await PremCall.answer(); hideIncomingOverlay(); vibrate(15); } catch (err) { showToast('Answer failed: ' + err.message); }
   });
-
   rejectBtn.addEventListener('click', () => {
-    const caller = incomingName.textContent;
-    PremCall.hangup();
-    hideIncomingOverlay();
+    const caller = incomingName.textContent; PremCall.hangup(); hideIncomingOverlay();
     if (caller && caller !== 'Unknown') addHistoryEntry(caller, 'missed', '—');
-    showToast('Call declined');
-    vibrate(15);
+    showToast('Call declined'); vibrate(15);
   });
 
-  /* swipe up to answer, swipe down to decline */
+  /* swipe */
   (function enableSwipe() {
     let startY = null;
     incomingOverlay.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; incomingOverlay.style.transition = 'none'; }, { passive: true });
@@ -1113,10 +756,8 @@
       if (startY === null) return;
       const dy = e.changedTouches[0].clientY - startY;
       incomingOverlay.style.transition = 'transform .25s ease, opacity .25s ease';
-      incomingOverlay.style.transform = '';
-      incomingOverlay.style.opacity = '';
-      if (dy < -80) answerBtn.click();
-      else if (dy > 80) rejectBtn.click();
+      incomingOverlay.style.transform = ''; incomingOverlay.style.opacity = '';
+      if (dy < -80) answerBtn.click(); else if (dy > 80) rejectBtn.click();
       startY = null;
     });
   })();
@@ -1151,8 +792,7 @@
     const params = new URLSearchParams(window.location.search);
     const num = params.get('number');
     if (num && /^\d{10}$/.test(num)) {
-      dialedNumber = num;
-      updateDisplay();
+      dialedNumber = num; updateDisplay();
       setTimeout(() => { try { PremCall.call(num); } catch (e) {} }, 1500);
     }
   })();
