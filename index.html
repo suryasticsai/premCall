@@ -64,7 +64,6 @@
     *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
   }
 
-  /* ---------- Desktop ambience: the app reads as a physical handset on wide screens ---------- */
   .stage{
     width:100%;
     display:flex;
@@ -105,7 +104,6 @@
     .phone-frame{ padding-top: calc(2.2rem); }
   }
 
-  /* ---------- Header ---------- */
   .header{
     display:flex; justify-content:space-between; align-items:center;
     padding-bottom:0.85rem; border-bottom:1px solid var(--line); flex-shrink:0;
@@ -128,7 +126,6 @@
   }
   .settings-link:hover{ background:var(--surface-3); color:var(--text); border-color:var(--signal-soft); }
 
-  /* ---------- Dialer ---------- */
   .dialer-section{ flex:1; display:flex; flex-direction:column; padding-top:0.5rem; min-height:0; }
 
   .dialer-display{
@@ -171,7 +168,6 @@
   .action-row .btn:hover{ background:var(--surface-2); border-color:var(--signal-soft); }
   .action-row .status-badge{ font-size:0.78rem; color:var(--text-dim); display:flex; align-items:center; gap:0.3rem; min-height:1.2rem; }
 
-  /* ---------- Call + Incoming overlays ---------- */
   #callScreen, #incomingOverlay{
     display:none; position:absolute; inset:0; z-index:999;
     flex-direction:column; justify-content:center; align-items:center;
@@ -230,7 +226,6 @@
   #incomingOverlay .actions .reject{ background:linear-gradient(160deg, var(--stop), #c2213f); box-shadow:0 8px 22px -6px rgba(255,84,112,0.55); }
   @keyframes answer-nudge{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-4px); } }
 
-  /* ---------- Toast ---------- */
   #toast{
     position:fixed; bottom:calc(28px + var(--safe-b)); left:50%; transform:translateX(-50%) translateY(20px);
     background:var(--surface-3); border:1px solid var(--line); color:var(--text);
@@ -240,7 +235,6 @@
   }
   #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
-  /* ---------- Log ---------- */
   .log-area{
     background:var(--surface); border:1px solid var(--line); border-radius:12px;
     padding:0.5rem 0.75rem; font-family:'SFMono-Regular', 'Courier New', monospace; font-size:0.62rem;
@@ -250,7 +244,6 @@
   .log-entry.success{ color:var(--go); opacity:1; }
   .log-entry.warning{ color:var(--warn); opacity:1; }
 
-  /* ---------- History ---------- */
   #historySection{ margin-top:1rem; border-top:1px solid var(--line); padding-top:0.75rem; flex-shrink:0; }
   #historySection h3{ font-size:0.8rem; color:var(--text-dim); margin-bottom:0.5rem; display:flex; align-items:center; justify-content:space-between; font-weight:600; }
   #historySection h3 .title{ display:flex; align-items:center; gap:0.5rem; }
@@ -370,8 +363,274 @@
 <div id="toast"></div>
 <audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
 
-<!-- CDN (PeerJS + PremCall) -->
-<script src="https://cdn.jsdelivr.net/gh/suryasticsai/PremCall@main/premcall.full.js"></script>
+<!-- PeerJS official CDN -->
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+<!-- PremCall library (inline) -->
+<script>
+(function(global) {
+  'use strict';
+
+  const CONFIG = {
+    ICE: {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'stun:stun.ekiga.net' },
+        { urls: 'stun:stun.ideasip.com' },
+        {
+          urls: ['turn:numb.viagenie.ca:3478', 'turn:numb.viagenie.ca:443'],
+          username: 'webrtc@live.com',
+          credential: 'muazkh'
+        }
+      ],
+      iceCandidatePoolSize: 10
+    }
+  };
+
+  let myNumber = null;
+  let peer = null;
+  let currentCall = null;
+  let localStream = null;
+  let remoteStream = null;
+  let isInCall = false;
+  let isCaller = false;
+  let incomingCall = null;
+  let isMuted = false;
+  let isSpeakerOn = false;
+  let callbacks = {};
+
+  function log(msg, level) {
+    console.log('[PremCall]', msg);
+    if (callbacks.onLog) callbacks.onLog(msg, level);
+  }
+
+  function notify(event, data) {
+    if (callbacks[event]) callbacks[event](data);
+  }
+
+  function hangup() {
+    if (currentCall) { currentCall.close(); currentCall = null; }
+    if (remoteStream) { remoteStream = null; }
+    isInCall = false;
+    isCaller = false;
+    isMuted = false;
+    incomingCall = null;
+    notify('onCallEnded', null);
+    log('Call ended', 'info');
+  }
+
+  async function getLocalStream() {
+    if (localStream && localStream.getAudioTracks().length > 0) return localStream;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      });
+      localStream = stream;
+      log('Microphone acquired', 'info');
+      return stream;
+    } catch (err) {
+      log('Microphone error: ' + err.message, 'error');
+      throw err;
+    }
+  }
+
+  function initPeer(number, options) {
+    if (peer) { peer.destroy(); peer = null; }
+    myNumber = number;
+    callbacks = options || {};
+
+    log('Initializing Peer with ID: ' + myNumber, 'info');
+    peer = new Peer(myNumber, { debug: 2, config: CONFIG.ICE });
+
+    peer.on('open', (id) => {
+      log('Connected with ID: ' + id, 'info');
+      notify('online', id);
+      notify('onConnected', id);
+    });
+
+    peer.on('error', (err) => {
+      log('Peer error: ' + err.type + ' – ' + err.message, 'error');
+      if (err.type === 'unavailable-id') {
+        notify('onError', new Error('Number already taken'));
+      } else {
+        notify('onError', err);
+      }
+    });
+
+    peer.on('close', () => {
+      log('Connection closed', 'warn');
+      notify('offline', null);
+      notify('onDisconnected', null);
+      if (isInCall) hangup();
+    });
+
+    peer.on('disconnected', () => {
+      log('Disconnected – reconnecting...', 'warn');
+      notify('offline', null);
+      notify('onDisconnected', null);
+      setTimeout(() => { if (peer && !isInCall) peer.reconnect(); }, 3000);
+    });
+
+    peer.on('call', (call) => {
+      log('Incoming call from: ' + call.peer, 'info');
+      if (isInCall) {
+        call.close();
+        log('Rejected – already in call', 'warn');
+        return;
+      }
+      incomingCall = call;
+      notify('onIncoming', call.peer);
+    });
+  }
+
+  const PremCall = {
+    init(number, options) {
+      if (!/^\d{10}$/.test(number)) throw new Error('Number must be exactly 10 digits');
+      initPeer(number, options);
+    },
+
+    async call(target) {
+      if (isInCall) throw new Error('Already in a call');
+      if (!peer) throw new Error('Not initialized. Call init() first.');
+      if (!/^\d{10}$/.test(target)) throw new Error('Target must be exactly 10 digits');
+      if (target === myNumber) throw new Error('Cannot call yourself');
+
+      log('Calling ' + target + '...', 'info');
+      try {
+        const stream = await getLocalStream();
+        const call = peer.call(target, stream);
+        if (!call) throw new Error('Target unreachable');
+
+        currentCall = call;
+        isCaller = true;
+        isInCall = true;
+        incomingCall = null;
+        notify('onCallStarted', { target, isCaller: true });
+
+        call.on('stream', (remoteStream) => {
+          remoteStream = remoteStream;
+          notify('onRemoteStream', remoteStream);
+        });
+
+        call.on('close', () => { PremCall.hangup(); });
+
+        call.on('error', (err) => {
+          log('Call error: ' + err.message, 'error');
+          PremCall.hangup();
+          notify('onError', err);
+        });
+
+        const pc = call.peerConnection;
+        if (pc) {
+          pc.oniceconnectionstatechange = () => {
+            const state = pc.iceConnectionState;
+            log('ICE state: ' + state, 'info');
+            if (state === 'connected' || state === 'completed') {
+              notify('onConnected', null);
+            } else if (state === 'failed' || state === 'disconnected') {
+              PremCall.hangup();
+              notify('onError', new Error('Connection lost'));
+            }
+          };
+        }
+      } catch (err) {
+        log('Call failed: ' + err.message, 'error');
+        throw err;
+      }
+    },
+
+    async answer() {
+      if (!incomingCall) throw new Error('No incoming call');
+      try {
+        const stream = await getLocalStream();
+        incomingCall.answer(stream);
+        currentCall = incomingCall;
+        isCaller = false;
+        isInCall = true;
+        const caller = incomingCall.peer;
+        incomingCall = null;
+        notify('onCallStarted', { target: caller, isCaller: false });
+
+        currentCall.on('stream', (remoteStream) => {
+          remoteStream = remoteStream;
+          notify('onRemoteStream', remoteStream);
+        });
+
+        currentCall.on('close', () => { PremCall.hangup(); });
+
+        currentCall.on('error', (err) => {
+          log('Call error (answer): ' + err.message, 'error');
+          PremCall.hangup();
+          notify('onError', err);
+        });
+
+        const pc = currentCall.peerConnection;
+        if (pc) {
+          pc.oniceconnectionstatechange = () => {
+            const state = pc.iceConnectionState;
+            log('ICE state: ' + state, 'info');
+            if (state === 'connected' || state === 'completed') {
+              notify('onConnected', null);
+            } else if (state === 'failed' || state === 'disconnected') {
+              PremCall.hangup();
+              notify('onError', new Error('Connection lost'));
+            }
+          };
+        }
+      } catch (err) {
+        log('Answer failed: ' + err.message, 'error');
+        throw err;
+      }
+    },
+
+    hangup() { hangup(); },
+
+    mute() {
+      if (!localStream) return;
+      isMuted = !isMuted;
+      localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+      notify('onMuteToggled', isMuted);
+      return isMuted;
+    },
+
+    speaker() {
+      isSpeakerOn = !isSpeakerOn;
+      notify('onSpeakerToggled', isSpeakerOn);
+      return isSpeakerOn;
+    },
+
+    checkStatus(target) {
+      return new Promise((resolve) => {
+        if (!peer) return resolve(false);
+        const conn = peer.connect(target);
+        let done = false;
+        conn.on('open', () => { if (!done) { done = true; resolve(true); conn.close(); } });
+        conn.on('error', () => { if (!done) { done = true; resolve(false); } });
+        setTimeout(() => { if (!done) { done = true; resolve(false); conn.close(); } }, 3000);
+      });
+    },
+
+    getNumber() { return myNumber; },
+    isInCall() { return isInCall; },
+
+    destroy() {
+      if (peer) { peer.destroy(); peer = null; }
+      if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+      if (remoteStream) { remoteStream = null; }
+      isInCall = false;
+      incomingCall = null;
+      currentCall = null;
+      myNumber = null;
+    }
+  };
+
+  global.PremCall = PremCall;
+})(window);
+</script>
 
 <!-- UI Logic -->
 <script>
