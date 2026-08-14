@@ -24,12 +24,6 @@
     --safe-t: env(safe-area-inset-top, 0px);
     --safe-b: env(safe-area-inset-bottom, 0px);
   }
-  body.light-mode{
-    --bg-0:#f0f2f5; --bg-1:#ffffff; --surface:#ffffff; --surface-2:#f8fafc; --surface-3:#f1f5f9;
-    --line:#d1d5db; --text:#111827; --text-dim:#4b5563; --text-faint:#9ca3af;
-    --signal:#2563eb; --signal-soft:#1d4ed8; --go:#10b981; --go-deep:#047857;
-    --stop:#ef4444; --stop-deep:#b91c1c; --warn:#f59e0b; --warn-deep:#b45309;
-  }
   *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
   body{
@@ -107,6 +101,14 @@
   .conversation-item .status-dot.online{ background:var(--go); }
   .conversation-item .status-dot.offline{ background:var(--stop); }
   .conversation-item .status-dot.unknown{ background:var(--text-faint); }
+  .conversation-item .pending-badge{
+    background:var(--warn);
+    color:#fff;
+    font-size:0.6rem;
+    padding:0.1rem 0.4rem;
+    border-radius:10px;
+    margin-left:0.3rem;
+  }
   
   .empty-state{
     text-align:center; color:var(--text-faint); padding:2rem; font-size:0.9rem;
@@ -145,6 +147,14 @@
   .chat-header .peer-status .status-dot.online{ background:var(--go); }
   .chat-header .peer-status .status-dot.offline{ background:var(--stop); }
   .chat-header .peer-status .status-dot.unknown{ background:var(--text-faint); }
+  .chat-header .pending-count{
+    background:var(--warn);
+    color:#fff;
+    font-size:0.6rem;
+    padding:0.1rem 0.5rem;
+    border-radius:10px;
+    margin-left:0.5rem;
+  }
   
   .messages{
     flex:1; overflow-y:auto; padding:1rem; display:flex; flex-direction:column; gap:0.4rem;
@@ -175,6 +185,11 @@
     background:var(--surface-2); color:var(--text);
     border-bottom-left-radius:4px;
   }
+  .message-wrapper.pending .message-bubble{
+    background:var(--warn-deep); color:#fff;
+    border-bottom-right-radius:4px;
+    opacity:0.8;
+  }
   .message-sender{
     font-size:0.65rem; color:var(--text-faint); margin:0 0.3rem 0.1rem 0.3rem;
     font-weight:500;
@@ -185,6 +200,9 @@
   .message-wrapper.incoming .message-sender{
     color:var(--text-dim);
   }
+  .message-wrapper.pending .message-sender{
+    color:var(--warn);
+  }
   .message-timestamp{
     font-size:0.6rem; opacity:0.6; margin-top:0.15rem; display:block; text-align:right;
   }
@@ -193,6 +211,18 @@
   }
   .message-wrapper.incoming .message-timestamp{
     color:var(--text-faint);
+  }
+  .message-wrapper.pending .message-timestamp{
+    color:rgba(255,255,255,0.6);
+  }
+  .message-status{
+    font-size:0.55rem; color:var(--text-faint); margin-top:0.1rem;
+  }
+  .message-wrapper.pending .message-status{
+    color:var(--warn);
+  }
+  .message-wrapper.delivered .message-status{
+    color:var(--go);
   }
   
   .chat-input-area{
@@ -235,30 +265,6 @@
     font-family:var(--font-body);
   }
 
-  .connection-status {
-    display:flex; align-items:center; gap:0.3rem;
-    font-size:0.65rem; color:var(--text-dim);
-  }
-  .connection-status .pulse {
-    width:6px; height:6px; border-radius:50%; display:inline-block;
-    animation:pulse 1.5s ease-in-out infinite;
-  }
-  .connection-status .pulse.online { background:var(--go); }
-  .connection-status .pulse.offline { background:var(--stop); animation:none; }
-  .connection-status .pulse.connecting { background:var(--warn); }
-  
-  @keyframes pulse {
-    0%, 100% { opacity:1; transform:scale(1); }
-    50% { opacity:0.5; transform:scale(0.8); }
-  }
-
-  .peer-online-status {
-    font-size:0.65rem;
-  }
-  .peer-online-status.online { color:var(--go); }
-  .peer-online-status.offline { color:var(--stop); }
-  .peer-online-status.unknown { color:var(--text-faint); }
-
   .reconnect-bar {
     background:var(--warn-deep);
     color:#fff;
@@ -279,6 +285,14 @@
     from { transform:rotate(0deg); }
     to { transform:rotate(360deg); }
   }
+
+  .delivery-status {
+    font-size:0.55rem;
+    margin-left:0.3rem;
+  }
+  .delivery-status.sent { color:var(--text-faint); }
+  .delivery-status.delivered { color:var(--go); }
+  .delivery-status.pending { color:var(--warn); }
 </style>
 </head>
 <body>
@@ -313,6 +327,7 @@
         <span class="peer-status" id="chatPeerStatus">
           <span class="status-dot unknown"></span>
           <span class="peer-online-status unknown">Checking...</span>
+          <span class="pending-count" id="pendingCount" style="display:none;">0 pending</span>
         </span>
       </div>
       <button class="icon-btn" id="refreshPeerStatus" title="Check status"><i class="fas fa-sync-alt"></i></button>
@@ -331,8 +346,8 @@
 
 <script>
 /* ============================================================
-   PremCall v2.3  (Fixed reconnection)
-   WebRTC calling + chat with stable connections
+   PremCall v2.4  (Offline Message Queuing)
+   Messages are stored when peer is offline and delivered when they come back
    ============================================================ */
 (function (global) {
   'use strict';
@@ -373,9 +388,11 @@
   let callbacks = {};
   let messageListeners = new Set();
   let persistentConnections = {};
+  let messageQueue = {}; // Messages waiting to be sent
   let isReconnecting = false;
   let connectionAttempts = 0;
   const MAX_ATTEMPTS = 5;
+  let messageIdCounter = 0;
 
   // ─── Internal helpers ──────────────────────────────────────
   function log(message, level) {
@@ -385,6 +402,10 @@
 
   function fire(name, data) {
     if (callbacks[name]) callbacks[name](data);
+  }
+
+  function generateMessageId() {
+    return ++messageIdCounter + '-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
   }
 
   function resetCallState() {
@@ -458,14 +479,29 @@
       try {
         const msg = typeof data === 'string' ? JSON.parse(data) : data;
         if (msg && msg.type === 'premcall-message') {
+          // Send delivery confirmation
+          if (msg.messageId) {
+            const ack = {
+              type: 'premcall-ack',
+              messageId: msg.messageId,
+              from: myNumber,
+              timestamp: Date.now()
+            };
+            try { conn.send(JSON.stringify(ack)); } catch(e) {}
+          }
+          
           const message = {
             from: msg.from,
             text: msg.text,
             timestamp: msg.timestamp || Date.now(),
-            direction: 'incoming'
+            direction: 'incoming',
+            messageId: msg.messageId
           };
           messageListeners.forEach(function (cb) { cb(message); });
           fire('onMessage', message);
+        } else if (msg && msg.type === 'premcall-ack') {
+          // Delivery confirmation received
+          fire('onDeliveryConfirmation', { messageId: msg.messageId, from: msg.from });
         }
       } catch (e) {
         console.warn('[PremCall] Invalid message data', e);
@@ -475,6 +511,14 @@
     conn.on('close', function () {
       log('Connection closed with: ' + peerId, 'warn');
       delete persistentConnections[peerId];
+      // Try to deliver queued messages when peer comes back online
+      deliverQueuedMessages(peerId);
+    });
+
+    conn.on('open', function () {
+      log('Connection opened with: ' + peerId, 'info');
+      // Deliver any queued messages
+      deliverQueuedMessages(peerId);
     });
 
     conn.on('error', function (err) {
@@ -500,6 +544,8 @@
         log('Connected to peer: ' + peerId, 'info');
         setupPersistentConnection(conn);
         fire('onPeerConnected', peerId);
+        // Deliver queued messages
+        deliverQueuedMessages(peerId);
       }
     });
     
@@ -508,15 +554,107 @@
         log('Failed to connect to ' + peerId + ': ' + err.message, 'error');
       }
     });
-    
-    // Auto-reconnect after delay if not connected
-    setTimeout(function() {
-      if (!connected && peer && !peer.destroyed) {
-        connectToPeer(peerId);
-      }
-    }, 5000);
   }
 
+  // ─── Message Queuing ──────────────────────────────────────
+  function queueMessage(target, text, messageId) {
+    if (!messageQueue[target]) {
+      messageQueue[target] = [];
+    }
+    const msg = {
+      id: messageId || generateMessageId(),
+      text: text,
+      timestamp: Date.now(),
+      from: myNumber,
+      attempts: 0
+    };
+    messageQueue[target].push(msg);
+    saveMessageQueue();
+    return msg.id;
+  }
+
+  function deliverQueuedMessages(peerId) {
+    if (!messageQueue[peerId] || messageQueue[peerId].length === 0) return;
+    if (!persistentConnections[peerId] || !persistentConnections[peerId].open) {
+      // Try to connect
+      connectToPeer(peerId);
+      return;
+    }
+    
+    const conn = persistentConnections[peerId];
+    const queued = messageQueue[peerId];
+    const delivered = [];
+    
+    queued.forEach(function(msg, index) {
+      const payload = {
+        type: 'premcall-message',
+        from: myNumber,
+        text: msg.text,
+        timestamp: msg.timestamp,
+        messageId: msg.id
+      };
+      
+      try {
+        conn.send(JSON.stringify(payload));
+        delivered.push(index);
+        log('Delivered queued message to ' + peerId + ': ' + msg.text, 'info');
+        // Fire delivery event
+        const messageObj = {
+          target: peerId,
+          text: msg.text,
+          timestamp: msg.timestamp,
+          direction: 'outgoing',
+          messageId: msg.id,
+          delivered: true
+        };
+        fire('onMessage', messageObj);
+      } catch (e) {
+        log('Failed to deliver queued message to ' + peerId + ': ' + e.message, 'error');
+      }
+    });
+    
+    // Remove delivered messages from queue
+    if (delivered.length > 0) {
+      messageQueue[peerId] = messageQueue[peerId].filter(function(_, index) {
+        return !delivered.includes(index);
+      });
+      if (messageQueue[peerId].length === 0) {
+        delete messageQueue[peerId];
+      }
+      saveMessageQueue();
+    }
+  }
+
+  function saveMessageQueue() {
+    try {
+      localStorage.setItem('premCallMessageQueue', JSON.stringify(messageQueue));
+    } catch (e) {
+      console.error('Failed to save message queue:', e);
+    }
+  }
+
+  function loadMessageQueue() {
+    try {
+      const data = JSON.parse(localStorage.getItem('premCallMessageQueue') || '{}');
+      // Clean up old messages (older than 7 days)
+      const now = Date.now();
+      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+      Object.keys(data).forEach(function(peer) {
+        data[peer] = data[peer].filter(function(msg) {
+          return (now - msg.timestamp) < sevenDays;
+        });
+        if (data[peer].length === 0) {
+          delete data[peer];
+        }
+      });
+      return data;
+    } catch (e) {
+      console.error('Failed to load message queue:', e);
+      return {};
+    }
+  }
+
+  // ─── Attach Peer Handlers ──────────────────────────────────
   function attachPeerHandlers() {
     peer.on('open', function (id) {
       log('Connected with ID: ' + id, 'info');
@@ -524,6 +662,15 @@
       isReconnecting = false;
       fire('online', id);
       fire('onConnected', id);
+      
+      // Deliver any queued messages
+      Object.keys(messageQueue).forEach(function(peerId) {
+        if (messageQueue[peerId] && messageQueue[peerId].length > 0) {
+          setTimeout(function() {
+            deliverQueuedMessages(peerId);
+          }, 1000);
+        }
+      });
     });
 
     peer.on('error', function (err) {
@@ -531,7 +678,6 @@
       if (err.type === 'unavailable-id') {
         fire('onError', new Error('Number already taken'));
       } else if (err.type === 'network' || err.type === 'server-error') {
-        // Only trigger reconnection if we were previously connected
         if (peer && peer.id) {
           handleReconnect();
         }
@@ -545,7 +691,6 @@
       fire('offline', null);
       fire('onDisconnected', null);
       if (inCall) resetCallState();
-      // Only reconnect if we have a number (was initialized)
       if (myNumber) {
         handleReconnect();
       }
@@ -598,7 +743,6 @@
       if (peer && !peer.destroyed) {
         try {
           peer.reconnect();
-          // If reconnect doesn't work, recreate peer
           setTimeout(function() {
             if (peer && !peer.id && !peer.destroyed) {
               log('Reconnect failed, recreating peer', 'info');
@@ -634,6 +778,9 @@
       connectionAttempts = 0;
       isReconnecting = false;
       
+      // Load message queue
+      messageQueue = loadMessageQueue();
+      
       peer = new global.Peer(number, { debug: 2, config: CONFIG });
       attachPeerHandlers();
       
@@ -664,7 +811,6 @@
         return;
       }
       
-      // Save for reconnection
       try {
         let savedPeers = JSON.parse(localStorage.getItem('premCallPeers') || '[]');
         if (!savedPeers.includes(peerId)) {
@@ -761,6 +907,16 @@
     getNumber: function () { return myNumber; },
     isInCall: function () { return inCall; },
     getPeerConnections: function () { return Object.keys(persistentConnections); },
+    getPendingMessages: function (peerId) {
+      if (peerId && messageQueue[peerId]) {
+        return messageQueue[peerId].length;
+      }
+      let total = 0;
+      Object.keys(messageQueue).forEach(function(key) {
+        total += messageQueue[key].length;
+      });
+      return total;
+    },
 
     destroy: function () {
       isReconnecting = false;
@@ -800,22 +956,30 @@
           return reject(new Error('Message cannot be empty.'));
         }
         
+        const messageId = generateMessageId();
         const payload = {
           type: 'premcall-message',
           from: myNumber,
           text: text.trim(),
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          messageId: messageId
         };
         
-        // Use persistent connection if available
+        let delivered = false;
+        let pending = false;
+        
+        // Try to send using persistent connection
         if (persistentConnections[target] && persistentConnections[target].open) {
           try {
             persistentConnections[target].send(JSON.stringify(payload));
+            delivered = true;
             const messageObj = { 
               target: target, 
               text: payload.text, 
               timestamp: payload.timestamp, 
-              direction: 'outgoing' 
+              direction: 'outgoing',
+              messageId: messageId,
+              delivered: true
             };
             resolve(messageObj);
             fire('onMessage', messageObj);
@@ -825,40 +989,31 @@
           }
         }
         
-        // Create new connection
-        const conn = peer.connect(target, { reliable: true });
-        let done = false;
+        // If not delivered, queue the message
+        const queuedId = queueMessage(target, text.trim(), messageId);
+        pending = true;
         
-        conn.on('open', function () {
-          setupPersistentConnection(conn);
-          conn.send(JSON.stringify(payload));
-          if (!done) {
-            done = true;
-            const messageObj = { 
-              target: target, 
-              text: payload.text, 
-              timestamp: payload.timestamp, 
-              direction: 'outgoing' 
-            };
-            resolve(messageObj);
-            fire('onMessage', messageObj);
-          }
-        });
+        const messageObj = { 
+          target: target, 
+          text: text.trim(), 
+          timestamp: Date.now(), 
+          direction: 'outgoing',
+          messageId: queuedId,
+          pending: true,
+          queued: true
+        };
         
-        conn.on('error', function (err) { 
-          if (!done) { 
-            done = true; 
-            reject(err); 
-          } 
-        });
+        // Try to establish connection for delivery
+        connectToPeer(target);
         
-        setTimeout(function () {
-          if (!done) {
-            done = true;
-            reject(new Error('Send timeout'));
-            try { conn.close(); } catch (e) {}
-          }
-        }, 10000);
+        // Schedule delivery attempt
+        setTimeout(function() {
+          deliverQueuedMessages(target);
+        }, 1000);
+        
+        resolve(messageObj);
+        fire('onMessage', messageObj);
+        fire('onMessageQueued', { target: target, messageId: queuedId });
       });
     },
 
@@ -872,7 +1027,7 @@
   };
 
   global.PremCall = PremCall;
-  console.log('[PremCall] Library loaded (v2.3 - Fixed).');
+  console.log('[PremCall] Library loaded (v2.4 - Offline Queuing).');
 })(window);
 </script>
 
@@ -959,7 +1114,11 @@
               text: String(m.text || ''),
               timestamp: typeof m.timestamp === 'number' ? m.timestamp : Date.now(),
               direction: m.direction === 'outgoing' ? 'outgoing' : 'incoming',
-              from: m.from || null
+              from: m.from || null,
+              messageId: m.messageId || null,
+              delivered: m.delivered || false,
+              pending: m.pending || false,
+              queued: m.queued || false
             };
           });
         } else {
@@ -1038,6 +1197,24 @@
         text.className = 'peer-online-status ' + (isOnline ? 'online' : 'offline');
       }
     }
+    
+    // Update pending count
+    updatePendingCount(peerNumber);
+  }
+
+  function updatePendingCount(peerNumber) {
+    var pendingCountEl = document.getElementById('pendingCount');
+    if (!pendingCountEl) return;
+    
+    if (typeof PremCall !== 'undefined' && PremCall.getPendingMessages) {
+      var count = PremCall.getPendingMessages(peerNumber);
+      if (count > 0) {
+        pendingCountEl.style.display = 'inline';
+        pendingCountEl.textContent = count + ' pending';
+      } else {
+        pendingCountEl.style.display = 'none';
+      }
+    }
   }
 
   function renderConversationList() {
@@ -1079,11 +1256,28 @@
       statusDot.className = 'status-dot unknown';
       nameDiv.appendChild(statusDot);
       
+      // Check for pending messages
+      var pendingCount = 0;
+      if (typeof PremCall !== 'undefined' && PremCall.getPendingMessages) {
+        pendingCount = PremCall.getPendingMessages(peer);
+      }
+      if (pendingCount > 0) {
+        var pendingBadge = document.createElement('span');
+        pendingBadge.className = 'pending-badge';
+        pendingBadge.textContent = pendingCount;
+        nameDiv.appendChild(pendingBadge);
+      }
+      
       info.appendChild(nameDiv);
 
       var preview = document.createElement('div');
       preview.className = 'preview';
-      preview.textContent = (lastMsg.direction === 'outgoing' ? 'You: ' : '') + (lastMsg.text || '');
+      var sender = lastMsg.direction === 'outgoing' ? 'You' : (lastMsg.from || peer);
+      var prefix = lastMsg.direction === 'outgoing' ? 'You: ' : '';
+      if (lastMsg.pending) {
+        prefix = '[Pending] You: ';
+      }
+      preview.textContent = prefix + (lastMsg.text || '');
       info.appendChild(preview);
 
       item.appendChild(info);
@@ -1131,6 +1325,7 @@
       }
     }
     
+    updatePendingCount(peer);
     renderMessages();
     setInputEnabled(isReady);
     if (isReady) {
@@ -1165,7 +1360,12 @@
       }
 
       var wrapper = document.createElement('div');
-      wrapper.className = 'message-wrapper ' + (msg.direction === 'outgoing' ? 'outgoing' : 'incoming');
+      var isPending = msg.pending || false;
+      var wrapperClass = 'message-wrapper ' + (msg.direction === 'outgoing' ? 'outgoing' : 'incoming');
+      if (isPending) {
+        wrapperClass += ' pending';
+      }
+      wrapper.className = wrapperClass;
 
       var sender = document.createElement('div');
       sender.className = 'message-sender';
@@ -1186,6 +1386,21 @@
       time.textContent = formatTime(msg.timestamp);
       wrapper.appendChild(time);
 
+      // Status indicator
+      var status = document.createElement('div');
+      status.className = 'message-status';
+      if (isPending) {
+        status.textContent = '⏳ Pending delivery';
+        status.style.color = 'var(--warn)';
+      } else if (msg.delivered && msg.direction === 'outgoing') {
+        status.textContent = '✓ Delivered';
+        status.style.color = 'var(--go)';
+      } else if (msg.direction === 'outgoing') {
+        status.textContent = '✓ Sent';
+        status.style.color = 'var(--text-faint)';
+      }
+      wrapper.appendChild(status);
+
       container.appendChild(wrapper);
     });
 
@@ -1199,7 +1414,11 @@
       text: String(msg.text || ''),
       timestamp: typeof msg.timestamp === 'number' ? msg.timestamp : Date.now(),
       direction: msg.direction === 'outgoing' ? 'outgoing' : 'incoming',
-      from: msg.from || null
+      from: msg.from || null,
+      messageId: msg.messageId || null,
+      delivered: msg.delivered || false,
+      pending: msg.pending || false,
+      queued: msg.queued || false
     });
     saveConversations();
     if (activePeer === peer) {
@@ -1227,7 +1446,9 @@
       text: String(text),
       timestamp: (typeof timestamp === 'number' && timestamp > 0) ? timestamp : Date.now(),
       direction: 'incoming',
-      from: peer
+      from: peer,
+      messageId: msg.messageId || null,
+      delivered: true
     });
 
     if (activePeer !== peer) {
@@ -1235,6 +1456,16 @@
       if (navigator.vibrate) navigator.vibrate(50);
     }
     renderConversationList();
+    if (activePeer === peer) {
+      renderMessages();
+    }
+  }
+
+  function handleMessageQueued(data) {
+    if (data && data.target) {
+      updatePendingCount(data.target);
+      renderConversationList();
+    }
   }
 
   function sendMessage() {
@@ -1264,10 +1495,18 @@
           text: text,
           timestamp: Date.now(),
           direction: 'outgoing',
-          from: myNumber || 'You'
+          from: myNumber || 'You',
+          messageId: result.messageId,
+          delivered: result.delivered || false,
+          pending: result.pending || false,
+          queued: result.queued || false
         });
         input.value = '';
         renderConversationList();
+        updatePendingCount(activePeer);
+        if (result.pending) {
+          showToast('Message queued - will deliver when peer comes online');
+        }
       })
       .catch(function(err) {
         var errorMsg = err && err.message ? err.message : 'Unknown error';
@@ -1311,6 +1550,9 @@
       if (activePeer && isReady) {
         checkPeerStatus(activePeer);
         showToast('Checking status...');
+        if (typeof PremCall !== 'undefined' && PremCall.connectToPeer) {
+          PremCall.connectToPeer(activePeer);
+        }
       }
     });
   }
@@ -1322,6 +1564,7 @@
     try {
       PremCall.init(number, {
         onMessage: handleIncomingMessage,
+        onMessageQueued: handleMessageQueued,
         onError: function(err) {
           console.warn('PremCall error:', err);
           var msg = err && err.message ? err.message : 'Unknown error';
@@ -1339,6 +1582,7 @@
           renderConversationList();
           if (activePeer) {
             checkPeerStatus(activePeer);
+            updatePendingCount(activePeer);
             document.getElementById('messageInput').focus();
           }
         },
@@ -1367,6 +1611,15 @@
         onPeerConnected: function(peerId) {
           console.log('Peer connected:', peerId);
           checkPeerStatus(peerId);
+          updatePendingCount(peerId);
+          renderConversationList();
+        },
+        onDeliveryConfirmation: function(data) {
+          console.log('Delivery confirmed for:', data.messageId);
+          // Update message status
+          if (activePeer && data.from === activePeer) {
+            renderMessages();
+          }
         }
       });
       updateStatus('connecting');
