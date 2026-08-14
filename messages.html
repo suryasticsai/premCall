@@ -57,6 +57,12 @@
   }
   .header .title{
     flex:1; font-family:var(--font-display); font-weight:700; font-size:1.2rem;
+    display:flex; align-items:center; gap:0.5rem;
+    flex-wrap:wrap;
+  }
+  .header .title .my-number{
+    font-size:0.7rem; font-weight:400; color:var(--text-dim);
+    font-family:var(--font-body);
   }
   .header .icon-btn{
     background:none; border:none; color:var(--text-dim); font-size:1.2rem; cursor:pointer;
@@ -67,6 +73,14 @@
   .header .icon-btn:disabled{
     opacity:0.4; cursor:not-allowed;
   }
+  .status-badge {
+    display:inline-block; padding:0.2rem 0.6rem; border-radius:10px;
+    font-size:0.6rem; font-weight:600;
+  }
+  .status-badge.online { background:var(--go); color:#fff; }
+  .status-badge.offline { background:var(--stop); color:#fff; }
+  .status-badge.connecting { background:var(--warn); color:#fff; }
+  
   .conversation-list{
     flex:1; overflow-y:auto; padding:0.5rem 0;
   }
@@ -87,10 +101,18 @@
     font-size:0.8rem; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .conversation-item .time{ font-size:0.7rem; color:var(--text-faint); flex-shrink:0; }
+  .conversation-item .status-dot{
+    width:8px; height:8px; border-radius:50%; display:inline-block; margin-left:0.3rem;
+  }
+  .conversation-item .status-dot.online{ background:var(--go); }
+  .conversation-item .status-dot.offline{ background:var(--stop); }
+  
   .empty-state{
     text-align:center; color:var(--text-faint); padding:2rem; font-size:0.9rem;
   }
   .empty-state .icon{ font-size:2.5rem; display:block; margin-bottom:0.8rem; opacity:0.5; }
+  .empty-state .sub-text{ font-size:0.8rem; opacity:0.7; margin-top:0.3rem; }
+  
   .chat-view{
     flex:1; display:flex; flex-direction:column;
   }
@@ -107,14 +129,36 @@
     display:flex; align-items:center; justify-content:center; font-weight:700;
     color:var(--text);
   }
-  .chat-header .peer-name{
-    flex:1; font-family:var(--font-display); font-weight:600;
+  .chat-header .peer-info{
+    flex:1; display:flex; flex-direction:column;
   }
+  .chat-header .peer-name{
+    font-family:var(--font-display); font-weight:600; font-size:0.95rem;
+  }
+  .chat-header .peer-status{
+    font-size:0.7rem; color:var(--text-dim);
+  }
+  .chat-header .peer-status .status-dot{
+    width:6px; height:6px; border-radius:50%; display:inline-block; margin-right:0.3rem;
+  }
+  .chat-header .peer-status .status-dot.online{ background:var(--go); }
+  .chat-header .peer-status .status-dot.offline{ background:var(--stop); }
+  .chat-header .peer-status .status-dot.unknown{ background:var(--text-faint); }
+  
   .messages{
     flex:1; overflow-y:auto; padding:1rem; display:flex; flex-direction:column; gap:0.4rem;
   }
+  .message-wrapper{
+    display:flex; flex-direction:column; max-width:85%;
+  }
+  .message-wrapper.outgoing{
+    align-self:flex-end; align-items:flex-end;
+  }
+  .message-wrapper.incoming{
+    align-self:flex-start; align-items:flex-start;
+  }
   .message-bubble{
-    max-width:80%; padding:0.6rem 0.9rem; border-radius:16px; font-size:0.9rem;
+    padding:0.6rem 0.9rem; border-radius:16px; font-size:0.9rem;
     white-space:pre-wrap; word-break:break-word; position:relative;
     animation:fadeIn .2s ease;
   }
@@ -122,17 +166,34 @@
     from{ opacity:0; transform:translateY(5px); }
     to{ opacity:1; transform:translateY(0); }
   }
-  .message-bubble.outgoing{
-    align-self:flex-end; background:var(--signal); color:#fff;
+  .message-wrapper.outgoing .message-bubble{
+    background:var(--signal); color:#fff;
     border-bottom-right-radius:4px;
   }
-  .message-bubble.incoming{
-    align-self:flex-start; background:var(--surface-2); color:var(--text);
+  .message-wrapper.incoming .message-bubble{
+    background:var(--surface-2); color:var(--text);
     border-bottom-left-radius:4px;
   }
-  .message-bubble .timestamp{
-    font-size:0.6rem; opacity:0.7; margin-top:0.2rem; display:block; text-align:right;
+  .message-sender{
+    font-size:0.65rem; color:var(--text-faint); margin:0 0.3rem 0.1rem 0.3rem;
+    font-weight:500;
   }
+  .message-wrapper.outgoing .message-sender{
+    color:var(--signal);
+  }
+  .message-wrapper.incoming .message-sender{
+    color:var(--text-dim);
+  }
+  .message-timestamp{
+    font-size:0.6rem; opacity:0.6; margin-top:0.15rem; display:block; text-align:right;
+  }
+  .message-wrapper.outgoing .message-timestamp{
+    color:rgba(255,255,255,0.7);
+  }
+  .message-wrapper.incoming .message-timestamp{
+    color:var(--text-faint);
+  }
+  
   .chat-input-area{
     display:flex; gap:0.5rem; padding:0.8rem; background:var(--surface);
     border-top:1px solid var(--line); flex-shrink:0;
@@ -148,18 +209,22 @@
   .chat-input-area input:focus{
     border-color:var(--signal);
   }
+  .chat-input-area input:disabled{
+    opacity:0.5;
+  }
   .chat-input-area button{
     width:42px; height:42px; border-radius:50%; border:none; background:var(--signal);
     color:#fff; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center;
     transition:opacity .2s, transform .1s;
   }
   .chat-input-area button:disabled{
-    opacity:0.6; cursor:not-allowed;
+    opacity:0.4; cursor:not-allowed;
   }
   .chat-input-area button:active:not(:disabled){
     transform:scale(0.95);
   }
   .hidden{ display:none !important; }
+  
   #toast {
     position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
     background:var(--surface-3); border:1px solid var(--line);
@@ -168,13 +233,32 @@
     pointer-events:none; max-width:90%;
     font-family:var(--font-body);
   }
-  .status-badge {
-    display:inline-block; padding:0.2rem 0.6rem; border-radius:10px;
-    font-size:0.6rem; font-weight:600; margin-left:0.5rem;
+
+  /* Status indicator in header */
+  .connection-status {
+    display:flex; align-items:center; gap:0.3rem;
+    font-size:0.65rem; color:var(--text-dim);
   }
-  .status-badge.online { background:var(--go); color:#fff; }
-  .status-badge.offline { background:var(--stop); color:#fff; }
-  .status-badge.connecting { background:var(--warn); color:#fff; }
+  .connection-status .pulse {
+    width:6px; height:6px; border-radius:50%; display:inline-block;
+    animation:pulse 1.5s ease-in-out infinite;
+  }
+  .connection-status .pulse.online { background:var(--go); }
+  .connection-status .pulse.offline { background:var(--stop); animation:none; }
+  .connection-status .pulse.connecting { background:var(--warn); }
+  
+  @keyframes pulse {
+    0%, 100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.5; transform:scale(0.8); }
+  }
+
+  /* Online indicator for peer in chat header */
+  .peer-online-status {
+    font-size:0.65rem;
+  }
+  .peer-online-status.online { color:var(--go); }
+  .peer-online-status.offline { color:var(--stop); }
+  .peer-online-status.unknown { color:var(--text-faint); }
 </style>
 </head>
 <body>
@@ -182,7 +266,11 @@
 <div class="app-container" id="app">
   <div class="header" id="listHeader">
     <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i></a>
-    <span class="title">Messages <span class="status-badge offline" id="statusBadge">Offline</span></span>
+    <span class="title">
+      Messages
+      <span class="status-badge offline" id="statusBadge">Offline</span>
+      <span class="my-number" id="myNumberDisplay"></span>
+    </span>
     <button class="icon-btn" id="newChatBtn"><i class="fas fa-plus"></i></button>
   </div>
   <div class="conversation-list" id="conversationList">
@@ -195,12 +283,19 @@
     <div class="chat-header">
       <button class="back-btn" id="chatBackBtn"><i class="fas fa-arrow-left"></i></button>
       <div class="avatar" id="chatPeerAvatar">?</div>
-      <span class="peer-name" id="chatPeerName"></span>
+      <div class="peer-info">
+        <span class="peer-name" id="chatPeerName"></span>
+        <span class="peer-status" id="chatPeerStatus">
+          <span class="status-dot unknown"></span>
+          <span class="peer-online-status unknown">Checking...</span>
+        </span>
+      </div>
+      <button class="icon-btn" id="refreshPeerStatus" title="Check status"><i class="fas fa-sync-alt"></i></button>
     </div>
     <div class="messages" id="messagesContainer"></div>
     <div class="chat-input-area">
-      <input type="text" id="messageInput" placeholder="Type a message…" autocomplete="off" />
-      <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+      <input type="text" id="messageInput" placeholder="Connecting..." autocomplete="off" disabled />
+      <button id="sendBtn" disabled><i class="fas fa-paper-plane"></i></button>
     </div>
   </div>
 </div>
@@ -209,12 +304,8 @@
 <!-- Load PeerJS -->
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
-<!-- PremCall with chat built-in -->
-<script>
-// Your premcall.js code goes here (the merged version with chat)
-// OR load from CDN:
-// <script src="https://cdn.jsdelivr.net/gh/suryasticsai/premCall@main/premcall.js"></script>
-</script>
+<!-- Load PremCall directly from CDN -->
+<script src="https://cdn.jsdelivr.net/gh/suryasticsai/premCall@main/premcall.js"></script>
 
 <script>
 (function() {
@@ -241,8 +332,31 @@
 
   function updateStatus(status) {
     var badge = document.getElementById('statusBadge');
-    badge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    var statusMap = {
+      'online': 'Online',
+      'offline': 'Offline',
+      'connecting': 'Connecting...'
+    };
+    badge.textContent = statusMap[status] || status;
     badge.className = 'status-badge ' + status;
+    
+    // Update header connection indicator
+    var pulse = document.querySelector('.connection-status .pulse');
+    if (pulse) {
+      pulse.className = 'pulse ' + status;
+    }
+  }
+
+  function setInputEnabled(enabled) {
+    var input = document.getElementById('messageInput');
+    var sendBtn = document.getElementById('sendBtn');
+    input.disabled = !enabled;
+    sendBtn.disabled = !enabled;
+    if (enabled) {
+      input.placeholder = 'Type a message…';
+    } else {
+      input.placeholder = 'Connecting...';
+    }
   }
 
   function initials(peer) {
@@ -258,6 +372,22 @@
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
 
+  function formatDate(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    var today = new Date();
+    if (d.toDateString() === today.toDateString()) {
+      return 'Today';
+    }
+    var yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    }
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
+
   function sanitizeConversations(data) {
     var out = {};
     for (var key in data) {
@@ -270,7 +400,8 @@
             return {
               text: String(m.text || ''),
               timestamp: typeof m.timestamp === 'number' ? m.timestamp : Date.now(),
-              direction: m.direction === 'outgoing' ? 'outgoing' : 'incoming'
+              direction: m.direction === 'outgoing' ? 'outgoing' : 'incoming',
+              from: m.from || null
             };
           });
         } else {
@@ -285,8 +416,9 @@
   var conversations = {};
   var activePeer = null;
   var isSending = false;
-  var isInitialized = false;
+  var isReady = false;
   var myNumber = null;
+  var peerStatusCache = {};
 
   function loadConversations() {
     try {
@@ -306,13 +438,65 @@
     }
   }
 
+  /* ---------- Peer status checking ---------- */
+  function checkPeerStatus(peerNumber) {
+    if (!isReady || typeof PremCall === 'undefined' || typeof PremCall.checkStatus !== 'function') {
+      return;
+    }
+    
+    PremCall.checkStatus(peerNumber)
+      .then(function(isOnline) {
+        peerStatusCache[peerNumber] = {
+          online: isOnline,
+          lastCheck: Date.now()
+        };
+        updatePeerStatusUI(peerNumber, isOnline);
+      })
+      .catch(function(err) {
+        console.warn('Status check failed for', peerNumber, err);
+        peerStatusCache[peerNumber] = {
+          online: false,
+          lastCheck: Date.now()
+        };
+        updatePeerStatusUI(peerNumber, false);
+      });
+  }
+
+  function updatePeerStatusUI(peerNumber, isOnline) {
+    // Update conversation list status dots
+    var items = document.querySelectorAll('.conversation-item');
+    items.forEach(function(item) {
+      var nameEl = item.querySelector('.name');
+      if (nameEl && nameEl.textContent === peerNumber) {
+        var dot = item.querySelector('.status-dot');
+        if (dot) {
+          dot.className = 'status-dot ' + (isOnline ? 'online' : 'offline');
+        }
+      }
+    });
+
+    // Update chat header status
+    if (activePeer === peerNumber) {
+      var statusEl = document.getElementById('chatPeerStatus');
+      var dot = statusEl.querySelector('.status-dot');
+      var text = statusEl.querySelector('.peer-online-status');
+      if (dot) {
+        dot.className = 'status-dot ' + (isOnline ? 'online' : 'offline');
+      }
+      if (text) {
+        text.textContent = isOnline ? 'Online' : 'Offline';
+        text.className = 'peer-online-status ' + (isOnline ? 'online' : 'offline');
+      }
+    }
+  }
+
   /* ---------- Render functions ---------- */
   function renderConversationList() {
     var listEl = document.getElementById('conversationList');
     listEl.innerHTML = '';
     var peers = Object.keys(conversations);
     if (peers.length === 0) {
-      listEl.innerHTML = '<div class="empty-state"><span class="icon"><i class="fas fa-comments"></i></span>No conversations yet</div>';
+      listEl.innerHTML = '<div class="empty-state"><span class="icon"><i class="fas fa-comments"></i></span>No conversations yet<span class="sub-text">Start a chat with any registered number</span></div>';
       return;
     }
     peers.sort(function(a, b) {
@@ -338,13 +522,20 @@
       var info = document.createElement('div');
       info.className = 'info';
 
-      var name = document.createElement('div');
-      name.className = 'name';
-      name.textContent = peer;
-      info.appendChild(name);
+      var nameDiv = document.createElement('div');
+      nameDiv.className = 'name';
+      nameDiv.textContent = peer;
+      
+      // Add status dot
+      var statusDot = document.createElement('span');
+      statusDot.className = 'status-dot unknown';
+      nameDiv.appendChild(statusDot);
+      
+      info.appendChild(nameDiv);
 
       var preview = document.createElement('div');
       preview.className = 'preview';
+      var sender = lastMsg.direction === 'outgoing' ? 'You' : (lastMsg.from || peer);
       preview.textContent = (lastMsg.direction === 'outgoing' ? 'You: ' : '') + (lastMsg.text || '');
       info.appendChild(preview);
 
@@ -357,6 +548,11 @@
 
       item.addEventListener('click', function() { openChat(peer); });
       listEl.appendChild(item);
+
+      // Check status if ready
+      if (isReady) {
+        checkPeerStatus(peer);
+      }
     });
   }
 
@@ -368,8 +564,26 @@
 
     document.getElementById('chatPeerName').textContent = peer;
     document.getElementById('chatPeerAvatar').textContent = initials(peer);
+    
+    // Check and display peer status
+    if (isReady) {
+      checkPeerStatus(peer);
+    } else {
+      var statusEl = document.getElementById('chatPeerStatus');
+      var dot = statusEl.querySelector('.status-dot');
+      var text = statusEl.querySelector('.peer-online-status');
+      if (dot) dot.className = 'status-dot unknown';
+      if (text) {
+        text.textContent = 'Checking...';
+        text.className = 'peer-online-status unknown';
+      }
+    }
+    
     renderMessages();
-    document.getElementById('messageInput').focus();
+    setInputEnabled(isReady);
+    if (isReady) {
+      document.getElementById('messageInput').focus();
+    }
   }
 
   function closeChat() {
@@ -386,20 +600,42 @@
     if (!activePeer || !conversations[activePeer]) return;
 
     var msgs = conversations[activePeer];
-    msgs.forEach(function(msg) {
+    var lastDate = null;
+    
+    msgs.forEach(function(msg, index) {
+      var msgDate = formatDate(msg.timestamp);
+      if (msgDate !== lastDate) {
+        lastDate = msgDate;
+        var dateDiv = document.createElement('div');
+        dateDiv.style.cssText = 'text-align:center;font-size:0.7rem;color:var(--text-faint);padding:0.5rem 0;';
+        dateDiv.textContent = msgDate;
+        container.appendChild(dateDiv);
+      }
+
+      var wrapper = document.createElement('div');
+      wrapper.className = 'message-wrapper ' + (msg.direction === 'outgoing' ? 'outgoing' : 'incoming');
+
+      // Show sender/recipient
+      var sender = document.createElement('div');
+      sender.className = 'message-sender';
+      if (msg.direction === 'outgoing') {
+        sender.textContent = 'You (' + (myNumber || 'Me') + ')';
+      } else {
+        sender.textContent = msg.from || activePeer;
+      }
+      wrapper.appendChild(sender);
+
       var bubble = document.createElement('div');
-      bubble.className = 'message-bubble ' + (msg.direction === 'outgoing' ? 'outgoing' : 'incoming');
+      bubble.className = 'message-bubble';
+      bubble.textContent = msg.text || '';
+      wrapper.appendChild(bubble);
 
-      var textSpan = document.createElement('span');
-      textSpan.textContent = msg.text || '';
-      bubble.appendChild(textSpan);
+      var time = document.createElement('span');
+      time.className = 'message-timestamp';
+      time.textContent = formatTime(msg.timestamp);
+      wrapper.appendChild(time);
 
-      var timeSpan = document.createElement('span');
-      timeSpan.className = 'timestamp';
-      timeSpan.textContent = formatTime(msg.timestamp);
-      bubble.appendChild(timeSpan);
-
-      container.appendChild(bubble);
+      container.appendChild(wrapper);
     });
 
     container.scrollTop = container.scrollHeight;
@@ -411,7 +647,8 @@
     conversations[peer].push({
       text: String(msg.text || ''),
       timestamp: typeof msg.timestamp === 'number' ? msg.timestamp : Date.now(),
-      direction: msg.direction === 'outgoing' ? 'outgoing' : 'incoming'
+      direction: msg.direction === 'outgoing' ? 'outgoing' : 'incoming',
+      from: msg.from || null
     });
     saveConversations();
     if (activePeer === peer) {
@@ -439,11 +676,12 @@
     addMessage(peer, {
       text: String(text),
       timestamp: (typeof timestamp === 'number' && timestamp > 0) ? timestamp : Date.now(),
-      direction: 'incoming'
+      direction: 'incoming',
+      from: peer
     });
 
     if (activePeer !== peer) {
-      showToast('New message from ' + peer);
+      showToast('New message from ' + peer + ': ' + (text.length > 30 ? text.substring(0, 30) + '...' : text));
       if (navigator.vibrate) navigator.vibrate(50);
     }
     renderConversationList();
@@ -452,10 +690,13 @@
   /* ---------- Send message ---------- */
   function sendMessage() {
     if (!activePeer || isSending) return;
+    if (!isReady) {
+      showToast('Please wait, connecting...');
+      return;
+    }
     
-    // Check if PremCall is initialized
-    if (typeof PremCall === 'undefined' || !PremCall.isInCall && !PremCall.getNumber()) {
-      showToast('Messaging service not ready. Please wait...');
+    if (typeof PremCall === 'undefined' || typeof PremCall.sendMessage !== 'function') {
+      showToast('Messaging service not available');
       return;
     }
 
@@ -468,21 +709,13 @@
     sendBtn.disabled = true;
     sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-    // Check if sendMessage exists
-    if (typeof PremCall.sendMessage !== 'function') {
-      showToast('Send failed: Messaging not supported');
-      isSending = false;
-      sendBtn.disabled = false;
-      sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-      return;
-    }
-
     PremCall.sendMessage(activePeer, text)
       .then(function(result) {
         addMessage(activePeer, {
           text: text,
           timestamp: Date.now(),
-          direction: 'outgoing'
+          direction: 'outgoing',
+          from: myNumber || 'You'
         });
         input.value = '';
         renderConversationList();
@@ -494,7 +727,7 @@
       })
       .finally(function() {
         isSending = false;
-        sendBtn.disabled = false;
+        sendBtn.disabled = !isReady;
         sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
       });
   }
@@ -502,6 +735,10 @@
   /* ---------- Event listeners ---------- */
   function setupEventListeners() {
     document.getElementById('newChatBtn').addEventListener('click', function() {
+      if (!isReady) {
+        showToast('Please wait for connection...');
+        return;
+      }
       var num = prompt('Enter 10-digit number to start a chat:');
       if (num && /^\d{10}$/.test(num.trim())) {
         var trimmed = num.trim();
@@ -518,59 +755,62 @@
     document.getElementById('messageInput').addEventListener('keydown', function(e) {
       if (e.key === 'Enter') sendMessage();
     });
-  }
-
-  /* ---------- Wait for PremCall ---------- */
-  function waitForPremCall(callback, timeout) {
-    timeout = timeout || 15000;
-    var start = Date.now();
     
-    if (typeof PremCall !== 'undefined' && typeof PremCall.init === 'function') {
-      callback(null, PremCall);
-      return;
-    }
-    
-    var timer = setInterval(function() {
-      if (typeof PremCall !== 'undefined' && typeof PremCall.init === 'function') {
-        clearInterval(timer);
-        callback(null, PremCall);
-      } else if (Date.now() - start > timeout) {
-        clearInterval(timer);
-        callback(new Error('PremCall library failed to load. Please refresh the page.'));
+    document.getElementById('refreshPeerStatus').addEventListener('click', function() {
+      if (activePeer && isReady) {
+        checkPeerStatus(activePeer);
+        showToast('Checking status...');
       }
-    }, 200);
+    });
   }
 
   /* ---------- Initialize PremCall ---------- */
   function initPremCall(number) {
+    myNumber = number;
+    document.getElementById('myNumberDisplay').textContent = number;
+    
     try {
       PremCall.init(number, {
         onMessage: handleIncomingMessage,
         onError: function(err) {
           console.warn('PremCall error:', err);
-          showToast('Error: ' + (err && err.message ? err.message : 'Unknown'));
+          var msg = err && err.message ? err.message : 'Unknown error';
+          showToast('Error: ' + msg);
           updateStatus('offline');
+          isReady = false;
+          setInputEnabled(false);
         },
         onConnected: function() {
           console.log('Connected to PeerJS network');
           updateStatus('online');
           showToast('Connected!');
-          isInitialized = true;
+          isReady = true;
+          setInputEnabled(true);
+          renderConversationList();
+          if (activePeer) {
+            checkPeerStatus(activePeer);
+            document.getElementById('messageInput').focus();
+          }
         },
         onDisconnected: function() {
           console.warn('Disconnected from PeerJS network');
           updateStatus('offline');
-          showToast('Disconnected');
+          isReady = false;
+          setInputEnabled(false);
+          showToast('Disconnected - reconnecting...');
         },
         online: function() {
           updateStatus('online');
+          isReady = true;
+          setInputEnabled(true);
+          renderConversationList();
         },
         offline: function() {
           updateStatus('offline');
+          isReady = false;
+          setInputEnabled(false);
         }
       });
-      myNumber = number;
-      isInitialized = true;
       updateStatus('connecting');
       console.log('PremCall initialized with number:', number);
       return true;
@@ -578,6 +818,8 @@
       console.error('PremCall init error:', e);
       showToast('Init failed: ' + e.message);
       updateStatus('offline');
+      isReady = false;
+      setInputEnabled(false);
       return false;
     }
   }
@@ -588,9 +830,8 @@
     renderConversationList();
     setupEventListeners();
 
-    // Check if PremCall is already loaded
-    if (typeof PremCall !== 'undefined') {
-      console.log('PremCall already loaded');
+    if (typeof PremCall !== 'undefined' && typeof PremCall.init === 'function') {
+      console.log('PremCall loaded');
       var storedNumber = localStorage.getItem('premCallNumber');
       var verified = localStorage.getItem('premCallVerified') === 'true';
 
@@ -598,34 +839,15 @@
         initPremCall(storedNumber);
       } else {
         document.getElementById('conversationList').innerHTML =
-          '<div class="empty-state"><span class="icon"><i class="fas fa-phone"></i></span>Please register in the dialer first.</div>';
+          '<div class="empty-state"><span class="icon"><i class="fas fa-phone"></i></span>Please register in the dialer first.<span class="sub-text">Go to the dialer and verify your number</span></div>';
         updateStatus('offline');
+        setInputEnabled(false);
       }
     } else {
-      // Wait for PremCall to load
       document.getElementById('conversationList').innerHTML =
-        '<div class="empty-state"><span class="icon"><i class="fas fa-spinner fa-spin"></i></span>Loading messaging service...</div>';
-      
-      waitForPremCall(function(err, PremCallLib) {
-        if (err) {
-          document.getElementById('conversationList').innerHTML =
-            '<div class="empty-state" style="color:var(--stop)"><span class="icon"><i class="fas fa-exclamation-circle"></i></span>' + escapeHtml(err.message) + '</div>';
-          return;
-        }
-
-        console.log('PremCall loaded successfully!');
-        
-        var storedNumber = localStorage.getItem('premCallNumber');
-        var verified = localStorage.getItem('premCallVerified') === 'true';
-
-        if (storedNumber && verified) {
-          initPremCall(storedNumber);
-        } else {
-          document.getElementById('conversationList').innerHTML =
-            '<div class="empty-state"><span class="icon"><i class="fas fa-phone"></i></span>Please register in the dialer first.</div>';
-          updateStatus('offline');
-        }
-      });
+        '<div class="empty-state" style="color:var(--stop)"><span class="icon"><i class="fas fa-exclamation-circle"></i></span>PremCall library failed to load.</div>';
+      updateStatus('offline');
+      setInputEnabled(false);
     }
   });
 })();
