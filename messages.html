@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#070a12" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Messages – PremCall</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+<style>
+  :root{
+    --bg-0:#05070d; --bg-1:#0a0e18; --surface:#0e1424; --surface-2:#141c30; --surface-3:#1b2540;
+    --line:#1e2a42; --text:#eef2fb; --text-dim:#8891ab; --text-faint:#525d78;
+    --signal:#4f8cf7; --signal-soft:#2f5fc4; --go:#2fd992; --go-deep:#12683f;
+    --stop:#ff5470; --stop-deep:#7a1730; --warn:#ffb648; --warn-deep:#5c3d10;
+    --radius-lg:22px; --radius-md:16px;
+    --font-display:'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  body.light-mode{
+    --bg-0:#f0f2f5; --bg-1:#ffffff; --surface:#ffffff; --surface-2:#f8fafc; --surface-3:#f1f5f9;
+    --line:#d1d5db; --text:#111827; --text-dim:#4b5563; --text-faint:#9ca3af;
+    --signal:#2563eb; --signal-soft:#1d4ed8; --go:#10b981; --go-deep:#047857;
+    --stop:#ef4444; --stop-deep:#b91c1c; --warn:#f59e0b; --warn-deep:#b45309;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:var(--font-body);
+    color:var(--text);
+    background:var(--bg-0);
+    min-height:100vh; min-height:100dvh;
+    display:flex; justify-content:center;
+    padding:0;
+    overflow-x:hidden;
+  }
+  .app-container{
+    width:100%; max-width:480px; min-height:100vh; min-height:100dvh;
+    background:var(--bg-1); display:flex; flex-direction:column;
+    position:relative; padding-top:var(--safe-t); padding-bottom:var(--safe-b);
+  }
+  /* Header */
+  .header{
+    display:flex; align-items:center; padding:0.8rem 1rem;
+    background:var(--surface); border-bottom:1px solid var(--line);
+    gap:0.8rem; flex-shrink:0;
+  }
+  .header .back-btn{
+    background:none; border:none; color:var(--text); font-size:1.4rem; cursor:pointer;
+  }
+  .header .title{
+    flex:1; font-family:var(--font-display); font-weight:700; font-size:1.2rem;
+  }
+  .header .icon-btn{
+    background:none; border:none; color:var(--text-dim); font-size:1.2rem; cursor:pointer;
+  }
+
+  /* Conversation list */
+  .conversation-list{
+    flex:1; overflow-y:auto; padding:0.5rem 0;
+  }
+  .conversation-item{
+    display:flex; align-items:center; gap:0.8rem; padding:0.8rem 1rem;
+    border-bottom:1px solid var(--surface-2); cursor:pointer; transition:background .15s;
+  }
+  .conversation-item:hover{ background:var(--surface-2); }
+  .conversation-item .avatar{
+    width:48px; height:48px; border-radius:50%; background:var(--surface-3);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:700; font-size:1.1rem; color:var(--text);
+    flex-shrink:0;
+  }
+  .conversation-item .info{ flex:1; min-width:0; }
+  .conversation-item .name{ font-weight:600; font-size:0.95rem; }
+  .conversation-item .preview{
+    font-size:0.8rem; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .conversation-item .time{ font-size:0.7rem; color:var(--text-faint); flex-shrink:0; }
+  .empty-state{
+    text-align:center; color:var(--text-faint); padding:2rem; font-size:0.9rem;
+  }
+
+  /* Chat view */
+  .chat-view{
+    flex:1; display:flex; flex-direction:column;
+  }
+  .chat-header{
+    display:flex; align-items:center; gap:0.8rem; padding:0.8rem 1rem;
+    background:var(--surface); border-bottom:1px solid var(--line); flex-shrink:0;
+  }
+  .chat-header .back-btn{
+    background:none; border:none; color:var(--text); font-size:1.4rem; cursor:pointer;
+  }
+  .chat-header .avatar{
+    width:36px; height:36px; border-radius:50%; background:var(--surface-3);
+    display:flex; align-items:center; justify-content:center; font-weight:700;
+  }
+  .chat-header .peer-name{
+    flex:1; font-family:var(--font-display); font-weight:600;
+  }
+  .messages{
+    flex:1; overflow-y:auto; padding:1rem; display:flex; flex-direction:column; gap:0.4rem;
+  }
+  .message-bubble{
+    max-width:80%; padding:0.6rem 0.9rem; border-radius:16px; font-size:0.9rem;
+    white-space:pre-wrap; word-break:break-word; position:relative;
+  }
+  .message-bubble.outgoing{
+    align-self:flex-end; background:var(--signal); color:#fff;
+    border-bottom-right-radius:4px;
+  }
+  .message-bubble.incoming{
+    align-self:flex-start; background:var(--surface-2); color:var(--text);
+    border-bottom-left-radius:4px;
+  }
+  .message-bubble .timestamp{
+    font-size:0.6rem; opacity:0.7; margin-top:0.2rem; display:block; text-align:right;
+  }
+  .chat-input-area{
+    display:flex; gap:0.5rem; padding:0.8rem; background:var(--surface);
+    border-top:1px solid var(--line); flex-shrink:0;
+  }
+  .chat-input-area input{
+    flex:1; padding:0.6rem 1rem; border-radius:20px; border:1px solid var(--line);
+    background:var(--bg-0); color:var(--text); outline:none;
+  }
+  .chat-input-area button{
+    width:42px; height:42px; border-radius:50%; border:none; background:var(--signal);
+    color:#fff; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center;
+  }
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+
+<div class="app-container" id="app">
+  <!-- Header for conversation list -->
+  <div class="header" id="listHeader">
+    <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+    <span class="title">Messages</span>
+    <button class="icon-btn" id="newChatBtn"><i class="fas fa-plus"></i></button>
+  </div>
+
+  <!-- Conversation list -->
+  <div class="conversation-list" id="conversationList">
+    <div class="empty-state">No conversations yet</div>
+  </div>
+
+  <!-- Chat view (hidden initially) -->
+  <div class="chat-view hidden" id="chatView">
+    <div class="chat-header">
+      <button class="back-btn" id="chatBackBtn"><i class="fas fa-arrow-left"></i></button>
+      <div class="avatar" id="chatPeerAvatar">A</div>
+      <span class="peer-name" id="chatPeerName"></span>
+    </div>
+    <div class="messages" id="messagesContainer"></div>
+    <div class="chat-input-area">
+      <input type="text" id="messageInput" placeholder="Type a message..." />
+      <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+    </div>
+  </div>
+</div>
+
+<!-- Load PremCall core -->
+<script src="premcall.min.js"></script>
+<!-- Load messaging add-on (patches PremCall and manages conversations in localStorage) -->
+<script src="premcall-chat.js"></script>
+
+<script>
+(function() {
+  'use strict';
+
+  // Wait for PremCall to be available
+  if (typeof PremCall === 'undefined') {
+    alert('PremCall library not loaded. Make sure premcall.min.js exists.');
+    return;
+  }
+
+  // Initialize PremCall with stored number (if any)
+  const storedNumber = localStorage.getItem('premCallNumber');
+  const verified = localStorage.getItem('premCallVerified') === 'true';
+  if (storedNumber && verified) {
+    PremCall.init(storedNumber, {
+      onMessage: (msg) => {
+        // Update UI when a new message arrives
+        handleIncomingMessage(msg);
+      },
+      onError: (err) => console.warn('PremCall error:', err.message)
+    });
+  } else {
+    // Not registered – show message
+    document.getElementById('conversationList').innerHTML =
+      '<div class="empty-state">Please register in the dialer first.</div>';
+  }
+
+  // ----- State -----
+  let conversations = loadConversations(); // object keyed by peer number
+  let activePeer = null;
+
+  function loadConversations() {
+    try { return JSON.parse(localStorage.getItem('premCallChats') || '{}'); } catch (e) { return {}; }
+  }
+  function saveConversations() {
+    localStorage.setItem('premCallChats', JSON.stringify(conversations));
+  }
+
+  // ----- Render conversation list -----
+  function renderConversationList() {
+    const listEl = document.getElementById('conversationList');
+    listEl.innerHTML = '';
+    const peers = Object.keys(conversations);
+    if (peers.length === 0) {
+      listEl.innerHTML = '<div class="empty-state">No conversations yet</div>';
+      return;
+    }
+    // Sort by most recent message timestamp (desc)
+    peers.sort((a, b) => {
+      const msgsA = conversations[a];
+      const msgsB = conversations[b];
+      const lastA = msgsA.length ? msgsA[msgsA.length - 1].timestamp : 0;
+      const lastB = msgsB.length ? msgsB[msgsB.length - 1].timestamp : 0;
+      return lastB - lastA;
+    });
+    peers.forEach(peer => {
+      const msgs = conversations[peer];
+      const lastMsg = msgs[msgs.length - 1] || { text: '', timestamp: 0, direction: '' };
+      const item = document.createElement('div');
+      item.className = 'conversation-item';
+      item.innerHTML = `
+        <div class="avatar">${initials(peer)}</div>
+        <div class="info">
+          <div class="name">${peer}</div>
+          <div class="preview">${lastMsg.direction === 'outgoing' ? 'You: ' : ''}${lastMsg.text}</div>
+        </div>
+        <span class="time">${formatTime(lastMsg.timestamp)}</span>
+      `;
+      item.addEventListener('click', () => openChat(peer));
+      listEl.appendChild(item);
+    });
+  }
+
+  // ----- Open chat with a peer -----
+  function openChat(peer) {
+    activePeer = peer;
+    document.getElementById('listHeader').classList.add('hidden');
+    document.getElementById('conversationList').classList.add('hidden');
+    document.getElementById('chatView').classList.remove('hidden');
+
+    document.getElementById('chatPeerName').textContent = peer;
+    document.getElementById('chatPeerAvatar').textContent = initials(peer);
+    renderMessages();
+  }
+
+  // ----- Close chat, return to list -----
+  function closeChat() {
+    activePeer = null;
+    document.getElementById('chatView').classList.add('hidden');
+    document.getElementById('listHeader').classList.remove('hidden');
+    document.getElementById('conversationList').classList.remove('hidden');
+    renderConversationList();
+  }
+
+  // ----- Render messages for active peer -----
+  function renderMessages() {
+    const container = document.getElementById('messagesContainer');
+    container.innerHTML = '';
+    if (!activePeer || !conversations[activePeer]) return;
+    const msgs = conversations[activePeer];
+    msgs.forEach(msg => {
+      const bubble = document.createElement('div');
+      bubble.className = `message-bubble ${msg.direction}`;
+      bubble.innerHTML = `${msg.text}<span class="timestamp">${formatTime(msg.timestamp)}</span>`;
+      container.appendChild(bubble);
+    });
+    container.scrollTop = container.scrollHeight;
+  }
+
+  // ----- Add a message to conversations -----
+  function addMessage(peer, msg) {
+    if (!conversations[peer]) conversations[peer] = [];
+    conversations[peer].push(msg);
+    saveConversations();
+    if (activePeer === peer) renderMessages();
+  }
+
+  // ----- Handle incoming message (from PremCall) -----
+  function handleIncomingMessage(msg) {
+    const peer = msg.from;
+    addMessage(peer, {
+      text: msg.text,
+      timestamp: msg.timestamp,
+      direction: 'incoming'
+    });
+    // If not currently viewing, maybe show a notification dot (optional)
+    if (activePeer !== peer) {
+      // Small toast or update list
+      renderConversationList();
+    }
+  }
+
+  // ----- Send message -----
+  function sendMessage() {
+    if (!activePeer) return;
+    const input = document.getElementById('messageInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    PremCall.sendMessage(activePeer, text)
+      .then(result => {
+        addMessage(activePeer, {
+          text: text,
+          timestamp: Date.now(),
+          direction: 'outgoing'
+        });
+        input.value = '';
+      })
+      .catch(err => {
+        alert('Send failed: ' + err.message);
+      });
+  }
+
+  // ----- Helpers -----
+  function initials(peer) {
+    const digitsOnly = /^[\d+\s-]+$/.test(peer);
+    if (digitsOnly) return peer.replace(/\D/g, '').slice(-2) || '?';
+    return peer.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  }
+  function formatTime(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // ----- Event listeners -----
+  document.getElementById('newChatBtn').addEventListener('click', () => {
+    const num = prompt('Enter 10-digit number to start a chat:');
+    if (num && /^\d{10}$/.test(num)) {
+      // Ensure conversation exists
+      if (!conversations[num]) conversations[num] = [];
+      saveConversations();
+      openChat(num);
+    } else if (num) {
+      alert('Enter a valid 10-digit number');
+    }
+  });
+
+  document.getElementById('chatBackBtn').addEventListener('click', closeChat);
+  document.getElementById('sendBtn').addEventListener('click', sendMessage);
+  document.getElementById('messageInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
+
+  // Initial render
+  renderConversationList();
+})();
+</script>
+</body>
+</html>
