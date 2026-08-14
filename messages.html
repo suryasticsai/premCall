@@ -8,7 +8,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <title>Messages – PremCall</title>
 <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 <style>
   :root{
     --bg-0:#05070d; --bg-1:#0a0e18; --surface:#0e1424; --surface-2:#141c30; --surface-3:#1b2540;
@@ -51,12 +54,17 @@
   }
   .header .back-btn{
     background:none; border:none; color:var(--text); font-size:1.4rem; cursor:pointer;
+    text-decoration:none; display:flex; align-items:center; justify-content:center;
   }
   .header .title{
     flex:1; font-family:var(--font-display); font-weight:700; font-size:1.2rem;
   }
   .header .icon-btn{
     background:none; border:none; color:var(--text-dim); font-size:1.2rem; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; padding:0.4rem;
+  }
+  .header .icon-btn:disabled{
+    opacity:0.4; cursor:not-allowed;
   }
 
   /* Conversation list */
@@ -94,6 +102,7 @@
   }
   .chat-header .back-btn{
     background:none; border:none; color:var(--text); font-size:1.4rem; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
   }
   .chat-header .avatar{
     width:36px; height:36px; border-radius:50%; background:var(--surface-3);
@@ -127,10 +136,21 @@
   .chat-input-area input{
     flex:1; padding:0.6rem 1rem; border-radius:20px; border:1px solid var(--line);
     background:var(--bg-0); color:var(--text); outline:none;
+    font-family:inherit; font-size:0.95rem;
+  }
+  .chat-input-area input::placeholder{
+    color:var(--text-faint);
   }
   .chat-input-area button{
     width:42px; height:42px; border-radius:50%; border:none; background:var(--signal);
     color:#fff; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center;
+    transition:opacity .2s, transform .1s;
+  }
+  .chat-input-area button:disabled{
+    opacity:0.6; cursor:not-allowed;
+  }
+  .chat-input-area button:active:not(:disabled){
+    transform:scale(0.95);
   }
   .hidden{ display:none !important; }
 </style>
@@ -147,19 +167,19 @@
 
   <!-- Conversation list -->
   <div class="conversation-list" id="conversationList">
-    <div class="empty-state">No conversations yet</div>
+    <div class="empty-state">Loading…</div>
   </div>
 
   <!-- Chat view (hidden initially) -->
   <div class="chat-view hidden" id="chatView">
     <div class="chat-header">
       <button class="back-btn" id="chatBackBtn"><i class="fas fa-arrow-left"></i></button>
-      <div class="avatar" id="chatPeerAvatar">A</div>
+      <div class="avatar" id="chatPeerAvatar">?</div>
       <span class="peer-name" id="chatPeerName"></span>
     </div>
     <div class="messages" id="messagesContainer"></div>
     <div class="chat-input-area">
-      <input type="text" id="messageInput" placeholder="Type a message..." />
+      <input type="text" id="messageInput" placeholder="Type a message…" autocomplete="off" />
       <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
     </div>
   </div>
@@ -174,76 +194,151 @@
 (function() {
   'use strict';
 
-  // Wait for PremCall to be available
-  if (typeof PremCall === 'undefined') {
-    alert('PremCall library not loaded. Make sure premcall.min.js exists.');
-    return;
+  /* ---------- Helpers ---------- */
+  function escapeHtml(text) {
+    if (text == null) return '';
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
-  // Initialize PremCall with stored number (if any)
-  const storedNumber = localStorage.getItem('premCallNumber');
-  const verified = localStorage.getItem('premCallVerified') === 'true';
-  if (storedNumber && verified) {
-    PremCall.init(storedNumber, {
-      onMessage: (msg) => {
-        // Update UI when a new message arrives
-        handleIncomingMessage(msg);
-      },
-      onError: (err) => console.warn('PremCall error:', err.message)
-    });
-  } else {
-    // Not registered – show message
-    document.getElementById('conversationList').innerHTML =
-      '<div class="empty-state">Please register in the dialer first.</div>';
+  function waitForPremCall(callback, timeout) {
+    timeout = timeout || 10000;
+    var start = Date.now();
+    var timer = setInterval(function() {
+      if (typeof PremCall !== 'undefined' && typeof PremCall.init === 'function' && typeof PremCall.sendMessage === 'function') {
+        clearInterval(timer);
+        callback(null, PremCall);
+      } else if (Date.now() - start > timeout) {
+        clearInterval(timer);
+        callback(new Error('PremCall library failed to load. Please check your connection and refresh the page.'));
+      }
+    }, 100);
   }
 
-  // ----- State -----
-  let conversations = loadConversations(); // object keyed by peer number
-  let activePeer = null;
+  function initials(peer) {
+    if (!peer) return '?';
+    var digitsOnly = /^[\d+\s-]+$/.test(peer);
+    if (digitsOnly) {
+      var digits = peer.replace(/\D/g, '');
+      return digits.slice(-2) || '?';
+    }
+    var parts = peer.trim().split(/\s+/).slice(0, 2);
+    var ret = parts.map(function(w) { return w.charAt(0); }).join('').toUpperCase();
+    return ret || '?';
+  }
+
+  function formatTime(ts) {
+    if (!ts) return '';
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function sanitizeConversations(data) {
+    var out = {};
+    for (var key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        var arr = data[key];
+        if (Array.isArray(arr)) {
+          out[key] = arr.filter(function(m) {
+            return m && typeof m === 'object';
+          }).map(function(m) {
+            return {
+              text: String(m.text || ''),
+              timestamp: typeof m.timestamp === 'number' ? m.timestamp : Date.now(),
+              direction: m.direction === 'outgoing' ? 'outgoing' : 'incoming'
+            };
+          });
+        } else {
+          out[key] = [];
+        }
+      }
+    }
+    return out;
+  }
+
+  /* ---------- State ---------- */
+  var conversations = {};
+  var activePeer = null;
+  var isSending = false;
 
   function loadConversations() {
-    try { return JSON.parse(localStorage.getItem('premCallChats') || '{}'); } catch (e) { return {}; }
-  }
-  function saveConversations() {
-    localStorage.setItem('premCallChats', JSON.stringify(conversations));
+    try {
+      return JSON.parse(localStorage.getItem('premCallChats') || '{}');
+    } catch (e) {
+      console.error('Failed to load conversations:', e);
+      return {};
+    }
   }
 
-  // ----- Render conversation list -----
+  function saveConversations() {
+    try {
+      localStorage.setItem('premCallChats', JSON.stringify(conversations));
+    } catch (e) {
+      console.error('Failed to save conversations:', e);
+      alert('Storage full: unable to save message. Please clear some conversations.');
+    }
+  }
+
+  /* ---------- Render conversation list ---------- */
   function renderConversationList() {
-    const listEl = document.getElementById('conversationList');
+    var listEl = document.getElementById('conversationList');
     listEl.innerHTML = '';
-    const peers = Object.keys(conversations);
+    var peers = Object.keys(conversations);
     if (peers.length === 0) {
       listEl.innerHTML = '<div class="empty-state">No conversations yet</div>';
       return;
     }
-    // Sort by most recent message timestamp (desc)
-    peers.sort((a, b) => {
-      const msgsA = conversations[a];
-      const msgsB = conversations[b];
-      const lastA = msgsA.length ? msgsA[msgsA.length - 1].timestamp : 0;
-      const lastB = msgsB.length ? msgsB[msgsB.length - 1].timestamp : 0;
+    peers.sort(function(a, b) {
+      var msgsA = conversations[a];
+      var msgsB = conversations[b];
+      var lastA = msgsA.length ? (Number(msgsA[msgsA.length - 1].timestamp) || 0) : 0;
+      var lastB = msgsB.length ? (Number(msgsB[msgsB.length - 1].timestamp) || 0) : 0;
       return lastB - lastA;
     });
-    peers.forEach(peer => {
-      const msgs = conversations[peer];
-      const lastMsg = msgs[msgs.length - 1] || { text: '', timestamp: 0, direction: '' };
-      const item = document.createElement('div');
+
+    peers.forEach(function(peer) {
+      var msgs = conversations[peer];
+      var lastMsg = msgs[msgs.length - 1] || { text: '', timestamp: 0, direction: '' };
+
+      var item = document.createElement('div');
       item.className = 'conversation-item';
-      item.innerHTML = `
-        <div class="avatar">${initials(peer)}</div>
-        <div class="info">
-          <div class="name">${peer}</div>
-          <div class="preview">${lastMsg.direction === 'outgoing' ? 'You: ' : ''}${lastMsg.text}</div>
-        </div>
-        <span class="time">${formatTime(lastMsg.timestamp)}</span>
-      `;
-      item.addEventListener('click', () => openChat(peer));
+
+      var avatar = document.createElement('div');
+      avatar.className = 'avatar';
+      avatar.textContent = initials(peer);
+      item.appendChild(avatar);
+
+      var info = document.createElement('div');
+      info.className = 'info';
+
+      var name = document.createElement('div');
+      name.className = 'name';
+      name.textContent = peer;
+      info.appendChild(name);
+
+      var preview = document.createElement('div');
+      preview.className = 'preview';
+      preview.textContent = (lastMsg.direction === 'outgoing' ? 'You: ' : '') + (lastMsg.text || '');
+      info.appendChild(preview);
+
+      item.appendChild(info);
+
+      var time = document.createElement('span');
+      time.className = 'time';
+      time.textContent = formatTime(lastMsg.timestamp);
+      item.appendChild(time);
+
+      item.addEventListener('click', function() { openChat(peer); });
       listEl.appendChild(item);
     });
   }
 
-  // ----- Open chat with a peer -----
+  /* ---------- Open / close chat ---------- */
   function openChat(peer) {
     activePeer = peer;
     document.getElementById('listHeader').classList.add('hidden');
@@ -253,9 +348,9 @@
     document.getElementById('chatPeerName').textContent = peer;
     document.getElementById('chatPeerAvatar').textContent = initials(peer);
     renderMessages();
+    document.getElementById('messageInput').focus();
   }
 
-  // ----- Close chat, return to list -----
   function closeChat() {
     activePeer = null;
     document.getElementById('chatView').classList.add('hidden');
@@ -264,98 +359,167 @@
     renderConversationList();
   }
 
-  // ----- Render messages for active peer -----
+  /* ---------- Render messages ---------- */
   function renderMessages() {
-    const container = document.getElementById('messagesContainer');
+    var container = document.getElementById('messagesContainer');
     container.innerHTML = '';
     if (!activePeer || !conversations[activePeer]) return;
-    const msgs = conversations[activePeer];
-    msgs.forEach(msg => {
-      const bubble = document.createElement('div');
-      bubble.className = `message-bubble ${msg.direction}`;
-      bubble.innerHTML = `${msg.text}<span class="timestamp">${formatTime(msg.timestamp)}</span>`;
+
+    var msgs = conversations[activePeer];
+    msgs.forEach(function(msg) {
+      var bubble = document.createElement('div');
+      bubble.className = 'message-bubble ' + (msg.direction === 'outgoing' ? 'outgoing' : 'incoming');
+
+      var textSpan = document.createElement('span');
+      textSpan.textContent = msg.text || '';
+      bubble.appendChild(textSpan);
+
+      var timeSpan = document.createElement('span');
+      timeSpan.className = 'timestamp';
+      timeSpan.textContent = formatTime(msg.timestamp);
+      bubble.appendChild(timeSpan);
+
       container.appendChild(bubble);
     });
+
     container.scrollTop = container.scrollHeight;
   }
 
-  // ----- Add a message to conversations -----
+  /* ---------- Add message ---------- */
   function addMessage(peer, msg) {
-    if (!conversations[peer]) conversations[peer] = [];
-    conversations[peer].push(msg);
+    if (!peer || !msg) return;
+    if (!Array.isArray(conversations[peer])) conversations[peer] = [];
+    conversations[peer].push({
+      text: String(msg.text || ''),
+      timestamp: typeof msg.timestamp === 'number' ? msg.timestamp : Date.now(),
+      direction: msg.direction === 'outgoing' ? 'outgoing' : 'incoming'
+    });
     saveConversations();
     if (activePeer === peer) renderMessages();
   }
 
-  // ----- Handle incoming message (from PremCall) -----
+  /* ---------- Incoming message handler ---------- */
   function handleIncomingMessage(msg) {
-    const peer = msg.from;
+    if (!msg || typeof msg !== 'object') {
+      console.warn('Invalid message received:', msg);
+      return;
+    }
+    var peer = msg.from;
+    var text = msg.text;
+    var timestamp = msg.timestamp;
+
+    if (!peer || text == null) {
+      console.warn('Message missing from or text:', msg);
+      return;
+    }
+
     addMessage(peer, {
-      text: msg.text,
-      timestamp: msg.timestamp,
+      text: String(text),
+      timestamp: (typeof timestamp === 'number' && timestamp > 0) ? timestamp : Date.now(),
       direction: 'incoming'
     });
-    // If not currently viewing, maybe show a notification dot (optional)
+
     if (activePeer !== peer) {
-      // Small toast or update list
       renderConversationList();
     }
   }
 
-  // ----- Send message -----
+  /* ---------- Send message ---------- */
   function sendMessage() {
-    if (!activePeer) return;
-    const input = document.getElementById('messageInput');
-    const text = input.value.trim();
+    if (!activePeer || isSending) return;
+    var input = document.getElementById('messageInput');
+    var text = input.value.trim();
     if (!text) return;
 
-    PremCall.sendMessage(activePeer, text)
-      .then(result => {
-        addMessage(activePeer, {
-          text: text,
-          timestamp: Date.now(),
-          direction: 'outgoing'
+    isSending = true;
+    var sendBtn = document.getElementById('sendBtn');
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    try {
+      PremCall.sendMessage(activePeer, text)
+        .then(function() {
+          addMessage(activePeer, {
+            text: text,
+            timestamp: Date.now(),
+            direction: 'outgoing'
+          });
+          input.value = '';
+        })
+        .catch(function(err) {
+          alert('Send failed: ' + (err && err.message ? err.message : 'Unknown error'));
+        })
+        .finally(function() {
+          isSending = false;
+          sendBtn.disabled = false;
+          sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
         });
-        input.value = '';
-      })
-      .catch(err => {
-        alert('Send failed: ' + err.message);
-      });
-  }
-
-  // ----- Helpers -----
-  function initials(peer) {
-    const digitsOnly = /^[\d+\s-]+$/.test(peer);
-    if (digitsOnly) return peer.replace(/\D/g, '').slice(-2) || '?';
-    return peer.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
-  }
-  function formatTime(ts) {
-    if (!ts) return '';
-    const d = new Date(ts);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }
-
-  // ----- Event listeners -----
-  document.getElementById('newChatBtn').addEventListener('click', () => {
-    const num = prompt('Enter 10-digit number to start a chat:');
-    if (num && /^\d{10}$/.test(num)) {
-      // Ensure conversation exists
-      if (!conversations[num]) conversations[num] = [];
-      saveConversations();
-      openChat(num);
-    } else if (num) {
-      alert('Enter a valid 10-digit number');
+    } catch (e) {
+      isSending = false;
+      sendBtn.disabled = false;
+      sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+      alert('Send failed: ' + e.message);
     }
-  });
+  }
 
-  document.getElementById('chatBackBtn').addEventListener('click', closeChat);
-  document.getElementById('sendBtn').addEventListener('click', sendMessage);
-  document.getElementById('messageInput').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') sendMessage();
-  });
+  /* ---------- Event listeners ---------- */
+  function setupEventListeners() {
+    document.getElementById('newChatBtn').addEventListener('click', function() {
+      var num = prompt('Enter 10-digit number to start a chat:');
+      if (num && /^\d{10}$/.test(num.trim())) {
+        var trimmed = num.trim();
+        if (!Array.isArray(conversations[trimmed])) conversations[trimmed] = [];
+        saveConversations();
+        openChat(trimmed);
+      } else if (num) {
+        alert('Enter a valid 10-digit number');
+      }
+    });
 
-  // Initial render
-  renderConversationList();
+    document.getElementById('chatBackBtn').addEventListener('click', closeChat);
+    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    document.getElementById('messageInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') sendMessage();
+    });
+  }
+
+  /* ---------- Boot ---------- */
+  document.addEventListener('DOMContentLoaded', function() {
+    conversations = sanitizeConversations(loadConversations());
+
+    waitForPremCall(function(err, PremCall) {
+      if (err) {
+        document.getElementById('conversationList').innerHTML =
+          '<div class="empty-state" style="color:var(--stop)">' + escapeHtml(err.message) + '</div>';
+        return;
+      }
+
+      var storedNumber = localStorage.getItem('premCallNumber');
+      var verified = localStorage.getItem('premCallVerified') === 'true';
+
+      if (storedNumber && verified) {
+        try {
+          PremCall.init(storedNumber, {
+            onMessage: handleIncomingMessage,
+            onError: function(err) {
+              console.warn('PremCall error:', err && err.message ? err.message : err);
+            }
+          });
+        } catch (e) {
+          console.error('PremCall init error:', e);
+          document.getElementById('conversationList').innerHTML =
+            '<div class="empty-state" style="color:var(--stop)">Unable to start messaging service.</div>';
+          return;
+        }
+      } else {
+        document.getElementById('conversationList').innerHTML =
+          '<div class="empty-state">Please register in the dialer first.</div>';
+      }
+
+      setupEventListeners();
+      renderConversationList();
+    });
+  });
 })();
 </script>
 </body>
