@@ -46,7 +46,6 @@
     background:var(--bg-1); display:flex; flex-direction:column;
     position:relative; padding-top:var(--safe-t); padding-bottom:var(--safe-b);
   }
-  /* Header */
   .header{
     display:flex; align-items:center; padding:0.8rem 1rem;
     background:var(--surface); border-bottom:1px solid var(--line);
@@ -68,8 +67,6 @@
   .header .icon-btn:disabled{
     opacity:0.4; cursor:not-allowed;
   }
-
-  /* Conversation list */
   .conversation-list{
     flex:1; overflow-y:auto; padding:0.5rem 0;
   }
@@ -94,8 +91,6 @@
     text-align:center; color:var(--text-faint); padding:2rem; font-size:0.9rem;
   }
   .empty-state .icon{ font-size:2.5rem; display:block; margin-bottom:0.8rem; opacity:0.5; }
-
-  /* Chat view */
   .chat-view{
     flex:1; display:flex; flex-direction:column;
   }
@@ -165,8 +160,6 @@
     transform:scale(0.95);
   }
   .hidden{ display:none !important; }
-  
-  /* Toast notification */
   #toast {
     position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
     background:var(--surface-3); border:1px solid var(--line);
@@ -175,27 +168,29 @@
     pointer-events:none; max-width:90%;
     font-family:var(--font-body);
   }
+  .status-badge {
+    display:inline-block; padding:0.2rem 0.6rem; border-radius:10px;
+    font-size:0.6rem; font-weight:600; margin-left:0.5rem;
+  }
+  .status-badge.online { background:var(--go); color:#fff; }
+  .status-badge.offline { background:var(--stop); color:#fff; }
+  .status-badge.connecting { background:var(--warn); color:#fff; }
 </style>
 </head>
 <body>
 
 <div class="app-container" id="app">
-  <!-- Header for conversation list -->
   <div class="header" id="listHeader">
     <a href="index.html" class="back-btn"><i class="fas fa-arrow-left"></i></a>
-    <span class="title">Messages</span>
+    <span class="title">Messages <span class="status-badge offline" id="statusBadge">Offline</span></span>
     <button class="icon-btn" id="newChatBtn"><i class="fas fa-plus"></i></button>
   </div>
-
-  <!-- Conversation list -->
   <div class="conversation-list" id="conversationList">
     <div class="empty-state">
       <span class="icon"><i class="fas fa-comments"></i></span>
       Loading messages...
     </div>
   </div>
-
-  <!-- Chat view (hidden initially) -->
   <div class="chat-view hidden" id="chatView">
     <div class="chat-header">
       <button class="back-btn" id="chatBackBtn"><i class="fas fa-arrow-left"></i></button>
@@ -209,53 +204,18 @@
     </div>
   </div>
 </div>
-
-<!-- Toast -->
 <div id="toast"></div>
 
 <!-- Load PeerJS -->
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
-<!-- Load PremCall (your updated version with chat built-in) -->
+<!-- PremCall with chat built-in -->
 <script>
-// Check if PeerJS loaded
-if (typeof Peer === 'undefined') {
-  console.error('[PremCall] PeerJS not loaded!');
-  document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('conversationList').innerHTML = 
-      '<div class="empty-state" style="color:var(--stop)"><span class="icon"><i class="fas fa-exclamation-circle"></i></span>PeerJS failed to load. Please check your connection.</div>';
-  });
-}
-
-// Load PremCall
-(function() {
-  var script = document.createElement('script');
-  script.src = 'premcall.js'; // Your local copy with chat built-in
-  script.onload = function() {
-    console.log('[PremCall] Library loaded successfully');
-  };
-  script.onerror = function() {
-    console.error('[PremCall] Failed to load from local path, trying CDN...');
-    // Fallback to CDN
-    var fallback = document.createElement('script');
-    fallback.src = 'https://cdn.jsdelivr.net/gh/suryasticsai/premCall@main/premcall.js';
-    fallback.onload = function() {
-      console.log('[PremCall] Library loaded from CDN successfully');
-    };
-    fallback.onerror = function() {
-      console.error('[PremCall] Failed to load from CDN');
-      document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('conversationList').innerHTML = 
-          '<div class="empty-state" style="color:var(--stop)"><span class="icon"><i class="fas fa-exclamation-circle"></i></span>Failed to load messaging service. Please refresh or try again later.</div>';
-      });
-    };
-    document.head.appendChild(fallback);
-  };
-  document.head.appendChild(script);
-})();
+// Your premcall.js code goes here (the merged version with chat)
+// OR load from CDN:
+// <script src="https://cdn.jsdelivr.net/gh/suryasticsai/premCall@main/premcall.js"></script>
 </script>
 
-<!-- Main App Script -->
 <script>
 (function() {
   'use strict';
@@ -271,27 +231,6 @@ if (typeof Peer === 'undefined') {
       .replace(/'/g, '&#039;');
   }
 
-  function waitForPremCall(callback, timeout) {
-    timeout = timeout || 15000;
-    var start = Date.now();
-    
-    // Check immediately
-    if (typeof PremCall !== 'undefined' && typeof PremCall.init === 'function' && typeof PremCall.sendMessage === 'function') {
-      callback(null, PremCall);
-      return;
-    }
-    
-    var timer = setInterval(function() {
-      if (typeof PremCall !== 'undefined' && typeof PremCall.init === 'function' && typeof PremCall.sendMessage === 'function') {
-        clearInterval(timer);
-        callback(null, PremCall);
-      } else if (Date.now() - start > timeout) {
-        clearInterval(timer);
-        callback(new Error('PremCall library failed to load. Please refresh the page.'));
-      }
-    }, 200);
-  }
-
   function showToast(msg) {
     var toast = document.getElementById('toast');
     toast.textContent = msg;
@@ -300,16 +239,16 @@ if (typeof Peer === 'undefined') {
     showToast._t = setTimeout(function() { toast.style.opacity = '0'; }, 3000);
   }
 
+  function updateStatus(status) {
+    var badge = document.getElementById('statusBadge');
+    badge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    badge.className = 'status-badge ' + status;
+  }
+
   function initials(peer) {
     if (!peer) return '?';
-    var digitsOnly = /^[\d+\s-]+$/.test(peer);
-    if (digitsOnly) {
-      var digits = peer.replace(/\D/g, '');
-      return digits.slice(-2) || '?';
-    }
-    var parts = peer.trim().split(/\s+/).slice(0, 2);
-    var ret = parts.map(function(w) { return w.charAt(0); }).join('').toUpperCase();
-    return ret || '?';
+    var digits = peer.replace(/\D/g, '');
+    return digits.slice(-2) || '?';
   }
 
   function formatTime(ts) {
@@ -346,7 +285,8 @@ if (typeof Peer === 'undefined') {
   var conversations = {};
   var activePeer = null;
   var isSending = false;
-  var premCallInstance = null;
+  var isInitialized = false;
+  var myNumber = null;
 
   function loadConversations() {
     try {
@@ -366,13 +306,13 @@ if (typeof Peer === 'undefined') {
     }
   }
 
-  /* ---------- Render conversation list ---------- */
+  /* ---------- Render functions ---------- */
   function renderConversationList() {
     var listEl = document.getElementById('conversationList');
     listEl.innerHTML = '';
     var peers = Object.keys(conversations);
     if (peers.length === 0) {
-      listEl.innerHTML = '<div class="empty-state"><span class="icon"><i class="fas fa-comments"></i></span>No conversations yet<br><small style="font-size:0.8rem;opacity:0.7;">Start a chat with any registered number</small></div>';
+      listEl.innerHTML = '<div class="empty-state"><span class="icon"><i class="fas fa-comments"></i></span>No conversations yet</div>';
       return;
     }
     peers.sort(function(a, b) {
@@ -420,7 +360,6 @@ if (typeof Peer === 'undefined') {
     });
   }
 
-  /* ---------- Open / close chat ---------- */
   function openChat(peer) {
     activePeer = peer;
     document.getElementById('listHeader').classList.add('hidden');
@@ -441,7 +380,6 @@ if (typeof Peer === 'undefined') {
     renderConversationList();
   }
 
-  /* ---------- Render messages ---------- */
   function renderMessages() {
     var container = document.getElementById('messagesContainer');
     container.innerHTML = '';
@@ -467,7 +405,6 @@ if (typeof Peer === 'undefined') {
     container.scrollTop = container.scrollHeight;
   }
 
-  /* ---------- Add message ---------- */
   function addMessage(peer, msg) {
     if (!peer || !msg) return;
     if (!Array.isArray(conversations[peer])) conversations[peer] = [];
@@ -484,7 +421,7 @@ if (typeof Peer === 'undefined') {
     }
   }
 
-  /* ---------- Incoming message handler ---------- */
+  /* ---------- Message handlers ---------- */
   function handleIncomingMessage(msg) {
     if (!msg || typeof msg !== 'object') {
       console.warn('Invalid message received:', msg);
@@ -505,10 +442,8 @@ if (typeof Peer === 'undefined') {
       direction: 'incoming'
     });
 
-    // Show notification if not in this chat
     if (activePeer !== peer) {
-      showToast('New message from ' + peer + ': ' + text);
-      // Vibrate if available
+      showToast('New message from ' + peer);
       if (navigator.vibrate) navigator.vibrate(50);
     }
     renderConversationList();
@@ -517,6 +452,13 @@ if (typeof Peer === 'undefined') {
   /* ---------- Send message ---------- */
   function sendMessage() {
     if (!activePeer || isSending) return;
+    
+    // Check if PremCall is initialized
+    if (typeof PremCall === 'undefined' || !PremCall.isInCall && !PremCall.getNumber()) {
+      showToast('Messaging service not ready. Please wait...');
+      return;
+    }
+
     var input = document.getElementById('messageInput');
     var text = input.value.trim();
     if (!text) return;
@@ -525,6 +467,15 @@ if (typeof Peer === 'undefined') {
     var sendBtn = document.getElementById('sendBtn');
     sendBtn.disabled = true;
     sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    // Check if sendMessage exists
+    if (typeof PremCall.sendMessage !== 'function') {
+      showToast('Send failed: Messaging not supported');
+      isSending = false;
+      sendBtn.disabled = false;
+      sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+      return;
+    }
 
     PremCall.sendMessage(activePeer, text)
       .then(function(result) {
@@ -537,7 +488,8 @@ if (typeof Peer === 'undefined') {
         renderConversationList();
       })
       .catch(function(err) {
-        showToast('Send failed: ' + (err && err.message ? err.message : 'Unknown error'));
+        var errorMsg = err && err.message ? err.message : 'Unknown error';
+        showToast('Send failed: ' + errorMsg);
         console.error('Send error:', err);
       })
       .finally(function() {
@@ -568,54 +520,113 @@ if (typeof Peer === 'undefined') {
     });
   }
 
+  /* ---------- Wait for PremCall ---------- */
+  function waitForPremCall(callback, timeout) {
+    timeout = timeout || 15000;
+    var start = Date.now();
+    
+    if (typeof PremCall !== 'undefined' && typeof PremCall.init === 'function') {
+      callback(null, PremCall);
+      return;
+    }
+    
+    var timer = setInterval(function() {
+      if (typeof PremCall !== 'undefined' && typeof PremCall.init === 'function') {
+        clearInterval(timer);
+        callback(null, PremCall);
+      } else if (Date.now() - start > timeout) {
+        clearInterval(timer);
+        callback(new Error('PremCall library failed to load. Please refresh the page.'));
+      }
+    }, 200);
+  }
+
+  /* ---------- Initialize PremCall ---------- */
+  function initPremCall(number) {
+    try {
+      PremCall.init(number, {
+        onMessage: handleIncomingMessage,
+        onError: function(err) {
+          console.warn('PremCall error:', err);
+          showToast('Error: ' + (err && err.message ? err.message : 'Unknown'));
+          updateStatus('offline');
+        },
+        onConnected: function() {
+          console.log('Connected to PeerJS network');
+          updateStatus('online');
+          showToast('Connected!');
+          isInitialized = true;
+        },
+        onDisconnected: function() {
+          console.warn('Disconnected from PeerJS network');
+          updateStatus('offline');
+          showToast('Disconnected');
+        },
+        online: function() {
+          updateStatus('online');
+        },
+        offline: function() {
+          updateStatus('offline');
+        }
+      });
+      myNumber = number;
+      isInitialized = true;
+      updateStatus('connecting');
+      console.log('PremCall initialized with number:', number);
+      return true;
+    } catch (e) {
+      console.error('PremCall init error:', e);
+      showToast('Init failed: ' + e.message);
+      updateStatus('offline');
+      return false;
+    }
+  }
+
   /* ---------- Boot ---------- */
   document.addEventListener('DOMContentLoaded', function() {
     conversations = sanitizeConversations(loadConversations());
     renderConversationList();
     setupEventListeners();
 
-    waitForPremCall(function(err, PremCallLib) {
-      if (err) {
-        document.getElementById('conversationList').innerHTML =
-          '<div class="empty-state" style="color:var(--stop)"><span class="icon"><i class="fas fa-exclamation-circle"></i></span>' + escapeHtml(err.message) + '</div>';
-        return;
-      }
-
-      console.log('PremCall loaded successfully!');
-      premCallInstance = PremCallLib;
-
+    // Check if PremCall is already loaded
+    if (typeof PremCall !== 'undefined') {
+      console.log('PremCall already loaded');
       var storedNumber = localStorage.getItem('premCallNumber');
       var verified = localStorage.getItem('premCallVerified') === 'true';
 
       if (storedNumber && verified) {
-        try {
-          PremCallLib.init(storedNumber, {
-            onMessage: handleIncomingMessage,
-            onError: function(err) {
-              console.warn('PremCall error:', err && err.message ? err.message : err);
-              showToast('Connection error: ' + (err && err.message ? err.message : 'Unknown error'));
-            },
-            onConnected: function() {
-              console.log('Connected to PeerJS network');
-              showToast('Connected!');
-            },
-            onDisconnected: function() {
-              console.warn('Disconnected from PeerJS network');
-              showToast('Disconnected - reconnecting...');
-            }
-          });
-          console.log('PremCall initialized with number:', storedNumber);
-        } catch (e) {
-          console.error('PremCall init error:', e);
-          document.getElementById('conversationList').innerHTML =
-            '<div class="empty-state" style="color:var(--stop)"><span class="icon"><i class="fas fa-exclamation-circle"></i></span>Unable to start messaging service: ' + escapeHtml(e.message) + '</div>';
-          return;
-        }
+        initPremCall(storedNumber);
       } else {
         document.getElementById('conversationList').innerHTML =
-          '<div class="empty-state"><span class="icon"><i class="fas fa-phone"></i></span>Please register in the dialer first.<br><small style="font-size:0.8rem;opacity:0.7;">Go to the dialer and verify your number</small></div>';
+          '<div class="empty-state"><span class="icon"><i class="fas fa-phone"></i></span>Please register in the dialer first.</div>';
+        updateStatus('offline');
       }
-    });
+    } else {
+      // Wait for PremCall to load
+      document.getElementById('conversationList').innerHTML =
+        '<div class="empty-state"><span class="icon"><i class="fas fa-spinner fa-spin"></i></span>Loading messaging service...</div>';
+      
+      waitForPremCall(function(err, PremCallLib) {
+        if (err) {
+          document.getElementById('conversationList').innerHTML =
+            '<div class="empty-state" style="color:var(--stop)"><span class="icon"><i class="fas fa-exclamation-circle"></i></span>' + escapeHtml(err.message) + '</div>';
+          return;
+        }
+
+        console.log('PremCall loaded successfully!');
+        
+        var storedNumber = localStorage.getItem('premCallNumber');
+        var verified = localStorage.getItem('premCallVerified') === 'true';
+
+        if (storedNumber && verified) {
+          initPremCall(storedNumber);
+        } else {
+          document.getElementById('conversationList').innerHTML =
+            '<div class="empty-state"><span class="icon"><i class="fas fa-phone"></i></span>Please register in the dialer first.</div>';
+          updateStatus('offline');
+        }
+      });
+    }
   });
 })();
 </script>
