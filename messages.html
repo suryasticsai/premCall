@@ -259,7 +259,6 @@
   .peer-online-status.offline { color:var(--stop); }
   .peer-online-status.unknown { color:var(--text-faint); }
 
-  /* Reconnection status bar */
   .reconnect-bar {
     background:var(--warn-deep);
     color:#fff;
@@ -267,14 +266,9 @@
     text-align:center;
     font-size:0.75rem;
     display:none;
-    animation:slideDown .3s ease;
   }
   .reconnect-bar.show {
     display:block;
-  }
-  @keyframes slideDown {
-    from { opacity:0; transform:translateY(-10px); }
-    to { opacity:1; transform:translateY(0); }
   }
   .reconnect-bar .spinner {
     display:inline-block;
@@ -290,7 +284,6 @@
 <body>
 
 <div class="app-container" id="app">
-  <!-- Reconnection bar -->
   <div class="reconnect-bar" id="reconnectBar">
     <span class="spinner"><i class="fas fa-spinner"></i></span>
     Reconnecting to server...
@@ -338,8 +331,8 @@
 
 <script>
 /* ============================================================
-   PremCall v2.2  (Persistent connections)
-   WebRTC calling + chat over PeerJS with persistent connections
+   PremCall v2.3  (Fixed reconnection)
+   WebRTC calling + chat with stable connections
    ============================================================ */
 (function (global) {
   'use strict';
@@ -379,10 +372,10 @@
   let speakerOn = false;
   let callbacks = {};
   let messageListeners = new Set();
-  let persistentConnections = {}; // Store persistent data connections
-  let reconnectAttempts = 0;
-  const MAX_RECONNECT_ATTEMPTS = 10;
-  let reconnectTimer = null;
+  let persistentConnections = {};
+  let isReconnecting = false;
+  let connectionAttempts = 0;
+  const MAX_ATTEMPTS = 5;
 
   // ─── Internal helpers ──────────────────────────────────────
   function log(message, level) {
@@ -459,8 +452,6 @@
 
   function setupPersistentConnection(conn) {
     const peerId = conn.peer;
-    
-    // Store the connection
     persistentConnections[peerId] = conn;
     
     conn.on('data', function (data) {
@@ -484,69 +475,66 @@
     conn.on('close', function () {
       log('Connection closed with: ' + peerId, 'warn');
       delete persistentConnections[peerId];
-      // Attempt to reconnect
-      setTimeout(function() {
-        if (peer && !peer.destroyed) {
-          log('Reconnecting to: ' + peerId, 'info');
-          connectToPeer(peerId);
-        }
-      }, 2000);
     });
 
     conn.on('error', function (err) {
       log('Connection error with ' + peerId + ': ' + err.message, 'error');
+      delete persistentConnections[peerId];
     });
   }
 
   function connectToPeer(peerId) {
     if (!peer || peer.destroyed) return;
-    if (persistentConnections[peerId]) {
-      // Already connected
+    if (persistentConnections[peerId] && persistentConnections[peerId].open) {
       return;
     }
+    if (peerId === myNumber) return;
     
-    log('Establishing persistent connection to: ' + peerId, 'info');
+    log('Connecting to peer: ' + peerId, 'info');
     const conn = peer.connect(peerId, { reliable: true });
     
+    let connected = false;
     conn.on('open', function () {
-      log('Persistent connection established with: ' + peerId, 'info');
-      setupPersistentConnection(conn);
+      if (!connected) {
+        connected = true;
+        log('Connected to peer: ' + peerId, 'info');
+        setupPersistentConnection(conn);
+        fire('onPeerConnected', peerId);
+      }
     });
     
     conn.on('error', function (err) {
-      log('Failed to connect to ' + peerId + ': ' + err.message, 'error');
-      // Retry after delay
-      setTimeout(function() {
-        if (peer && !peer.destroyed) {
-          connectToPeer(peerId);
-        }
-      }, 3000);
+      if (!connected) {
+        log('Failed to connect to ' + peerId + ': ' + err.message, 'error');
+      }
     });
+    
+    // Auto-reconnect after delay if not connected
+    setTimeout(function() {
+      if (!connected && peer && !peer.destroyed) {
+        connectToPeer(peerId);
+      }
+    }, 5000);
   }
 
   function attachPeerHandlers() {
     peer.on('open', function (id) {
       log('Connected with ID: ' + id, 'info');
-      reconnectAttempts = 0;
+      connectionAttempts = 0;
+      isReconnecting = false;
       fire('online', id);
       fire('onConnected', id);
-      
-      // Reconnect to existing peers
-      Object.keys(persistentConnections).forEach(function(peerId) {
-        if (!persistentConnections[peerId] || persistentConnections[peerId].destroyed) {
-          delete persistentConnections[peerId];
-          connectToPeer(peerId);
-        }
-      });
     });
 
     peer.on('error', function (err) {
       log('Peer error: ' + err.type + ' - ' + err.message, 'error');
       if (err.type === 'unavailable-id') {
         fire('onError', new Error('Number already taken'));
-      } else if (err.type === 'network') {
-        // Network error - attempt reconnect
-        handleReconnect();
+      } else if (err.type === 'network' || err.type === 'server-error') {
+        // Only trigger reconnection if we were previously connected
+        if (peer && peer.id) {
+          handleReconnect();
+        }
       } else {
         fire('onError', err);
       }
@@ -557,14 +545,19 @@
       fire('offline', null);
       fire('onDisconnected', null);
       if (inCall) resetCallState();
-      handleReconnect();
+      // Only reconnect if we have a number (was initialized)
+      if (myNumber) {
+        handleReconnect();
+      }
     });
 
     peer.on('disconnected', function () {
-      log('Disconnected - reconnecting...', 'warn');
+      log('Disconnected from server', 'warn');
       fire('offline', null);
       fire('onDisconnected', null);
-      handleReconnect();
+      if (myNumber) {
+        handleReconnect();
+      }
     });
 
     peer.on('call', function (call) {
@@ -578,39 +571,47 @@
       fire('onIncoming', call.peer);
     });
 
-    // ─── Persistent message connections ──────────────────────
     peer.on('connection', function (conn) {
       log('New connection from: ' + conn.peer, 'info');
       setupPersistentConnection(conn);
+      fire('onPeerConnected', conn.peer);
     });
   }
 
   function handleReconnect() {
-    if (reconnectTimer) return;
-    
-    reconnectAttempts++;
-    if (reconnectAttempts > MAX_RECONNECT_ATTEMPTS) {
+    if (isReconnecting) return;
+    if (connectionAttempts >= MAX_ATTEMPTS) {
       log('Max reconnect attempts reached', 'error');
       fire('onError', new Error('Unable to reconnect to server'));
       return;
     }
     
-    const delay = Math.min(1000 * reconnectAttempts, 30000);
-    log('Reconnect attempt ' + reconnectAttempts + ' in ' + delay + 'ms', 'info');
-    fire('onReconnecting', { attempt: reconnectAttempts, delay: delay });
+    isReconnecting = true;
+    connectionAttempts++;
     
-    reconnectTimer = setTimeout(function() {
-      reconnectTimer = null;
+    const delay = Math.min(2000 * connectionAttempts, 10000);
+    log('Reconnect attempt ' + connectionAttempts + ' in ' + delay + 'ms', 'info');
+    fire('onReconnecting', { attempt: connectionAttempts, delay: delay });
+    
+    setTimeout(function() {
+      isReconnecting = false;
       if (peer && !peer.destroyed) {
-        peer.reconnect();
-      } else if (peer && peer.destroyed) {
-        // Recreate peer
-        log('Recreating peer instance', 'info');
-        const oldPeer = peer;
-        peer = new global.Peer(myNumber, { debug: 2, config: CONFIG });
-        attachPeerHandlers();
-        if (oldPeer) {
-          try { oldPeer.destroy(); } catch(e) {}
+        try {
+          peer.reconnect();
+          // If reconnect doesn't work, recreate peer
+          setTimeout(function() {
+            if (peer && !peer.id && !peer.destroyed) {
+              log('Reconnect failed, recreating peer', 'info');
+              const oldPeer = peer;
+              peer = new global.Peer(myNumber, { debug: 2, config: CONFIG });
+              attachPeerHandlers();
+              if (oldPeer) {
+                try { oldPeer.destroy(); } catch(e) {}
+              }
+            }
+          }, 3000);
+        } catch(e) {
+          log('Reconnect error: ' + e.message, 'error');
         }
       }
     }, delay);
@@ -630,17 +631,20 @@
       
       myNumber = number;
       callbacks = opts || {};
+      connectionAttempts = 0;
+      isReconnecting = false;
+      
       peer = new global.Peer(number, { debug: 2, config: CONFIG });
       attachPeerHandlers();
       
-      // Restore persistent connections from localStorage
+      // Restore connections from localStorage
       try {
         const savedPeers = JSON.parse(localStorage.getItem('premCallPeers') || '[]');
         savedPeers.forEach(function(peerId) {
           if (peerId && peerId !== myNumber) {
             setTimeout(function() {
               connectToPeer(peerId);
-            }, 1000);
+            }, 2000);
           }
         });
       } catch (e) {}
@@ -728,7 +732,6 @@
       return new Promise(function (resolve) {
         if (!peer) return resolve(false);
         
-        // Check if we have a persistent connection
         if (persistentConnections[number] && persistentConnections[number].open) {
           return resolve(true);
         }
@@ -739,9 +742,7 @@
           if (!done) { 
             done = true; 
             resolve(true); 
-            // Make it persistent
             setupPersistentConnection(conn);
-            conn.close();
           }
         });
         conn.on('error', function () {
@@ -762,12 +763,8 @@
     getPeerConnections: function () { return Object.keys(persistentConnections); },
 
     destroy: function () {
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-        reconnectTimer = null;
-      }
+      isReconnecting = false;
       
-      // Close all persistent connections
       Object.keys(persistentConnections).forEach(function(key) {
         try { persistentConnections[key].close(); } catch(e) {}
       });
@@ -824,7 +821,6 @@
             fire('onMessage', messageObj);
             return;
           } catch (e) {
-            // Fall through to create new connection
             delete persistentConnections[target];
           }
         }
@@ -834,9 +830,7 @@
         let done = false;
         
         conn.on('open', function () {
-          // Make it persistent
           setupPersistentConnection(conn);
-          
           conn.send(JSON.stringify(payload));
           if (!done) {
             done = true;
@@ -878,26 +872,15 @@
   };
 
   global.PremCall = PremCall;
-  console.log('[PremCall] Library loaded (v2.2 - Persistent).');
+  console.log('[PremCall] Library loaded (v2.3 - Fixed).');
 })(window);
 </script>
 
-<!-- Main App Script -->
 <script>
 (function() {
   'use strict';
 
   /* ---------- Helpers ---------- */
-  function escapeHtml(text) {
-    if (text == null) return '';
-    return String(text)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-
   function showToast(msg) {
     var toast = document.getElementById('toast');
     toast.textContent = msg;
@@ -916,7 +899,6 @@
     badge.textContent = statusMap[status] || status;
     badge.className = 'status-badge ' + status;
     
-    // Show/hide reconnect bar
     var reconnectBar = document.getElementById('reconnectBar');
     if (status === 'offline' || status === 'connecting') {
       reconnectBar.classList.add('show');
@@ -928,12 +910,10 @@
   function setInputEnabled(enabled) {
     var input = document.getElementById('messageInput');
     var sendBtn = document.getElementById('sendBtn');
-    input.disabled = !enabled;
-    sendBtn.disabled = !enabled;
-    if (enabled) {
-      input.placeholder = 'Type a message…';
-    } else {
-      input.placeholder = 'Connecting...';
+    if (input) input.disabled = !enabled;
+    if (sendBtn) sendBtn.disabled = !enabled;
+    if (input) {
+      input.placeholder = enabled ? 'Type a message…' : 'Connecting...';
     }
   }
 
@@ -1016,7 +996,6 @@
     }
   }
 
-  /* ---------- Peer status checking ---------- */
   function checkPeerStatus(peerNumber) {
     if (!isReady || typeof PremCall === 'undefined' || typeof PremCall.checkStatus !== 'function') {
       return;
@@ -1032,11 +1011,6 @@
       })
       .catch(function(err) {
         console.warn('Status check failed for', peerNumber, err);
-        peerStatusCache[peerNumber] = {
-          online: false,
-          lastCheck: Date.now()
-        };
-        updatePeerStatusUI(peerNumber, false);
       });
   }
 
@@ -1066,7 +1040,6 @@
     }
   }
 
-  /* ---------- Render functions ---------- */
   function renderConversationList() {
     var listEl = document.getElementById('conversationList');
     listEl.innerHTML = '';
@@ -1125,7 +1098,6 @@
 
       if (isReady) {
         checkPeerStatus(peer);
-        // Establish persistent connection
         if (typeof PremCall !== 'undefined' && PremCall.connectToPeer) {
           PremCall.connectToPeer(peer);
         }
@@ -1142,7 +1114,6 @@
     document.getElementById('chatPeerName').textContent = peer;
     document.getElementById('chatPeerAvatar').textContent = initials(peer);
     
-    // Establish persistent connection
     if (isReady && typeof PremCall !== 'undefined' && PremCall.connectToPeer) {
       PremCall.connectToPeer(peer);
     }
@@ -1238,7 +1209,6 @@
     }
   }
 
-  /* ---------- Message handlers ---------- */
   function handleIncomingMessage(msg) {
     if (!msg || typeof msg !== 'object') {
       console.warn('Invalid message received:', msg);
@@ -1267,7 +1237,6 @@
     renderConversationList();
   }
 
-  /* ---------- Send message ---------- */
   function sendMessage() {
     if (!activePeer || isSending) return;
     if (!isReady) {
@@ -1312,7 +1281,6 @@
       });
   }
 
-  /* ---------- Event listeners ---------- */
   function setupEventListeners() {
     document.getElementById('newChatBtn').addEventListener('click', function() {
       if (!isReady) {
@@ -1325,7 +1293,6 @@
         if (!Array.isArray(conversations[trimmed])) conversations[trimmed] = [];
         saveConversations();
         openChat(trimmed);
-        // Establish persistent connection
         if (typeof PremCall !== 'undefined' && PremCall.connectToPeer) {
           PremCall.connectToPeer(trimmed);
         }
@@ -1348,7 +1315,6 @@
     });
   }
 
-  /* ---------- Initialize PremCall ---------- */
   function initPremCall(number) {
     myNumber = number;
     document.getElementById('myNumberDisplay').textContent = number;
@@ -1386,7 +1352,6 @@
         onReconnecting: function(data) {
           console.log('Reconnecting... attempt ' + data.attempt);
           updateStatus('connecting');
-          showToast('Reconnecting... (' + data.attempt + '/' + 10 + ')');
         },
         online: function() {
           updateStatus('online');
@@ -1398,6 +1363,10 @@
           updateStatus('offline');
           isReady = false;
           setInputEnabled(false);
+        },
+        onPeerConnected: function(peerId) {
+          console.log('Peer connected:', peerId);
+          checkPeerStatus(peerId);
         }
       });
       updateStatus('connecting');
@@ -1413,7 +1382,6 @@
     }
   }
 
-  /* ---------- Boot ---------- */
   document.addEventListener('DOMContentLoaded', function() {
     conversations = sanitizeConversations(loadConversations());
     renderConversationList();
