@@ -106,6 +106,7 @@
   }
   .conversation-item .status-dot.online{ background:var(--go); }
   .conversation-item .status-dot.offline{ background:var(--stop); }
+  .conversation-item .status-dot.unknown{ background:var(--text-faint); }
   
   .empty-state{
     text-align:center; color:var(--text-faint); padding:2rem; font-size:0.9rem;
@@ -234,7 +235,6 @@
     font-family:var(--font-body);
   }
 
-  /* Status indicator in header */
   .connection-status {
     display:flex; align-items:center; gap:0.3rem;
     font-size:0.65rem; color:var(--text-dim);
@@ -252,7 +252,6 @@
     50% { opacity:0.5; transform:scale(0.8); }
   }
 
-  /* Online indicator for peer in chat header */
   .peer-online-status {
     font-size:0.65rem;
   }
@@ -301,12 +300,370 @@
 </div>
 <div id="toast"></div>
 
-<!-- Load PeerJS -->
+<!-- Load PeerJS from CDN -->
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
-<!-- Load PremCall directly from CDN -->
-<script src="https://cdn.jsdelivr.net/gh/suryasticsai/premCall@main/premcall.min.js"></script>
+<!-- PremCall Library - Inline (Merged v2.1 with call + chat) -->
+<script>
+/* ============================================================
+   PremCall v2.1  (merged - call + chat)
+   WebRTC calling + chat over PeerJS.
+   ============================================================ */
+(function (global) {
+  'use strict';
 
+  if (typeof global.Peer === 'undefined') {
+    console.error('[PremCall] The PeerJS library was not found.');
+    return;
+  }
+
+  // ─── Config ──────────────────────────────────────────────
+  const CONFIG = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:stun.ekiga.net' },
+      { urls: 'stun:stun.ideasip.com' },
+      {
+        urls: ['turn:numb.viagenie.ca:3478', 'turn:numb.viagenie.ca:443'],
+        username: 'webrtc@live.com',
+        credential: 'muazkh'
+      }
+    ],
+    iceCandidatePoolSize: 10
+  };
+
+  // ─── State ──────────────────────────────────────────────────
+  let peer = null;
+  let myNumber = null;
+  let incomingCall = null;
+  let activeCall = null;
+  let localStream = null;
+  let remoteStream = null;
+  let inCall = false;
+  let muted = false;
+  let speakerOn = false;
+  let callbacks = {};
+  let messageListeners = new Set();
+
+  // ─── Internal helpers ──────────────────────────────────────
+  function log(message, level) {
+    console.log('[PremCall]', message);
+    if (callbacks.onLog) callbacks.onLog(message, level);
+  }
+
+  function fire(name, data) {
+    if (callbacks[name]) callbacks[name](data);
+  }
+
+  function resetCallState() {
+    if (activeCall) {
+      try { activeCall.close(); } catch (e) {}
+    }
+    activeCall = null;
+    remoteStream = null;
+    inCall = false;
+    incomingCall = null;
+    muted = false;
+  }
+
+  async function getLocalStream() {
+    if (localStream && localStream.getAudioTracks().length > 0) return localStream;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+      });
+      localStream = stream;
+      log('Microphone acquired', 'info');
+      return stream;
+    } catch (e) {
+      log('Microphone error: ' + e.message, 'error');
+      throw e;
+    }
+  }
+
+  function wireCallEvents(call, isCaller) {
+    activeCall = call;
+    inCall = true;
+    fire('onCallStarted', { target: call.peer, isCaller: isCaller });
+
+    call.on('stream', function (stream) {
+      remoteStream = stream;
+      fire('onRemoteStream', remoteStream);
+    });
+
+    call.on('close', function () {
+      resetCallState();
+      fire('onCallEnded', null);
+    });
+
+    call.on('error', function (err) {
+      log('Call error: ' + err.message, 'error');
+      resetCallState();
+      fire('onError', err);
+    });
+
+    const pc = call.peerConnection;
+    if (pc) {
+      pc.oniceconnectionstatechange = function () {
+        const state = pc.iceConnectionState;
+        log('ICE state: ' + state, 'info');
+        if (state === 'connected' || state === 'completed') {
+          fire('onConnected', null);
+        }
+        if (state === 'failed' || state === 'disconnected') {
+          resetCallState();
+          fire('onError', new Error('Connection lost'));
+        }
+      };
+    }
+  }
+
+  function attachPeerHandlers() {
+    peer.on('open', function (id) {
+      log('Connected with ID: ' + id, 'info');
+      fire('online', id);
+      fire('onConnected', id);
+    });
+
+    peer.on('error', function (err) {
+      log('Peer error: ' + err.type + ' - ' + err.message, 'error');
+      if (err.type === 'unavailable-id') {
+        fire('onError', new Error('Number already taken'));
+      } else {
+        fire('onError', err);
+      }
+    });
+
+    peer.on('close', function () {
+      log('Connection closed', 'warn');
+      fire('offline', null);
+      fire('onDisconnected', null);
+      if (inCall) resetCallState();
+    });
+
+    peer.on('disconnected', function () {
+      log('Disconnected - reconnecting...', 'warn');
+      fire('offline', null);
+      fire('onDisconnected', null);
+      setTimeout(function () {
+        if (peer && !peer.destroyed) peer.reconnect();
+      }, 3000);
+    });
+
+    peer.on('call', function (call) {
+      log('Incoming call from: ' + call.peer, 'info');
+      if (inCall) {
+        call.close();
+        log('Rejected - already in call', 'warn');
+        return;
+      }
+      incomingCall = call;
+      fire('onIncoming', call.peer);
+    });
+
+    // ─── Message handling ──────────────────────────────────────
+    peer.on('connection', function (conn) {
+      conn.on('data', function (data) {
+        try {
+          const msg = typeof data === 'string' ? JSON.parse(data) : data;
+          if (msg && msg.type === 'premcall-message') {
+            const message = {
+              from: msg.from,
+              text: msg.text,
+              timestamp: msg.timestamp || Date.now(),
+              direction: 'incoming'
+            };
+            messageListeners.forEach(function (cb) { cb(message); });
+            fire('onMessage', message);
+          }
+        } catch (e) {
+          console.warn('[PremCall] Invalid message data', e);
+        }
+      });
+    });
+  }
+
+  // ─── Public API ──────────────────────────────────────────
+  const PremCall = {
+    init: function (number, opts) {
+      if (!/^\d{10}$/.test(number)) {
+        throw new Error('Number must be exactly 10 digits');
+      }
+      
+      if (peer) {
+        peer.destroy();
+        peer = null;
+      }
+      
+      myNumber = number;
+      callbacks = opts || {};
+      peer = new global.Peer(number, { debug: 2, config: CONFIG });
+      attachPeerHandlers();
+    },
+
+    call: async function (target) {
+      if (inCall) throw new Error('Already in a call');
+      if (!peer) throw new Error('Not initialized. Call init() first.');
+      if (!/^\d{10}$/.test(target)) throw new Error('Target must be exactly 10 digits');
+      if (target === myNumber) throw new Error('Cannot call yourself');
+      
+      log('Calling ' + target + '...', 'info');
+      try {
+        const stream = await getLocalStream();
+        const call = peer.call(target, stream);
+        if (!call) throw new Error('Target unreachable');
+        wireCallEvents(call, true);
+      } catch (e) {
+        log('Call failed: ' + e.message, 'error');
+        throw e;
+      }
+    },
+
+    answer: async function () {
+      if (!incomingCall) throw new Error('No incoming call');
+      const call = incomingCall;
+      incomingCall = null;
+      try {
+        const stream = await getLocalStream();
+        call.answer(stream);
+        wireCallEvents(call, false);
+      } catch (e) {
+        log('Answer failed: ' + e.message, 'error');
+        throw e;
+      }
+    },
+
+    hangup: function () {
+      resetCallState();
+      fire('onCallEnded', null);
+      log('Call ended', 'info');
+    },
+
+    mute: function () {
+      if (!localStream) return muted;
+      muted = !muted;
+      localStream.getAudioTracks().forEach(function (t) { t.enabled = !muted; });
+      fire('onMuteToggled', muted);
+      return muted;
+    },
+
+    speaker: function () {
+      speakerOn = !speakerOn;
+      fire('onSpeakerToggled', speakerOn);
+      return speakerOn;
+    },
+
+    checkStatus: function (number) {
+      return new Promise(function (resolve) {
+        if (!peer) return resolve(false);
+        const conn = peer.connect(number);
+        let done = false;
+        conn.on('open', function () {
+          if (!done) { done = true; resolve(true); conn.close(); }
+        });
+        conn.on('error', function () {
+          if (!done) { done = true; resolve(false); }
+        });
+        setTimeout(function () {
+          if (!done) { done = true; resolve(false); try { conn.close(); } catch (e) {} }
+        }, 3000);
+      });
+    },
+
+    getNumber: function () { return myNumber; },
+    isInCall: function () { return inCall; },
+
+    destroy: function () {
+      if (peer) { 
+        peer.destroy(); 
+        peer = null; 
+      }
+      if (localStream) {
+        localStream.getTracks().forEach(function (t) { t.stop(); });
+        localStream = null;
+      }
+      remoteStream = null;
+      inCall = false;
+      incomingCall = null;
+      activeCall = null;
+      myNumber = null;
+      muted = false;
+      speakerOn = false;
+      messageListeners.clear();
+    },
+
+    sendMessage: function (target, text) {
+      return new Promise(function (resolve, reject) {
+        if (!peer) return reject(new Error('PremCall not initialized.'));
+        if (!/^\d{10}$/.test(target)) return reject(new Error('Target must be 10 digits.'));
+        if (!text || typeof text !== 'string' || text.trim().length === 0) {
+          return reject(new Error('Message cannot be empty.'));
+        }
+        
+        const payload = {
+          type: 'premcall-message',
+          from: myNumber,
+          text: text.trim(),
+          timestamp: Date.now()
+        };
+        
+        const conn = peer.connect(target, { reliable: true });
+        let done = false;
+        
+        conn.on('open', function () {
+          conn.send(JSON.stringify(payload));
+          if (!done) {
+            done = true;
+            const messageObj = { 
+              target: target, 
+              text: payload.text, 
+              timestamp: payload.timestamp, 
+              direction: 'outgoing' 
+            };
+            resolve(messageObj);
+            fire('onMessage', messageObj);
+            setTimeout(function () { 
+              try { conn.close(); } catch (e) {} 
+            }, 500);
+          }
+        });
+        
+        conn.on('error', function (err) { 
+          if (!done) { 
+            done = true; 
+            reject(err); 
+          } 
+        });
+        
+        setTimeout(function () {
+          if (!done) {
+            done = true;
+            reject(new Error('Send timeout'));
+            try { conn.close(); } catch (e) {}
+          }
+        }, 5000);
+      });
+    },
+
+    onMessage: function (cb) { 
+      if (typeof cb === 'function') messageListeners.add(cb); 
+    },
+
+    offMessage: function (cb) { 
+      messageListeners.delete(cb); 
+    }
+  };
+
+  global.PremCall = PremCall;
+  console.log('[PremCall] Library loaded (v2.1).');
+})(window);
+</script>
+
+<!-- Main App Script -->
 <script>
 (function() {
   'use strict';
@@ -339,12 +696,6 @@
     };
     badge.textContent = statusMap[status] || status;
     badge.className = 'status-badge ' + status;
-    
-    // Update header connection indicator
-    var pulse = document.querySelector('.connection-status .pulse');
-    if (pulse) {
-      pulse.className = 'pulse ' + status;
-    }
   }
 
   function setInputEnabled(enabled) {
@@ -463,7 +814,6 @@
   }
 
   function updatePeerStatusUI(peerNumber, isOnline) {
-    // Update conversation list status dots
     var items = document.querySelectorAll('.conversation-item');
     items.forEach(function(item) {
       var nameEl = item.querySelector('.name');
@@ -475,7 +825,6 @@
       }
     });
 
-    // Update chat header status
     if (activePeer === peerNumber) {
       var statusEl = document.getElementById('chatPeerStatus');
       var dot = statusEl.querySelector('.status-dot');
@@ -526,7 +875,6 @@
       nameDiv.className = 'name';
       nameDiv.textContent = peer;
       
-      // Add status dot
       var statusDot = document.createElement('span');
       statusDot.className = 'status-dot unknown';
       nameDiv.appendChild(statusDot);
@@ -535,7 +883,6 @@
 
       var preview = document.createElement('div');
       preview.className = 'preview';
-      var sender = lastMsg.direction === 'outgoing' ? 'You' : (lastMsg.from || peer);
       preview.textContent = (lastMsg.direction === 'outgoing' ? 'You: ' : '') + (lastMsg.text || '');
       info.appendChild(preview);
 
@@ -549,7 +896,6 @@
       item.addEventListener('click', function() { openChat(peer); });
       listEl.appendChild(item);
 
-      // Check status if ready
       if (isReady) {
         checkPeerStatus(peer);
       }
@@ -565,7 +911,6 @@
     document.getElementById('chatPeerName').textContent = peer;
     document.getElementById('chatPeerAvatar').textContent = initials(peer);
     
-    // Check and display peer status
     if (isReady) {
       checkPeerStatus(peer);
     } else {
@@ -602,7 +947,7 @@
     var msgs = conversations[activePeer];
     var lastDate = null;
     
-    msgs.forEach(function(msg, index) {
+    msgs.forEach(function(msg) {
       var msgDate = formatDate(msg.timestamp);
       if (msgDate !== lastDate) {
         lastDate = msgDate;
@@ -615,7 +960,6 @@
       var wrapper = document.createElement('div');
       wrapper.className = 'message-wrapper ' + (msg.direction === 'outgoing' ? 'outgoing' : 'incoming');
 
-      // Show sender/recipient
       var sender = document.createElement('div');
       sender.className = 'message-sender';
       if (msg.direction === 'outgoing') {
