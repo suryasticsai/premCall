@@ -780,20 +780,54 @@ const FIREBASE_CONFIG = {
   function renderConversationList() {
     var listEl = document.getElementById('conversationList');
     listEl.innerHTML = '';
-    var peers = Object.keys(conversations);
-    if (peers.length === 0) {
+
+    // Source of truth is latestConversations (kept live by the
+    // listenConversationsList() onSnapshot listener), not the local
+    // `conversations` object — that one only fills in per-peer once you
+    // open that specific chat, which was why the list never updated on
+    // its own. We merge in any not-yet-synced local pending/error sends
+    // so an in-flight message still shows immediately.
+    var byPeer = {};
+    latestConversations.forEach(function(c) { byPeer[c.peer] = c; });
+
+    Object.keys(conversations).forEach(function(peer) {
+      var msgs = conversations[peer];
+      var last = msgs.length ? msgs[msgs.length - 1] : null;
+      if (last && (last.pending || last.error)) {
+        if (!byPeer[peer] || last.timestamp >= byPeer[peer].timestamp) {
+          byPeer[peer] = {
+            peer: peer,
+            text: last.text,
+            timestamp: last.timestamp,
+            direction: last.direction,
+            pending: last.pending,
+            error: last.error
+          };
+        }
+      } else if (!byPeer[peer] && msgs.length) {
+        // Peer we've chatted with but haven't received a snapshot for yet
+        // (e.g. right after registering a brand-new number, before the
+        // first message exists) — fall back to local cache so it isn't
+        // just missing from the list.
+        byPeer[peer] = {
+          peer: peer,
+          text: last ? last.text : '',
+          timestamp: last ? last.timestamp : 0,
+          direction: last ? last.direction : ''
+        };
+      }
+    });
+
+    var list = Object.keys(byPeer).map(function(k) { return byPeer[k]; });
+    list.sort(function(a,b) { return (b.timestamp||0) - (a.timestamp||0); });
+
+    if (list.length === 0) {
       listEl.innerHTML = '<div class="empty-state"><span class="icon"><i class="fas fa-comments"></i></span>No conversations yet<span class="sub-text">Tap + to message any registered number</span></div>';
       return;
     }
-    peers.sort(function(a,b) {
-      var msgsA = conversations[a], msgsB = conversations[b];
-      var lastA = msgsA.length ? (msgsA[msgsA.length-1].timestamp||0) : 0;
-      var lastB = msgsB.length ? (msgsB[msgsB.length-1].timestamp||0) : 0;
-      return lastB - lastA;
-    });
-    peers.forEach(function(peer) {
-      var msgs = conversations[peer];
-      var lastMsg = msgs[msgs.length-1] || { text: '', timestamp: 0, direction: '' };
+
+    list.forEach(function(convo) {
+      var peer = convo.peer;
       var item = document.createElement('div');
       item.className = 'conversation-item';
       var avatar = document.createElement('div');
@@ -808,15 +842,15 @@ const FIREBASE_CONFIG = {
       info.appendChild(nameDiv);
       var preview = document.createElement('div');
       preview.className = 'preview';
-      var prefix = lastMsg.direction === 'outgoing' ? 'You: ' : '';
-      if (lastMsg.pending) prefix = '[sending] You: ';
-      else if (lastMsg.error) prefix = '[failed] You: ';
-      preview.textContent = prefix + (lastMsg.text || '');
+      var prefix = convo.direction === 'outgoing' ? 'You: ' : '';
+      if (convo.pending) prefix = '[sending] You: ';
+      else if (convo.error) prefix = '[failed] You: ';
+      preview.textContent = prefix + (convo.text || '');
       info.appendChild(preview);
       item.appendChild(info);
       var time = document.createElement('span');
       time.className = 'time';
-      time.textContent = formatTime(lastMsg.timestamp);
+      time.textContent = formatTime(convo.timestamp);
       item.appendChild(time);
       item.addEventListener('click', function() { openChat(peer); });
       listEl.appendChild(item);
@@ -1055,8 +1089,13 @@ const FIREBASE_CONFIG = {
           var mappedNumber = doc.data().number;
           logError('UID mapped to number: ' + mappedNumber);
           if (mappedNumber !== myNumber) {
-            logError('UID maps to different number, updating…');
-            return db.collection('uids').doc(uid).set({ number: myNumber }, { merge: true });
+            // Security rules block updating uids/{uid} once set, so this
+            // browser is permanently tied to whatever number it first
+            // claimed. Surface that clearly instead of silently failing.
+            return Promise.reject(new Error(
+              'This browser is already registered to ' + mappedNumber +
+              '. Clear site data or use a different browser to register ' + myNumber + '.'
+            ));
           }
         } else {
           logError('UID mapping missing, creating…');
