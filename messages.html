@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    /* (all styles same as before – unchanged) */
+    /* ====== STYLES (same as before) ====== */
     :root{
       --bg-0:#05070d; --bg-1:#0a0e18; --surface:#0e1424; --surface-2:#141c30; --surface-3:#1b2540;
       --line:#1e2a42; --text:#eef2fb; --text-dim:#8891ab; --text-faint:#525d78;
@@ -218,7 +218,6 @@
     .setup-banner.show{ display:block; }
     .setup-banner code{ background:rgba(0,0,0,0.25); padding:0.1rem 0.35rem; border-radius:4px; }
     
-    /* Error log */
     .error-log {
       background:var(--surface); border-top:1px solid var(--stop);
       padding:0.3rem 0.6rem; font-size:0.7rem; color:var(--stop);
@@ -277,7 +276,6 @@
     </div>
   </div>
 
-  <!-- Error log -->
   <div class="error-log" id="errorLog">
     <button class="clear-errors" id="clearErrorsBtn">Clear</button>
     <div id="errorLogContent"></div>
@@ -285,15 +283,12 @@
 </div>
 <div id="toast"></div>
 
-<!-- Firebase (compat SDK) -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 
 <script>
-/* ============================================================
-   FIREBASE CONFIG – YOUR ACTUAL CONFIG
-   ============================================================ */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyDc2vue40jIyuVCnU-frnbC5o0aNzovUNk",
   authDomain: "premcall-msg.firebaseapp.com",
@@ -310,7 +305,6 @@ const FIREBASE_CONFIG = {
 
   var FIREBASE_NOT_CONFIGURED = !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY';
 
-  /* ---------- UI helpers ---------- */
   function showToast(msg) {
     var toast = document.getElementById('toast');
     toast.textContent = msg;
@@ -369,7 +363,6 @@ const FIREBASE_CONFIG = {
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
 
-  /* ---------- Chat state ---------- */
   var db = null, auth = null;
   var chatReady = false;
   var myNumber = null;
@@ -529,7 +522,6 @@ const FIREBASE_CONFIG = {
     renderConversationList();
   }
 
-  /* ---------- Firestore listeners ---------- */
   function listenConversation(peerNumber, cb) {
     var id = [myNumber, peerNumber].sort().join('_');
     return db.collection('messages')
@@ -566,7 +558,6 @@ const FIREBASE_CONFIG = {
     });
   }
 
-  /* --- FIXED: removed orderBy to avoid composite index requirement --- */
   function listenConversationsList() {
     return db.collection('messages')
       .where('participants', 'array-contains', myNumber)
@@ -575,7 +566,6 @@ const FIREBASE_CONFIG = {
         snapshot.docs.forEach(function(doc) {
           var d = doc.data();
           var peer = d.from === myNumber ? d.to : d.from;
-          // Only keep the latest message per peer (based on timestamp)
           if (!latestByPeer[peer] || d.timestamp > latestByPeer[peer].timestamp) {
             latestByPeer[peer] = {
               peer: peer,
@@ -587,7 +577,6 @@ const FIREBASE_CONFIG = {
             };
           }
         });
-        // Merge with local pending/error messages
         var peers = Object.keys(conversations);
         peers.forEach(function(p) {
           var msgs = conversations[p];
@@ -603,7 +592,6 @@ const FIREBASE_CONFIG = {
                 error: last.error
               };
             } else if (last.timestamp > latestByPeer[p].timestamp) {
-              // If local pending is newer, replace
               latestByPeer[p] = {
                 peer: p,
                 text: last.text,
@@ -616,7 +604,6 @@ const FIREBASE_CONFIG = {
           }
         });
         var list = Object.keys(latestByPeer).map(function(k) { return latestByPeer[k]; });
-        // Sort client-side by timestamp descending
         list.sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); });
         latestConversations = list;
         if (!activePeer) renderConversationList();
@@ -626,7 +613,6 @@ const FIREBASE_CONFIG = {
       });
   }
 
-  /* ---------- Send message ---------- */
   function sendMessage() {
     if (!activePeer || isSending) return;
     if (!chatReady) { showToast('Still connecting…'); return; }
@@ -690,7 +676,6 @@ const FIREBASE_CONFIG = {
     });
   }
 
-  /* ---------- Initialize ---------- */
   function initChat() {
     var stored = localStorage.getItem('premCallNumber');
     var verified = localStorage.getItem('premCallVerified') === 'true';
@@ -716,14 +701,34 @@ const FIREBASE_CONFIG = {
 
     auth.signInAnonymously().then(function(cred) {
       var uid = cred.user.uid;
+      // Log UID for debugging
+      logError('Your UID: ' + uid);
+      logError('Your number: ' + myNumber);
+
+      // Check if uid mapping exists
       return db.collection('uids').doc(uid).get().then(function(doc) {
-        if (doc.exists && doc.data().number === myNumber) {
-          // Already claimed
+        if (doc.exists) {
+          var mappedNumber = doc.data().number;
+          logError('UID mapped to number: ' + mappedNumber);
+          if (mappedNumber === myNumber) {
+            // All good
+          } else {
+            logError('UID maps to different number: ' + mappedNumber + ' (expected ' + myNumber + ')');
+            // Try to update mapping
+            return db.collection('uids').doc(uid).set({ number: myNumber }, { merge: true });
+          }
         } else {
+          logError('UID mapping not found – creating…');
+          // Create mapping
           var batch = db.batch();
           batch.set(db.collection('users').doc(myNumber), { uid: uid });
           batch.set(db.collection('uids').doc(uid), { number: myNumber });
-          return batch.commit();
+          return batch.commit().then(function() {
+            logError('Mapping created successfully.');
+          }).catch(function(err) {
+            logError('Failed to create mapping: ' + err.message);
+            throw err;
+          });
         }
       });
     }).then(function() {
@@ -746,7 +751,6 @@ const FIREBASE_CONFIG = {
     });
   }
 
-  /* ---------- Event listeners ---------- */
   document.addEventListener('DOMContentLoaded', function() {
     updateNetStatus();
     document.getElementById('newChatBtn').addEventListener('click', function() {
