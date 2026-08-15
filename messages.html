@@ -1,222 +1,237 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no" />
-<meta name="theme-color" content="#070a12" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<title>Messages – PremCall</title>
-<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-<style>
-  :root{
-    --bg-0:#05070d; --bg-1:#0a0e18; --surface:#0e1424; --surface-2:#141c30; --surface-3:#1b2540;
-    --line:#1e2a42; --text:#eef2fb; --text-dim:#8891ab; --text-faint:#525d78;
-    --signal:#4f8cf7; --signal-soft:#2f5fc4; --go:#2fd992; --go-deep:#12683f;
-    --stop:#ff5470; --stop-deep:#7a1730; --warn:#ffb648; --warn-deep:#5c3d10;
-    --radius-lg:22px; --radius-md:16px;
-    --font-display:'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-body:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --safe-t: env(safe-area-inset-top, 0px);
-    --safe-b: env(safe-area-inset-bottom, 0px);
-  }
-  body.light-mode{
-    --bg-0:#f0f2f5; --bg-1:#ffffff; --surface:#ffffff; --surface-2:#f8fafc; --surface-3:#f1f5f9;
-    --line:#d1d5db; --text:#111827; --text-dim:#4b5563; --text-faint:#9ca3af;
-    --signal:#2563eb; --signal-soft:#1d4ed8; --go:#10b981; --go-deep:#047857;
-    --stop:#ef4444; --stop-deep:#b91c1c; --warn:#f59e0b; --warn-deep:#b45309;
-  }
-  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
-  html,body{height:100%;}
-  body{
-    font-family:var(--font-body);
-    color:var(--text);
-    background:var(--bg-0);
-    min-height:100vh; min-height:100dvh;
-    display:flex; justify-content:center;
-    padding:0;
-    overflow-x:hidden;
-  }
-  .app-container{
-    width:100%; max-width:480px; min-height:100vh; min-height:100dvh;
-    background:var(--bg-1); display:flex; flex-direction:column;
-    position:relative; padding-top:var(--safe-t); padding-bottom:var(--safe-b);
-  }
-  .header{
-    display:flex; align-items:center; padding:0.8rem 1rem;
-    background:var(--surface); border-bottom:1px solid var(--line);
-    gap:0.8rem; flex-shrink:0;
-  }
-  .header .back-btn{
-    background:none; border:none; color:var(--text); font-size:1.4rem; cursor:pointer;
-    text-decoration:none; display:flex; align-items:center; justify-content:center;
-  }
-  .header .title{
-    flex:1; font-family:var(--font-display); font-weight:700; font-size:1.2rem;
-    display:flex; align-items:center; gap:0.5rem;
-    flex-wrap:wrap;
-  }
-  .header .title .my-number{
-    font-size:0.7rem; font-weight:400; color:var(--text-dim);
-    font-family:var(--font-body);
-  }
-  .header .icon-btn{
-    background:none; border:none; color:var(--text-dim); font-size:1.2rem; cursor:pointer;
-    display:flex; align-items:center; justify-content:center; padding:0.4rem;
-    transition:color .2s;
-  }
-  .header .icon-btn:hover{ color:var(--text); }
-  .header .icon-btn:disabled{
-    opacity:0.4; cursor:not-allowed;
-  }
-  .status-badge {
-    display:inline-block; padding:0.2rem 0.6rem; border-radius:10px;
-    font-size:0.6rem; font-weight:600;
-  }
-  .status-badge.online { background:var(--go); color:#fff; }
-  .status-badge.offline { background:var(--warn); color:#fff; }
-  .status-badge.error { background:var(--stop); color:#fff; }
-
-  .conversation-list{
-    flex:1; overflow-y:auto; padding:0.5rem 0;
-  }
-  .conversation-item{
-    display:flex; align-items:center; gap:0.8rem; padding:0.8rem 1rem;
-    border-bottom:1px solid var(--surface-2); cursor:pointer; transition:background .15s;
-  }
-  .conversation-item:hover{ background:var(--surface-2); }
-  .conversation-item .avatar{
-    width:48px; height:48px; border-radius:50%; background:var(--surface-3);
-    display:flex; align-items:center; justify-content:center;
-    font-family:var(--font-display); font-weight:700; font-size:1.1rem; color:var(--text);
-    flex-shrink:0;
-  }
-  .conversation-item .info{ flex:1; min-width:0; }
-  .conversation-item .name{ font-weight:600; font-size:0.95rem; display:flex; align-items:center; }
-  .conversation-item .preview{
-    font-size:0.8rem; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-  .conversation-item .time{ font-size:0.7rem; color:var(--text-faint); flex-shrink:0; }
-  .status-dot{
-    width:8px; height:8px; border-radius:50%; display:inline-block; margin-left:0.4rem;
-  }
-  .status-dot.online{ background:var(--go); }
-  .status-dot.offline{ background:var(--text-faint); }
-
-  .empty-state{
-    text-align:center; color:var(--text-faint); padding:2rem; font-size:0.9rem;
-  }
-  .empty-state .icon{ font-size:2.5rem; display:block; margin-bottom:0.8rem; opacity:0.5; }
-  .empty-state .sub-text{ font-size:0.8rem; opacity:0.7; margin-top:0.3rem; }
-
-  .chat-view{
-    flex:1; display:flex; flex-direction:column;
-  }
-  .chat-header{
-    display:flex; align-items:center; gap:0.8rem; padding:0.8rem 1rem;
-    background:var(--surface); border-bottom:1px solid var(--line); flex-shrink:0;
-  }
-  .chat-header .back-btn{
-    background:none; border:none; color:var(--text); font-size:1.4rem; cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .chat-header .avatar{
-    width:36px; height:36px; border-radius:50%; background:var(--surface-3);
-    display:flex; align-items:center; justify-content:center; font-weight:700;
-    color:var(--text);
-  }
-  .chat-header .peer-info{
-    flex:1; display:flex; flex-direction:column;
-  }
-  .chat-header .peer-name{
-    font-family:var(--font-display); font-weight:600; font-size:0.95rem;
-  }
-  .chat-header .peer-status{
-    font-size:0.7rem; color:var(--text-dim); display:flex; align-items:center;
-  }
-
-  .messages{
-    flex:1; overflow-y:auto; padding:1rem; display:flex; flex-direction:column; gap:0.4rem;
-  }
-  .message-wrapper{
-    display:flex; flex-direction:column; max-width:85%;
-  }
-  .message-wrapper.outgoing{ align-self:flex-end; align-items:flex-end; }
-  .message-wrapper.incoming{ align-self:flex-start; align-items:flex-start; }
-  .message-bubble{
-    padding:0.6rem 0.9rem; border-radius:16px; font-size:0.9rem;
-    white-space:pre-wrap; word-break:break-word; position:relative;
-    animation:fadeIn .2s ease;
-  }
-  @keyframes fadeIn{
-    from{ opacity:0; transform:translateY(5px); }
-    to{ opacity:1; transform:translateY(0); }
-  }
-  .message-wrapper.outgoing .message-bubble{
-    background:var(--signal); color:#fff;
-    border-bottom-right-radius:4px;
-  }
-  .message-wrapper.incoming .message-bubble{
-    background:var(--surface-2); color:var(--text);
-    border-bottom-left-radius:4px;
-  }
-  .message-wrapper.outgoing .message-bubble.pending{ opacity:0.6; }
-  .message-timestamp{
-    font-size:0.6rem; opacity:0.6; margin-top:0.15rem; display:block; text-align:right;
-  }
-  .message-wrapper.outgoing .message-timestamp{ color:var(--text-faint); }
-  .message-wrapper.incoming .message-timestamp{ color:var(--text-faint); }
-
-  .date-divider{
-    text-align:center;font-size:0.7rem;color:var(--text-faint);padding:0.5rem 0;
-  }
-
-  .chat-input-area{
-    display:flex; gap:0.5rem; padding:0.8rem; background:var(--surface);
-    border-top:1px solid var(--line); flex-shrink:0;
-  }
-  .chat-input-area input{
-    flex:1; padding:0.6rem 1rem; border-radius:20px; border:1px solid var(--line);
-    background:var(--bg-0); color:var(--text); outline:none;
-    font-family:inherit; font-size:0.95rem;
-  }
-  .chat-input-area input::placeholder{ color:var(--text-faint); }
-  .chat-input-area input:focus{ border-color:var(--signal); }
-  .chat-input-area button{
-    width:42px; height:42px; border-radius:50%; border:none; background:var(--signal);
-    color:#fff; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center;
-    transition:opacity .2s, transform .1s;
-  }
-  .chat-input-area button:disabled{ opacity:0.4; cursor:not-allowed; }
-  .chat-input-area button:active:not(:disabled){ transform:scale(0.95); }
-  .hidden{ display:none !important; }
-
-  #toast {
-    position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
-    background:var(--surface-3); border:1px solid var(--line);
-    color:var(--text); padding:0.7rem 1.3rem; border-radius:40px;
-    font-size:0.85rem; z-index:11000; opacity:0; transition:opacity .3s;
-    pointer-events:none; max-width:90%;
-    font-family:var(--font-body);
-  }
-
-  .offline-bar {
-    background:var(--warn-deep); color:#fff; padding:0.4rem 1rem;
-    text-align:center; font-size:0.75rem; display:none;
-  }
-  .offline-bar.show{ display:block; }
-
-  .setup-banner{
-    background:var(--stop-deep); color:#fff; padding:0.9rem 1rem; font-size:0.8rem;
-    line-height:1.5; display:none;
-  }
-  .setup-banner.show{ display:block; }
-  .setup-banner code{ background:rgba(0,0,0,0.25); padding:0.1rem 0.35rem; border-radius:4px; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#070a12" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Messages – PremCall</title>
+  <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    /* (your existing CSS – unchanged) */
+    :root{
+      --bg-0:#05070d; --bg-1:#0a0e18; --surface:#0e1424; --surface-2:#141c30; --surface-3:#1b2540;
+      --line:#1e2a42; --text:#eef2fb; --text-dim:#8891ab; --text-faint:#525d78;
+      --signal:#4f8cf7; --signal-soft:#2f5fc4; --go:#2fd992; --go-deep:#12683f;
+      --stop:#ff5470; --stop-deep:#7a1730; --warn:#ffb648; --warn-deep:#5c3d10;
+      --radius-lg:22px; --radius-md:16px;
+      --font-display:'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-body:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --safe-t: env(safe-area-inset-top, 0px);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+    }
+    body.light-mode{
+      --bg-0:#f0f2f5; --bg-1:#ffffff; --surface:#ffffff; --surface-2:#f8fafc; --surface-3:#f1f5f9;
+      --line:#d1d5db; --text:#111827; --text-dim:#4b5563; --text-faint:#9ca3af;
+      --signal:#2563eb; --signal-soft:#1d4ed8; --go:#10b981; --go-deep:#047857;
+      --stop:#ef4444; --stop-deep:#b91c1c; --warn:#f59e0b; --warn-deep:#b45309;
+    }
+    *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+    html,body{height:100%;}
+    body{
+      font-family:var(--font-body);
+      color:var(--text);
+      background:var(--bg-0);
+      min-height:100vh; min-height:100dvh;
+      display:flex; justify-content:center;
+      padding:0;
+      overflow-x:hidden;
+    }
+    .app-container{
+      width:100%; max-width:480px; min-height:100vh; min-height:100dvh;
+      background:var(--bg-1); display:flex; flex-direction:column;
+      position:relative; padding-top:var(--safe-t); padding-bottom:var(--safe-b);
+    }
+    .header{
+      display:flex; align-items:center; padding:0.8rem 1rem;
+      background:var(--surface); border-bottom:1px solid var(--line);
+      gap:0.8rem; flex-shrink:0;
+    }
+    .header .back-btn{
+      background:none; border:none; color:var(--text); font-size:1.4rem; cursor:pointer;
+      text-decoration:none; display:flex; align-items:center; justify-content:center;
+    }
+    .header .title{
+      flex:1; font-family:var(--font-display); font-weight:700; font-size:1.2rem;
+      display:flex; align-items:center; gap:0.5rem;
+      flex-wrap:wrap;
+    }
+    .header .title .my-number{
+      font-size:0.7rem; font-weight:400; color:var(--text-dim);
+      font-family:var(--font-body);
+    }
+    .header .icon-btn{
+      background:none; border:none; color:var(--text-dim); font-size:1.2rem; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; padding:0.4rem;
+      transition:color .2s;
+    }
+    .header .icon-btn:hover{ color:var(--text); }
+    .header .icon-btn:disabled{
+      opacity:0.4; cursor:not-allowed;
+    }
+    .status-badge {
+      display:inline-block; padding:0.2rem 0.6rem; border-radius:10px;
+      font-size:0.6rem; font-weight:600;
+    }
+    .status-badge.online { background:var(--go); color:#fff; }
+    .status-badge.offline { background:var(--warn); color:#fff; }
+    .status-badge.error { background:var(--stop); color:#fff; }
+    
+    .conversation-list{
+      flex:1; overflow-y:auto; padding:0.5rem 0;
+    }
+    .conversation-item{
+      display:flex; align-items:center; gap:0.8rem; padding:0.8rem 1rem;
+      border-bottom:1px solid var(--surface-2); cursor:pointer; transition:background .15s;
+    }
+    .conversation-item:hover{ background:var(--surface-2); }
+    .conversation-item .avatar{
+      width:48px; height:48px; border-radius:50%; background:var(--surface-3);
+      display:flex; align-items:center; justify-content:center;
+      font-family:var(--font-display); font-weight:700; font-size:1.1rem; color:var(--text);
+      flex-shrink:0;
+    }
+    .conversation-item .info{ flex:1; min-width:0; }
+    .conversation-item .name{ font-weight:600; font-size:0.95rem; display:flex; align-items:center; }
+    .conversation-item .preview{
+      font-size:0.8rem; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .conversation-item .time{ font-size:0.7rem; color:var(--text-faint); flex-shrink:0; }
+    .status-dot{
+      width:8px; height:8px; border-radius:50%; display:inline-block; margin-left:0.4rem;
+    }
+    .status-dot.online{ background:var(--go); }
+    .status-dot.offline{ background:var(--text-faint); }
+    
+    .empty-state{
+      text-align:center; color:var(--text-faint); padding:2rem; font-size:0.9rem;
+    }
+    .empty-state .icon{ font-size:2.5rem; display:block; margin-bottom:0.8rem; opacity:0.5; }
+    .empty-state .sub-text{ font-size:0.8rem; opacity:0.7; margin-top:0.3rem; }
+    
+    .chat-view{
+      flex:1; display:flex; flex-direction:column;
+    }
+    .chat-header{
+      display:flex; align-items:center; gap:0.8rem; padding:0.8rem 1rem;
+      background:var(--surface); border-bottom:1px solid var(--line); flex-shrink:0;
+    }
+    .chat-header .back-btn{
+      background:none; border:none; color:var(--text); font-size:1.4rem; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .chat-header .avatar{
+      width:36px; height:36px; border-radius:50%; background:var(--surface-3);
+      display:flex; align-items:center; justify-content:center; font-weight:700;
+      color:var(--text);
+    }
+    .chat-header .peer-info{
+      flex:1; display:flex; flex-direction:column;
+    }
+    .chat-header .peer-name{
+      font-family:var(--font-display); font-weight:600; font-size:0.95rem;
+    }
+    .chat-header .peer-status{
+      font-size:0.7rem; color:var(--text-dim); display:flex; align-items:center;
+    }
+    
+    .messages{
+      flex:1; overflow-y:auto; padding:1rem; display:flex; flex-direction:column; gap:0.4rem;
+    }
+    .message-wrapper{
+      display:flex; flex-direction:column; max-width:85%;
+    }
+    .message-wrapper.outgoing{ align-self:flex-end; align-items:flex-end; }
+    .message-wrapper.incoming{ align-self:flex-start; align-items:flex-start; }
+    .message-bubble{
+      padding:0.6rem 0.9rem; border-radius:16px; font-size:0.9rem;
+      white-space:pre-wrap; word-break:break-word; position:relative;
+      animation:fadeIn .2s ease;
+    }
+    @keyframes fadeIn{
+      from{ opacity:0; transform:translateY(5px); }
+      to{ opacity:1; transform:translateY(0); }
+    }
+    .message-wrapper.outgoing .message-bubble{
+      background:var(--signal); color:#fff;
+      border-bottom-right-radius:4px;
+    }
+    .message-wrapper.incoming .message-bubble{
+      background:var(--surface-2); color:var(--text);
+      border-bottom-left-radius:4px;
+    }
+    .message-wrapper.outgoing .message-bubble.pending{ opacity:0.6; }
+    .message-timestamp{
+      font-size:0.6rem; opacity:0.6; margin-top:0.15rem; display:block; text-align:right;
+    }
+    .message-wrapper.outgoing .message-timestamp{ color:var(--text-faint); }
+    .message-wrapper.incoming .message-timestamp{ color:var(--text-faint); }
+    
+    .date-divider{
+      text-align:center;font-size:0.7rem;color:var(--text-faint);padding:0.5rem 0;
+    }
+    
+    .chat-input-area{
+      display:flex; gap:0.5rem; padding:0.8rem; background:var(--surface);
+      border-top:1px solid var(--line); flex-shrink:0;
+    }
+    .chat-input-area input{
+      flex:1; padding:0.6rem 1rem; border-radius:20px; border:1px solid var(--line);
+      background:var(--bg-0); color:var(--text); outline:none;
+      font-family:inherit; font-size:0.95rem;
+    }
+    .chat-input-area input::placeholder{ color:var(--text-faint); }
+    .chat-input-area input:focus{ border-color:var(--signal); }
+    .chat-input-area button{
+      width:42px; height:42px; border-radius:50%; border:none; background:var(--signal);
+      color:#fff; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center;
+      transition:opacity .2s, transform .1s;
+    }
+    .chat-input-area button:disabled{ opacity:0.4; cursor:not-allowed; }
+    .chat-input-area button:active:not(:disabled){ transform:scale(0.95); }
+    .hidden{ display:none !important; }
+    
+    #toast {
+      position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+      background:var(--surface-3); border:1px solid var(--line);
+      color:var(--text); padding:0.7rem 1.3rem; border-radius:40px;
+      font-size:0.85rem; z-index:11000; opacity:0; transition:opacity .3s;
+      pointer-events:none; max-width:90%;
+      font-family:var(--font-body);
+    }
+    
+    .offline-bar {
+      background:var(--warn-deep); color:#fff; padding:0.4rem 1rem;
+      text-align:center; font-size:0.75rem; display:none;
+    }
+    .offline-bar.show{ display:block; }
+    
+    .setup-banner{
+      background:var(--stop-deep); color:#fff; padding:0.9rem 1rem; font-size:0.8rem;
+      line-height:1.5; display:none;
+    }
+    .setup-banner.show{ display:block; }
+    .setup-banner code{ background:rgba(0,0,0,0.25); padding:0.1rem 0.35rem; border-radius:4px; }
+    
+    /* Error log area */
+    .error-log {
+      background:var(--surface); border-top:1px solid var(--stop);
+      padding:0.3rem 0.6rem; font-size:0.7rem; color:var(--stop);
+      max-height:60px; overflow-y:auto; display:none;
+    }
+    .error-log.show { display:block; }
+    .error-log .entry { padding:0.1rem 0; border-bottom:1px solid var(--surface-2); }
+    .error-log .entry:last-child { border-bottom:none; }
+    .error-log .clear-errors {
+      float:right; background:none; border:none; color:var(--text-faint);
+      cursor:pointer; font-size:0.65rem;
+    }
+  </style>
 </head>
 <body>
 
@@ -261,61 +276,32 @@
       <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
     </div>
   </div>
+
+  <!-- Error log (visible when errors occur) -->
+  <div class="error-log" id="errorLog">
+    <button class="clear-errors" id="clearErrorsBtn">Clear</button>
+    <div id="errorLogContent"></div>
+  </div>
 </div>
 <div id="toast"></div>
 
-<!-- Firebase (free tier, no server to run — this replaces the old PeerJS-based
-     chat, which could only deliver a message if both people were online at the
-     exact same moment. Firestore stores messages so the recipient gets them
-     the next time they open the app, online or not — like SMS/WhatsApp. -->
+<!-- Firebase (compat SDK) -->
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 
 <script>
 /* ============================================================
-   SETUP (one-time, ~5 minutes, free, no credit card):
-   1. Go to https://console.firebase.google.com -> "Add project".
-   2. In the project, go to Build -> Firestore Database -> Create
-      database -> Start in test mode (fine for a personal app; see
-      the security note further down before sharing this widely).
-   3. Go to Project settings (gear icon) -> General -> "Your apps"
-      -> click the </> (web) icon -> register the app -> copy the
-      firebaseConfig object it shows you.
-   4. Paste that object below, replacing FIREBASE_CONFIG.
-
-   SECURITY NOTE: Firestore's "test mode" rules allow anyone with
-   your config (visible in this file's source, unavoidable for a
-   client-only app) to read/write your whole database for 30 days,
-   after which test mode auto-locks everything. For a personal
-   project between you and a few people that's usually fine, but
-   before wider use, tighten your Firestore rules, e.g.:
-
-     rules_version = '2';
-     service cloud.firestore {
-       match /databases/{database}/documents {
-         match /messages/{msgId} {
-           allow read, write: if request.resource.data.participants is list
-             && request.resource.data.participants.size() == 2;
-         }
-         match /presence/{num} {
-           allow read, write: if true;
-         }
-       }
-     }
-
-   That's a light guard (correct shape), not real auth. True
-   per-user privacy needs Firebase Anonymous/Phone Auth tied into
-   the rules — ask me if you want that added.
+   FIREBASE CONFIG – PASTE YOUR OWN BELOW
    ============================================================ */
-  const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyDc2vue40jIyuVCnU-frnbC5o0aNzovUNk",
-    authDomain: "premcall-msg.firebaseapp.com",
-    projectId: "premcall-msg",
-    storageBucket: "premcall-msg.firebasestorage.app",
-    messagingSenderId: "50980568455",
-    appId: "1:50980568455:web:723fb612e7df28169d6722"
-  };
+const FIREBASE_CONFIG = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
 </script>
 
 <script>
@@ -324,140 +310,24 @@
 
   var FIREBASE_NOT_CONFIGURED = !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY';
 
-  /* ---------- Chat engine (Firestore) ---------- */
-  var db = null;
-  var auth = null;
-  var chat = {
-    ready: false,
-
-    init: function () {
-      firebase.initializeApp(FIREBASE_CONFIG);
-      db = firebase.firestore();
-      auth = firebase.auth();
-      try {
-        db.enablePersistence({ synchronizeTabs: true }).catch(function (err) {
-          console.warn('[Chat] Offline persistence unavailable:', err.code);
-        });
-      } catch (e) {}
-      this.ready = true;
-    },
-
-    // Free (Spark plan), no SMS: gives this browser a permanent, silent
-    // device ID. Not phone-verified — just a stable identity to gate
-    // reads/writes with, so a stranger with the Firebase config can't
-    // read your chats or send messages pretending to be your number.
-    signIn: function () {
-      return new Promise(function (resolve, reject) {
-        var unsub = auth.onAuthStateChanged(function (user) {
-          if (user) { unsub(); resolve(user.uid); }
-        });
-        auth.signInAnonymously().catch(function (err) { unsub(); reject(err); });
-      });
-    },
-
-    // First device to register a number "claims" it (uid <-> number,
-    // written both ways so Firestore rules can check either direction).
-    // Returns { ownedByMe: bool } — false means another device already
-    // holds this number.
-    claimNumber: function (number, uid) {
-      var userRef = db.collection('users').doc(number);
-      return userRef.get().then(function (doc) {
-        if (doc.exists) {
-          return { ownedByMe: doc.data().uid === uid };
-        }
-        var batch = db.batch();
-        batch.set(userRef, { uid: uid });
-        batch.set(db.collection('uids').doc(uid), { number: number });
-        return batch.commit().then(function () { return { ownedByMe: true }; });
-      });
-    },
-
-    conversationId: function (a, b) {
-      return [a, b].sort().join('_');
-    },
-
-    sendMessage: function (myNumber, toNumber, text) {
-      return db.collection('messages').add({
-        conversationId: this.conversationId(myNumber, toNumber),
-        participants: [myNumber, toNumber],
-        from: myNumber,
-        to: toNumber,
-        text: text.trim(),
-        timestamp: Date.now()
-      });
-    },
-
-    // Live-subscribes to one conversation. Returns an unsubscribe fn.
-    listenConversation: function (myNumber, peerNumber, cb) {
-      var id = this.conversationId(myNumber, peerNumber);
-      return db.collection('messages')
-        .where('conversationId', '==', id)
-        .orderBy('timestamp', 'asc')
-        .onSnapshot(function (snapshot) {
-          var msgs = snapshot.docs.map(function (doc) {
-            var d = doc.data();
-            return {
-              id: doc.id,
-              text: d.text,
-              timestamp: d.timestamp,
-              direction: d.from === myNumber ? 'outgoing' : 'incoming',
-              pending: doc.metadata.hasPendingWrites
-            };
-          });
-          cb(msgs);
-        }, function (err) {
-          console.error('[Chat] Conversation listener error:', err);
-        });
-    },
-
-    // Live-subscribes to the conversation list (last message per peer).
-    listenConversationsList: function (myNumber, cb) {
-      return db.collection('messages')
-        .where('participants', 'array-contains', myNumber)
-        .orderBy('timestamp', 'desc')
-        .onSnapshot(function (snapshot) {
-          var latestByPeer = {};
-          snapshot.docs.forEach(function (doc) {
-            var d = doc.data();
-            var peer = d.from === myNumber ? d.to : d.from;
-            if (!latestByPeer[peer]) {
-              latestByPeer[peer] = {
-                peer: peer,
-                text: d.text,
-                timestamp: d.timestamp,
-                direction: d.from === myNumber ? 'outgoing' : 'incoming'
-              };
-            }
-          });
-          cb(Object.keys(latestByPeer).map(function (k) { return latestByPeer[k]; }));
-        }, function (err) {
-          console.error('[Chat] Conversation list listener error:', err);
-          // Most common cause on first run: Firestore needs a composite index
-          // for this query. Check the browser console — Firestore prints a
-          // direct "create index" link in the error, one click and it's done.
-        });
-    },
-
-    // Lightweight presence: heartbeat + "seen in the last 30s" == online.
-    touchPresence: function (myNumber) {
-      db.collection('presence').doc(myNumber).set({ lastSeen: Date.now() }, { merge: true });
-    },
-    listenPresence: function (peerNumber, cb) {
-      return db.collection('presence').doc(peerNumber).onSnapshot(function (doc) {
-        var data = doc.data();
-        var online = !!data && (Date.now() - data.lastSeen < 30000);
-        cb(online);
-      });
-    }
-  };
-
-  /* ---------- Helpers ---------- */
+  /* ---------- UI helpers ---------- */
   function showToast(msg) {
     var toast = document.getElementById('toast');
     toast.textContent = msg;
-    toast.style.opacity = '1';
-    clearTimeout(showToast._t);
-    showToast._t = setTimeout(function() { toast.style.opacity = '0'; }, 3000);
+    toast.classList.add('show');
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(function() { toast.classList.remove('show'); }, 3000);
+  }
+
+  function logError(msg) {
+    var logContainer = document.getElementById('errorLog');
+    var content = document.getElementById('errorLogContent');
+    var entry = document.createElement('div');
+    entry.className = 'entry';
+    entry.textContent = new Date().toLocaleTimeString() + ' ' + msg;
+    content.prepend(entry);
+    if (content.children.length > 20) content.removeChild(content.lastChild);
+    logContainer.classList.add('show');
   }
 
   function updateNetStatus() {
@@ -466,6 +336,13 @@
     var badge = document.getElementById('statusBadge');
     badge.textContent = online ? 'Online' : 'Offline';
     badge.className = 'status-badge ' + (online ? 'online' : 'offline');
+  }
+
+  function setInputEnabled(enabled) {
+    var input = document.getElementById('messageInput');
+    var sendBtn = document.getElementById('sendBtn');
+    input.disabled = !enabled;
+    sendBtn.disabled = !enabled;
   }
 
   function initials(peer) {
@@ -487,59 +364,124 @@
     if (isNaN(d.getTime())) return '';
     var today = new Date();
     if (d.toDateString() === today.toDateString()) return 'Today';
-    var yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    var y = new Date(today); y.setDate(y.getDate()-1);
+    if (d.toDateString() === y.toDateString()) return 'Yesterday';
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
 
-  /* ---------- State ---------- */
-  var activePeer = null;
+  /* ---------- Chat engine ---------- */
+  var db = null, auth = null;
+  var chatReady = false;
   var myNumber = null;
-  var chatReady = false; // true only once sign-in + number claim both succeed
+  var activePeer = null;
+  var conversations = {};
+  var latestConversations = [];
   var conversationListUnsub = null;
   var activeConversationUnsub = null;
   var activePresenceUnsub = null;
-  var latestConversations = []; // cache for rendering the list
+  var isSending = false;
+
+  function loadConversations() {
+    try { return JSON.parse(localStorage.getItem('premCallChats') || '{}'); } catch(e) { return {}; }
+  }
+  function saveConversations() {
+    try { localStorage.setItem('premCallChats', JSON.stringify(conversations)); } catch(e) {}
+  }
+
+  function addMessage(peer, msg) {
+    if (!peer || !msg) return;
+    if (!Array.isArray(conversations[peer])) conversations[peer] = [];
+    conversations[peer].push({
+      text: String(msg.text || ''),
+      timestamp: typeof msg.timestamp === 'number' ? msg.timestamp : Date.now(),
+      direction: msg.direction === 'outgoing' ? 'outgoing' : 'incoming',
+      from: msg.from || null,
+      pending: msg.pending || false,
+      delivered: msg.delivered || false,
+      error: msg.error || false
+    });
+    saveConversations();
+    if (activePeer === peer) renderMessages();
+    else renderConversationList();
+  }
+
+  function renderMessages() {
+    var container = document.getElementById('messagesContainer');
+    container.innerHTML = '';
+    if (!activePeer || !conversations[activePeer]) return;
+    var msgs = conversations[activePeer];
+    var lastDate = null;
+    msgs.forEach(function(msg) {
+      var msgDate = formatDate(msg.timestamp);
+      if (msgDate !== lastDate) {
+        lastDate = msgDate;
+        var dateDiv = document.createElement('div');
+        dateDiv.className = 'date-divider';
+        dateDiv.textContent = msgDate;
+        container.appendChild(dateDiv);
+      }
+      var wrapper = document.createElement('div');
+      wrapper.className = 'message-wrapper ' + msg.direction;
+      if (msg.pending) wrapper.classList.add('pending');
+      var bubble = document.createElement('div');
+      bubble.className = 'message-bubble' + (msg.pending ? ' pending' : '');
+      if (msg.error) bubble.style.border = '1px solid var(--stop)';
+      bubble.textContent = msg.text || '';
+      wrapper.appendChild(bubble);
+      var time = document.createElement('span');
+      time.className = 'message-timestamp';
+      var statusText = '';
+      if (msg.pending) statusText = ' · sending…';
+      else if (msg.error) statusText = ' · failed';
+      time.textContent = formatTime(msg.timestamp) + statusText;
+      wrapper.appendChild(time);
+      container.appendChild(wrapper);
+    });
+    container.scrollTop = container.scrollHeight;
+  }
 
   function renderConversationList() {
     var listEl = document.getElementById('conversationList');
     listEl.innerHTML = '';
-    if (latestConversations.length === 0) {
+    var peers = Object.keys(conversations);
+    if (peers.length === 0) {
       listEl.innerHTML = '<div class="empty-state"><span class="icon"><i class="fas fa-comments"></i></span>No conversations yet<span class="sub-text">Tap + to message any registered number</span></div>';
       return;
     }
-    var sorted = latestConversations.slice().sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); });
-    sorted.forEach(function(convo) {
+    peers.sort(function(a,b) {
+      var msgsA = conversations[a], msgsB = conversations[b];
+      var lastA = msgsA.length ? (msgsA[msgsA.length-1].timestamp||0) : 0;
+      var lastB = msgsB.length ? (msgsB[msgsB.length-1].timestamp||0) : 0;
+      return lastB - lastA;
+    });
+    peers.forEach(function(peer) {
+      var msgs = conversations[peer];
+      var lastMsg = msgs[msgs.length-1] || { text: '', timestamp: 0, direction: '' };
       var item = document.createElement('div');
       item.className = 'conversation-item';
-
       var avatar = document.createElement('div');
       avatar.className = 'avatar';
-      avatar.textContent = initials(convo.peer);
+      avatar.textContent = initials(peer);
       item.appendChild(avatar);
-
       var info = document.createElement('div');
       info.className = 'info';
-
       var nameDiv = document.createElement('div');
       nameDiv.className = 'name';
-      nameDiv.textContent = convo.peer;
+      nameDiv.textContent = peer;
       info.appendChild(nameDiv);
-
       var preview = document.createElement('div');
       preview.className = 'preview';
-      preview.textContent = (convo.direction === 'outgoing' ? 'You: ' : '') + (convo.text || '');
+      var prefix = lastMsg.direction === 'outgoing' ? 'You: ' : '';
+      if (lastMsg.pending) prefix = '[sending] You: ';
+      else if (lastMsg.error) prefix = '[failed] You: ';
+      preview.textContent = prefix + (lastMsg.text || '');
       info.appendChild(preview);
-
       item.appendChild(info);
-
       var time = document.createElement('span');
       time.className = 'time';
-      time.textContent = formatTime(convo.timestamp);
+      time.textContent = formatTime(lastMsg.timestamp);
       item.appendChild(time);
-
-      item.addEventListener('click', function() { openChat(convo.peer); });
+      item.addEventListener('click', function() { openChat(peer); });
       listEl.appendChild(item);
     });
   }
@@ -552,19 +494,34 @@
     document.getElementById('chatPeerName').textContent = peer;
     document.getElementById('chatPeerAvatar').textContent = initials(peer);
     document.getElementById('messagesContainer').innerHTML = '';
-
     if (activeConversationUnsub) activeConversationUnsub();
     if (activePresenceUnsub) activePresenceUnsub();
-
-    activeConversationUnsub = chat.listenConversation(myNumber, peer, renderMessages);
-    activePresenceUnsub = chat.listenPresence(peer, function(online) {
-      var dot = document.querySelector('#chatPeerStatus .status-dot');
-      var text = document.getElementById('chatPeerStatusText');
-      dot.className = 'status-dot ' + (online ? 'online' : 'offline');
-      text.textContent = online ? 'Online' : 'Offline';
-    });
-
+    // Start listening to Firestore for this conversation
+    if (chatReady) {
+      activeConversationUnsub = listenConversation(peer, function(msgs) {
+        // Merge with local pending messages
+        var existing = conversations[activePeer] || [];
+        // We'll just re-render from the combined list
+        // But we'll keep local messages that are pending
+        // For simplicity, we replace with Firestore messages + keep our local pending ones
+        var pending = existing.filter(function(m) { return m.pending || m.error; });
+        var merged = msgs.concat(pending);
+        merged.sort(function(a,b){ return a.timestamp - b.timestamp; });
+        conversations[activePeer] = merged;
+        saveConversations();
+        renderMessages();
+      });
+      // Presence
+      activePresenceUnsub = listenPresence(peer, function(online) {
+        var dot = document.querySelector('#chatPeerStatus .status-dot');
+        var text = document.getElementById('chatPeerStatusText');
+        dot.className = 'status-dot ' + (online ? 'online' : 'offline');
+        text.textContent = online ? 'Online' : 'Offline';
+      });
+    }
+    renderMessages();
     document.getElementById('messageInput').focus();
+    setInputEnabled(true);
   }
 
   function closeChat() {
@@ -574,149 +531,267 @@
     document.getElementById('chatView').classList.add('hidden');
     document.getElementById('listHeader').classList.remove('hidden');
     document.getElementById('conversationList').classList.remove('hidden');
+    renderConversationList();
   }
 
-  function renderMessages(msgs) {
-    var container = document.getElementById('messagesContainer');
-    container.innerHTML = '';
-    var lastDate = null;
+  /* ---------- Firestore listeners ---------- */
+  function listenConversation(peerNumber, cb) {
+    var id = [myNumber, peerNumber].sort().join('_');
+    return db.collection('messages')
+      .where('conversationId', '==', id)
+      .orderBy('timestamp', 'asc')
+      .onSnapshot(function(snapshot) {
+        var msgs = snapshot.docs.map(function(doc) {
+          var d = doc.data();
+          return {
+            id: doc.id,
+            text: d.text,
+            timestamp: d.timestamp,
+            direction: d.from === myNumber ? 'outgoing' : 'incoming',
+            from: d.from,
+            pending: false,
+            error: false,
+            delivered: true
+          };
+        });
+        cb(msgs);
+      }, function(err) {
+        logError('Listener error: ' + err.message);
+        showToast('Error loading messages: ' + err.message);
+      });
+  }
 
-    msgs.forEach(function(msg) {
-      var msgDate = formatDate(msg.timestamp);
-      if (msgDate !== lastDate) {
-        lastDate = msgDate;
-        var dateDiv = document.createElement('div');
-        dateDiv.className = 'date-divider';
-        dateDiv.textContent = msgDate;
-        container.appendChild(dateDiv);
-      }
-
-      var wrapper = document.createElement('div');
-      wrapper.className = 'message-wrapper ' + msg.direction;
-
-      var bubble = document.createElement('div');
-      bubble.className = 'message-bubble' + (msg.pending ? ' pending' : '');
-      bubble.textContent = msg.text || '';
-      wrapper.appendChild(bubble);
-
-      var time = document.createElement('span');
-      time.className = 'message-timestamp';
-      time.textContent = formatTime(msg.timestamp) + (msg.pending ? ' · sending…' : '');
-      wrapper.appendChild(time);
-
-      container.appendChild(wrapper);
+  function listenPresence(peerNumber, cb) {
+    return db.collection('presence').doc(peerNumber).onSnapshot(function(doc) {
+      var data = doc.data();
+      var online = !!data && (Date.now() - data.lastSeen < 30000);
+      cb(online);
+    }, function(err) {
+      logError('Presence error: ' + err.message);
     });
-
-    container.scrollTop = container.scrollHeight;
   }
 
+  function listenConversationsList() {
+    return db.collection('messages')
+      .where('participants', 'array-contains', myNumber)
+      .orderBy('timestamp', 'desc')
+      .onSnapshot(function(snapshot) {
+        var latestByPeer = {};
+        snapshot.docs.forEach(function(doc) {
+          var d = doc.data();
+          var peer = d.from === myNumber ? d.to : d.from;
+          if (!latestByPeer[peer]) {
+            latestByPeer[peer] = {
+              peer: peer,
+              text: d.text,
+              timestamp: d.timestamp,
+              direction: d.from === myNumber ? 'outgoing' : 'incoming',
+              pending: false,
+              error: false
+            };
+          }
+        });
+        // Merge with local conversations (pending messages)
+        var peers = Object.keys(conversations);
+        peers.forEach(function(p) {
+          var msgs = conversations[p];
+          var last = msgs[msgs.length-1];
+          if (last && (last.pending || last.error)) {
+            if (!latestByPeer[p]) {
+              latestByPeer[p] = {
+                peer: p,
+                text: last.text,
+                timestamp: last.timestamp,
+                direction: last.direction,
+                pending: last.pending,
+                error: last.error
+              };
+            }
+          }
+        });
+        var list = Object.keys(latestByPeer).map(function(k) { return latestByPeer[k]; });
+        latestConversations = list;
+        if (!activePeer) renderConversationList();
+      }, function(err) {
+        logError('Conversation list error: ' + err.message);
+      });
+  }
+
+  /* ---------- Send message ---------- */
   function sendMessage() {
-    if (!activePeer) return;
-    if (!chatReady) {
-      showToast('Still connecting — try again in a second');
-      return;
-    }
+    if (!activePeer || isSending) return;
+    if (!chatReady) { showToast('Still connecting…'); return; }
     var input = document.getElementById('messageInput');
     var text = input.value.trim();
     if (!text) return;
 
+    // Optimistic local add
+    var tempId = Date.now() + '-' + Math.random().toString(36).substr(2,6);
+    addMessage(activePeer, {
+      text: text,
+      timestamp: Date.now(),
+      direction: 'outgoing',
+      from: myNumber,
+      pending: true,
+      error: false,
+      _tempId: tempId
+    });
     input.value = '';
-    // Firestore queues this locally if offline and sends automatically
-    // once connectivity returns — no manual retry logic needed.
-    chat.sendMessage(myNumber, activePeer, text).catch(function(err) {
-      showToast('Send failed: ' + (err && err.message ? err.message : 'Unknown error'));
-      console.error('Send error:', err);
+    renderMessages();
+    renderConversationList();
+    isSending = true;
+
+    // Actually send to Firestore
+    db.collection('messages').add({
+      conversationId: [myNumber, activePeer].sort().join('_'),
+      participants: [myNumber, activePeer],
+      from: myNumber,
+      to: activePeer,
+      text: text,
+      timestamp: Date.now()
+    }).then(function(docRef) {
+      // Mark local message as delivered (remove pending)
+      var msgs = conversations[activePeer] || [];
+      var found = false;
+      for (var i = 0; i < msgs.length; i++) {
+        if (msgs[i]._tempId === tempId) {
+          msgs[i].pending = false;
+          msgs[i].delivered = true;
+          msgs[i].error = false;
+          msgs[i].id = docRef.id;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        // If not found (maybe already replaced), add it
+        addMessage(activePeer, {
+          text: text,
+          timestamp: Date.now(),
+          direction: 'outgoing',
+          from: myNumber,
+          delivered: true,
+          pending: false
+        });
+      }
+      saveConversations();
+      renderMessages();
+      renderConversationList();
+      showToast('Sent');
+    }).catch(function(err) {
+      logError('Send failed: ' + err.message);
+      // Mark local message as error
+      var msgs = conversations[activePeer] || [];
+      for (var i = 0; i < msgs.length; i++) {
+        if (msgs[i]._tempId === tempId) {
+          msgs[i].pending = false;
+          msgs[i].error = true;
+          break;
+        }
+      }
+      saveConversations();
+      renderMessages();
+      renderConversationList();
+      showToast('Send failed: ' + err.message);
+    }).finally(function() {
+      isSending = false;
     });
   }
 
-  function setupEventListeners() {
-    document.getElementById('newChatBtn').addEventListener('click', function() {
-      if (!chatReady) {
-        showToast('Still connecting — try again in a second');
-        return;
-      }
-      var num = prompt('Enter 10-digit number to message:');
-      if (num && /^\d{10}$/.test(num.trim())) {
-        openChat(num.trim());
-      } else if (num) {
-        showToast('Please enter a valid 10-digit number');
-      }
-    });
+  /* ---------- Initialize ---------- */
+  function initChat() {
+    var stored = localStorage.getItem('premCallNumber');
+    var verified = localStorage.getItem('premCallVerified') === 'true';
+    if (!stored || !verified) {
+      document.getElementById('conversationList').innerHTML = '<div class="empty-state"><span class="icon"><i class="fas fa-phone"></i></span>Register in dialer first.</div>';
+      return;
+    }
+    myNumber = stored;
+    document.getElementById('myNumberDisplay').textContent = myNumber;
 
+    try {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+      auth = firebase.auth();
+      db.enablePersistence({ synchronizeTabs: true }).catch(function(err) {
+        logError('Persistence error: ' + err.message);
+      });
+    } catch(e) {
+      logError('Firebase init error: ' + e.message);
+      document.getElementById('setupBanner').classList.add('show');
+      return;
+    }
+
+    auth.signInAnonymously().then(function(cred) {
+      var uid = cred.user.uid;
+      // Claim number
+      return db.collection('uids').doc(uid).get().then(function(doc) {
+        if (doc.exists && doc.data().number === myNumber) {
+          // Already claimed
+        } else {
+          // Claim number
+          var batch = db.batch();
+          batch.set(db.collection('users').doc(myNumber), { uid: uid });
+          batch.set(db.collection('uids').doc(uid), { number: myNumber });
+          return batch.commit();
+        }
+      });
+    }).then(function() {
+      chatReady = true;
+      updateNetStatus();
+      // Load local conversations
+      var saved = loadConversations();
+      Object.keys(saved).forEach(function(k) {
+        if (!conversations[k]) conversations[k] = saved[k];
+      });
+      renderConversationList();
+      // Start listening to conversation list
+      conversationListUnsub = listenConversationsList();
+      // Presence heartbeat
+      db.collection('presence').doc(myNumber).set({ lastSeen: Date.now() }, { merge: true });
+      setInterval(function() {
+        db.collection('presence').doc(myNumber).set({ lastSeen: Date.now() }, { merge: true });
+      }, 15000);
+      showToast('Connected');
+    }).catch(function(err) {
+      logError('Auth/claim error: ' + err.message);
+      document.getElementById('conversationList').innerHTML = '<div class="empty-state" style="color:var(--stop)">Error: ' + err.message + '</div>';
+    });
+  }
+
+  /* ---------- Event listeners ---------- */
+  document.addEventListener('DOMContentLoaded', function() {
+    updateNetStatus();
+    document.getElementById('newChatBtn').addEventListener('click', function() {
+      if (!chatReady) { showToast('Still connecting…'); return; }
+      var num = prompt('Enter 10-digit number:');
+      if (num && /^\d{10}$/.test(num.trim())) {
+        var trimmed = num.trim();
+        if (!Array.isArray(conversations[trimmed])) conversations[trimmed] = [];
+        saveConversations();
+        openChat(trimmed);
+      } else if (num) showToast('Invalid number');
+    });
     document.getElementById('chatBackBtn').addEventListener('click', closeChat);
     document.getElementById('sendBtn').addEventListener('click', sendMessage);
     document.getElementById('messageInput').addEventListener('keydown', function(e) {
       if (e.key === 'Enter') sendMessage();
     });
-
-    window.addEventListener('online', updateNetStatus);
-    window.addEventListener('offline', updateNetStatus);
-  }
-
-  function boot() {
-    updateNetStatus();
-    setupEventListeners();
+    document.getElementById('clearErrorsBtn').addEventListener('click', function() {
+      document.getElementById('errorLogContent').innerHTML = '';
+      document.getElementById('errorLog').classList.remove('show');
+    });
 
     if (FIREBASE_NOT_CONFIGURED) {
       document.getElementById('setupBanner').classList.add('show');
-      document.getElementById('conversationList').innerHTML =
-        '<div class="empty-state"><span class="icon"><i class="fas fa-gear"></i></span>Messaging isn\'t set up yet.<span class="sub-text">Add your Firebase config near the bottom of this file — see the comment above FIREBASE_CONFIG.</span></div>';
-      return;
+      document.getElementById('conversationList').innerHTML = '<div class="empty-state"><span class="icon"><i class="fas fa-gear"></i></span>Add Firebase config.</div>';
+    } else {
+      initChat();
     }
 
-    var storedNumber = localStorage.getItem('premCallNumber');
-    var verified = localStorage.getItem('premCallVerified') === 'true';
-
-    if (!storedNumber || !verified) {
-      document.getElementById('conversationList').innerHTML =
-        '<div class="empty-state"><span class="icon"><i class="fas fa-phone"></i></span>Please register in the dialer first.<span class="sub-text">Go to the dialer and verify your number</span></div>';
-      return;
-    }
-
-    myNumber = storedNumber;
-    document.getElementById('myNumberDisplay').textContent = myNumber;
-
-    try {
-      chat.init();
-    } catch (e) {
-      console.error('Firebase init error:', e);
-      document.getElementById('setupBanner').classList.add('show');
-      document.getElementById('setupBanner').textContent = 'Could not connect to Firebase: ' + e.message;
-      return;
-    }
-
-    chat.signIn().then(function (uid) {
-      return chat.claimNumber(myNumber, uid).then(function (result) {
-        if (!result.ownedByMe) {
-          document.getElementById('conversationList').innerHTML =
-            '<div class="empty-state" style="color:var(--stop)"><span class="icon"><i class="fas fa-lock"></i></span>This number is already registered on a different browser or device.<span class="sub-text">There\'s no SMS verification, so each number can only be claimed once. Use the original device, or register a different number.</span></div>';
-          return;
-        }
-
-        chat.touchPresence(myNumber);
-        setInterval(function() { chat.touchPresence(myNumber); }, 15000);
-        document.addEventListener('visibilitychange', function() {
-          if (!document.hidden) chat.touchPresence(myNumber);
-        });
-
-        chatReady = true;
-        conversationListUnsub = chat.listenConversationsList(myNumber, function(list) {
-          latestConversations = list;
-          if (!activePeer) renderConversationList();
-        });
-      });
-    }).catch(function (err) {
-      console.error('Auth/claim error:', err);
-      document.getElementById('conversationList').innerHTML =
-        '<div class="empty-state" style="color:var(--stop)">Could not connect: ' + err.message + '</div>';
-    });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
-  } else {
-    boot();
-  }
+    window.addEventListener('online', updateNetStatus);
+    window.addEventListener('offline', updateNetStatus);
+  });
 })();
 </script>
 </body>
