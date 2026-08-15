@@ -82,32 +82,29 @@ It’s as easy as 1-2-3.
 ## 🧱 Architecture Overview
 
 premCall uses a hybrid architecture to ensure maximum privacy and performance.
-
+ 
 <p align="center">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 350" width="100%">
-    <!-- Background -->
-    <rect x="0" y="0" width="800" height="350" fill="#0b0e14" rx="15"/>
-
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 350" width="100%" max-width="800" style="background:#0b0e14; border-radius:15px;">
     <!-- User A -->
     <rect x="50" y="50" width="200" height="80" fill="#1b2540" stroke="#4f8cf7" stroke-width="3" rx="12"/>
-    <text x="150" y="85" fill="#eef2fb" font-family="Arial" font-size="20" text-anchor="middle" font-weight="bold">Your Device</text>
-    <text x="150" y="110" fill="#8891ab" font-family="Arial" font-size="14" text-anchor="middle">(P2P Client)</text>
+    <text x="150" y="85" fill="#eef2fb" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" font-weight="bold">Your Device</text>
+    <text x="150" y="110" fill="#8891ab" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">(P2P Client)</text>
 
     <!-- User B -->
     <rect x="550" y="50" width="200" height="80" fill="#1b2540" stroke="#4f8cf7" stroke-width="3" rx="12"/>
-    <text x="650" y="85" fill="#eef2fb" font-family="Arial" font-size="20" text-anchor="middle" font-weight="bold">Friend's Device</text>
-    <text x="650" y="110" fill="#8891ab" font-family="Arial" font-size="14" text-anchor="middle">(P2P Client)</text>
+    <text x="650" y="85" fill="#eef2fb" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" font-weight="bold">Friend's Device</text>
+    <text x="650" y="110" fill="#8891ab" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">(P2P Client)</text>
 
     <!-- Arrow Line 1 -->
     <line x1="250" y1="90" x2="550" y2="90" stroke="#4f8cf7" stroke-width="4"/>
     <polygon points="545,85 555,90 545,95" fill="#4f8cf7"/>
-    <text x="400" y="80" fill="#2fd992" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">🔒 WebRTC (P2P)</text>
+    <text x="400" y="80" fill="#2fd992" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" font-weight="bold">🔒 WebRTC (P2P)</text>
 
-    <!-- Box 2 -->
+    <!-- Box 2 - Signaling Hub -->
     <rect x="225" y="180" width="350" height="100" fill="#0e1424" stroke="#525d78" stroke-width="2" rx="12"/>
-    <text x="400" y="215" fill="#8891ab" font-family="Arial" font-size="18" text-anchor="middle">Signaling & Identity Hub</text>
-    <text x="400" y="240" fill="#525d78" font-family="Arial" font-size="14" text-anchor="middle">(Firebase Auth / Firestore)</text>
-    <text x="400" y="260" fill="#525d78" font-family="Arial" font-size="12" text-anchor="middle">* Only used for initial handshake & number mapping. No messages/calls pass through.</text>
+    <text x="400" y="215" fill="#8891ab" font-family="Arial, sans-serif" font-size="18" text-anchor="middle">Signaling &amp; Identity Hub</text>
+    <text x="400" y="240" fill="#525d78" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">(Firebase Auth / Firestore)</text>
+    <text x="400" y="260" fill="#525d78" font-family="Arial, sans-serif" font-size="12" text-anchor="middle">* Only used for initial handshake &amp; number mapping. No messages/calls pass through.</text>
 
     <!-- Dashed lines -->
     <line x1="150" y1="130" x2="250" y2="180" stroke="#525d78" stroke-width="3" stroke-dasharray="8,8"/>
