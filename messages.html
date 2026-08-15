@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    /* All styles (unchanged from before) */
+    /* All styles (unchanged) – only error log starts collapsed */
     :root{
       --bg-0:#05070d; --bg-1:#0a0e18; --surface:#0e1424; --surface-2:#141c30; --surface-3:#1b2540;
       --line:#1e2a42; --text:#eef2fb; --text-dim:#8891ab; --text-faint:#525d78;
@@ -218,7 +218,7 @@
     .setup-banner.show{ display:block; }
     .setup-banner code{ background:rgba(0,0,0,0.25); padding:0.1rem 0.35rem; border-radius:4px; }
     
-    /* Error log with toggle */
+    /* Error log – collapsed by default */
     .error-log {
       background:var(--surface);
       border-top:1px solid var(--stop);
@@ -226,7 +226,6 @@
       color:var(--stop);
       max-height:60px;
       overflow-y:auto;
-      display:block;
       transition:max-height .3s ease;
     }
     .error-log.collapsed {
@@ -320,8 +319,8 @@
     </div>
   </div>
 
-  <!-- ERROR LOG WITH TOGGLE -->
-  <div class="error-log" id="errorLog">
+  <!-- ERROR LOG – collapsed by default -->
+  <div class="error-log collapsed" id="errorLog">
     <div class="header" id="errorLogHeader">
       <span><i class="fas fa-bug"></i> Log</span>
       <button class="toggle-btn" id="toggleErrorLog"><i class="fas fa-chevron-down"></i></button>
@@ -363,7 +362,7 @@ const FIREBASE_CONFIG = {
     showToast._timer = setTimeout(function() { toast.classList.remove('show'); }, 3000);
   }
 
-  // ==== Error log with toggle ====
+  // ==== Error log with toggle – starts collapsed ====
   var errorLogEl = document.getElementById('errorLog');
   var errorContent = document.getElementById('errorLogContent');
   var toggleBtn = document.getElementById('toggleErrorLog');
@@ -374,7 +373,7 @@ const FIREBASE_CONFIG = {
     entry.textContent = new Date().toLocaleTimeString() + ' ' + msg;
     errorContent.prepend(entry);
     if (errorContent.children.length > 20) errorContent.removeChild(errorContent.lastChild);
-    // Auto-expand when new error appears (optional)
+    // Auto‑expand on error so user can see it
     errorLogEl.classList.remove('collapsed');
     toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
   }
@@ -385,7 +384,6 @@ const FIREBASE_CONFIG = {
     errorLogEl.classList.toggle('collapsed');
     toggleBtn.innerHTML = errorLogEl.classList.contains('collapsed') ? '<i class="fas fa-chevron-down"></i>' : '<i class="fas fa-chevron-up"></i>';
   });
-  // Also click on header toggles
   document.getElementById('errorLogHeader').addEventListener('click', function(e) {
     if (e.target.tagName !== 'BUTTON') {
       toggleBtn.click();
@@ -395,15 +393,10 @@ const FIREBASE_CONFIG = {
   // Clear handler
   document.getElementById('clearErrorsBtn').addEventListener('click', function() {
     errorContent.innerHTML = '<button class="clear-errors" id="clearErrorsBtn">Clear</button>';
-    // Re‑attach clear handler
-    document.getElementById('clearErrorsBtn').addEventListener('click', function() {
-      errorContent.innerHTML = '<button class="clear-errors" id="clearErrorsBtn">Clear</button>';
-      document.getElementById('clearErrorsBtn').addEventListener('click', arguments.callee);
-    });
+    document.getElementById('clearErrorsBtn').addEventListener('click', arguments.callee);
   });
 
-  // ==== Rest of the code (unchanged) ====
-
+  // ==== Rest of the app ====
   function updateNetStatus() {
     var online = navigator.onLine;
     document.getElementById('offlineBar').classList.toggle('show', !online);
@@ -604,11 +597,11 @@ const FIREBASE_CONFIG = {
     renderConversationList();
   }
 
+  // --- FIXED: No .orderBy() – sort in memory ---
   function listenConversation(peerNumber, cb) {
     var id = [myNumber, peerNumber].sort().join('_');
     return db.collection('messages')
       .where('conversationId', '==', id)
-      .orderBy('timestamp', 'asc')
       .onSnapshot(function(snapshot) {
         var msgs = snapshot.docs.map(function(doc) {
           var d = doc.data();
@@ -623,6 +616,8 @@ const FIREBASE_CONFIG = {
             delivered: true
           };
         });
+        // Sort by timestamp ascending
+        msgs.sort(function(a,b){ return a.timestamp - b.timestamp; });
         cb(msgs);
       }, function(err) {
         logError('Conversation listener error: ' + err.message);
