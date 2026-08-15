@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    /* All styles (unchanged) – only error log starts collapsed */
+    /* ========== ORIGINAL STYLES (unchanged) ========== */
     :root{
       --bg-0:#05070d; --bg-1:#0a0e18; --surface:#0e1424; --surface-2:#141c30; --surface-3:#1b2540;
       --line:#1e2a42; --text:#eef2fb; --text-dim:#8891ab; --text-faint:#525d78;
@@ -273,6 +273,74 @@
       cursor:pointer;
       font-size:0.65rem;
     }
+
+    /* ========== SETTINGS MODAL ========== */
+    #settingsModal {
+      display:none;
+      position:fixed;
+      top:0; left:0;
+      width:100%; height:100%;
+      background:rgba(0,0,0,0.6);
+      backdrop-filter:blur(8px);
+      align-items:center;
+      justify-content:center;
+      z-index:20000;
+    }
+    #settingsModal.active { display:flex; }
+    .settings-card {
+      background:var(--surface);
+      border:1px solid var(--line);
+      border-radius:var(--radius-lg);
+      padding:1.8rem 1.5rem;
+      width:90%;
+      max-width:360px;
+      box-shadow:0 20px 40px rgba(0,0,0,0.5);
+    }
+    .settings-card h2 {
+      font-family:var(--font-display);
+      font-size:1.3rem;
+      margin-bottom:1.2rem;
+      text-align:center;
+    }
+    .settings-item {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:0.6rem 0;
+      border-bottom:1px solid var(--surface-2);
+      font-size:0.9rem;
+    }
+    .settings-item .label { color:var(--text-dim); }
+    .settings-item .toggle {
+      position:relative;
+      width:44px; height:24px;
+      background:var(--line);
+      border-radius:12px;
+      cursor:pointer;
+      transition:background .2s;
+    }
+    .settings-item .toggle.active { background:var(--signal); }
+    .settings-item .toggle .knob {
+      position:absolute;
+      top:2px; left:2px;
+      width:20px; height:20px;
+      background:#fff;
+      border-radius:50%;
+      transition:transform .2s;
+    }
+    .settings-item .toggle.active .knob { transform:translateX(20px); }
+    .settings-close {
+      margin-top:1.2rem;
+      width:100%;
+      padding:0.6rem;
+      border-radius:40px;
+      border:1px solid var(--line);
+      background:transparent;
+      color:var(--text-dim);
+      cursor:pointer;
+      font-weight:600;
+    }
+    .settings-close:hover { background:var(--surface-2); color:var(--text); }
   </style>
 </head>
 <body>
@@ -293,6 +361,8 @@
       <span class="status-badge offline" id="statusBadge">Offline</span>
       <span class="my-number" id="myNumberDisplay"></span>
     </span>
+    <!-- Settings gear -->
+    <button class="icon-btn" id="settingsBtn"><i class="fas fa-gear"></i></button>
     <button class="icon-btn" id="newChatBtn"><i class="fas fa-plus"></i></button>
   </div>
   <div class="conversation-list" id="conversationList">
@@ -330,6 +400,33 @@
     </div>
   </div>
 </div>
+
+<!-- SETTINGS MODAL -->
+<div id="settingsModal">
+  <div class="settings-card">
+    <h2>Settings</h2>
+    <div class="settings-item">
+      <span class="label">Debug Mode</span>
+      <div class="toggle active" id="debugToggle">
+        <div class="knob"></div>
+      </div>
+    </div>
+    <div class="settings-item">
+      <span class="label">Dark / Light</span>
+      <div class="toggle" id="themeToggle">
+        <div class="knob"></div>
+      </div>
+    </div>
+    <div class="settings-item">
+      <span class="label">Auto‑Refresh (3s)</span>
+      <div class="toggle" id="refreshToggle">
+        <div class="knob"></div>
+      </div>
+    </div>
+    <button class="settings-close" id="settingsClose">Close</button>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <!-- Firebase -->
@@ -354,6 +451,7 @@ const FIREBASE_CONFIG = {
 
   var FIREBASE_NOT_CONFIGURED = !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY';
 
+  // ===== TOAST =====
   function showToast(msg) {
     var toast = document.getElementById('toast');
     toast.textContent = msg;
@@ -362,7 +460,7 @@ const FIREBASE_CONFIG = {
     showToast._timer = setTimeout(function() { toast.classList.remove('show'); }, 3000);
   }
 
-  // ==== Error log with toggle – starts collapsed ====
+  // ===== ERROR LOG (with toggle) =====
   var errorLogEl = document.getElementById('errorLog');
   var errorContent = document.getElementById('errorLogContent');
   var toggleBtn = document.getElementById('toggleErrorLog');
@@ -373,19 +471,22 @@ const FIREBASE_CONFIG = {
     entry.textContent = new Date().toLocaleTimeString() + ' ' + msg;
     errorContent.prepend(entry);
     if (errorContent.children.length > 20) errorContent.removeChild(errorContent.lastChild);
-    // Auto‑expand on error so user can see it
-    errorLogEl.classList.remove('collapsed');
-    toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+    // Auto‑expand if debug mode is on
+    if (debugEnabled) {
+      errorLogEl.classList.remove('collapsed');
+      toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+    }
   }
 
   // Toggle handler
   toggleBtn.addEventListener('click', function(e) {
     e.stopPropagation();
+    if (!debugEnabled) return; // if debug off, don't allow toggle
     errorLogEl.classList.toggle('collapsed');
     toggleBtn.innerHTML = errorLogEl.classList.contains('collapsed') ? '<i class="fas fa-chevron-down"></i>' : '<i class="fas fa-chevron-up"></i>';
   });
   document.getElementById('errorLogHeader').addEventListener('click', function(e) {
-    if (e.target.tagName !== 'BUTTON') {
+    if (e.target.tagName !== 'BUTTON' && debugEnabled) {
       toggleBtn.click();
     }
   });
@@ -396,7 +497,176 @@ const FIREBASE_CONFIG = {
     document.getElementById('clearErrorsBtn').addEventListener('click', arguments.callee);
   });
 
-  // ==== Rest of the app ====
+  // ===== SETTINGS =====
+  var debugEnabled = true;      // default on
+  var refreshEnabled = false;   // default off
+  var refreshInterval = null;
+  var themeToggle = document.getElementById('themeToggle');
+  var debugToggle = document.getElementById('debugToggle');
+  var refreshToggle = document.getElementById('refreshToggle');
+  var settingsModal = document.getElementById('settingsModal');
+  var settingsBtn = document.getElementById('settingsBtn');
+  var settingsClose = document.getElementById('settingsClose');
+
+  // Theme toggle
+  themeToggle.addEventListener('click', function() {
+    this.classList.toggle('active');
+    document.body.classList.toggle('light-mode');
+  });
+
+  // Debug toggle
+  debugToggle.addEventListener('click', function() {
+    this.classList.toggle('active');
+    debugEnabled = this.classList.contains('active');
+    if (debugEnabled) {
+      errorLogEl.classList.remove('collapsed');
+      toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+      errorLogEl.style.display = 'block';
+    } else {
+      errorLogEl.classList.add('collapsed');
+      errorLogEl.style.display = 'none';
+    }
+  });
+
+  // Refresh toggle
+  refreshToggle.addEventListener('click', function() {
+    this.classList.toggle('active');
+    refreshEnabled = this.classList.contains('active');
+    if (refreshEnabled) {
+      startRefresh();
+    } else {
+      stopRefresh();
+    }
+  });
+
+  function startRefresh() {
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(function() {
+      if (chatReady && db) {
+        // Refresh conversation list
+        refreshConversations();
+        // Refresh active chat if open
+        if (activePeer) refreshMessages(activePeer);
+      }
+    }, 3000);
+    logError('Auto‑refresh started (3s)');
+  }
+
+  function stopRefresh() {
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+      refreshInterval = null;
+      logError('Auto‑refresh stopped');
+    }
+  }
+
+  // Refresh functions (use .get() to avoid duplicate listeners)
+  function refreshConversations() {
+    if (!myNumber || !db) return;
+    db.collection('messages')
+      .where('participants', 'array-contains', myNumber)
+      .get()
+      .then(function(snapshot) {
+        var latestByPeer = {};
+        snapshot.docs.forEach(function(doc) {
+          var d = doc.data();
+          var peer = d.from === myNumber ? d.to : d.from;
+          if (!latestByPeer[peer] || d.timestamp > latestByPeer[peer].timestamp) {
+            latestByPeer[peer] = {
+              peer: peer,
+              text: d.text,
+              timestamp: d.timestamp,
+              direction: d.from === myNumber ? 'outgoing' : 'incoming',
+              pending: false,
+              error: false
+            };
+          }
+        });
+        // Merge with local pending/error
+        var peers = Object.keys(conversations);
+        peers.forEach(function(p) {
+          var msgs = conversations[p];
+          var last = msgs[msgs.length-1];
+          if (last && (last.pending || last.error)) {
+            if (!latestByPeer[p]) {
+              latestByPeer[p] = {
+                peer: p,
+                text: last.text,
+                timestamp: last.timestamp,
+                direction: last.direction,
+                pending: last.pending,
+                error: last.error
+              };
+            } else if (last.timestamp > latestByPeer[p].timestamp) {
+              latestByPeer[p] = {
+                peer: p,
+                text: last.text,
+                timestamp: last.timestamp,
+                direction: last.direction,
+                pending: last.pending,
+                error: last.error
+              };
+            }
+          }
+        });
+        var list = Object.keys(latestByPeer).map(function(k) { return latestByPeer[k]; });
+        list.sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); });
+        latestConversations = list;
+        renderConversationList();
+      }).catch(function(err) {
+        logError('Refresh conversation list error: ' + err.message);
+      });
+  }
+
+  function refreshMessages(peer) {
+    if (!myNumber || !db || !peer) return;
+    var id = [myNumber, peer].sort().join('_');
+    db.collection('messages')
+      .where('conversationId', '==', id)
+      .get()
+      .then(function(snapshot) {
+        var msgs = snapshot.docs.map(function(doc) {
+          var d = doc.data();
+          return {
+            id: doc.id,
+            text: d.text,
+            timestamp: d.timestamp,
+            direction: d.from === myNumber ? 'outgoing' : 'incoming',
+            from: d.from,
+            pending: false,
+            error: false,
+            delivered: true
+          };
+        });
+        msgs.sort(function(a,b){ return a.timestamp - b.timestamp; });
+        // Merge with pending
+        var existing = conversations[peer] || [];
+        var pending = existing.filter(function(m) { return m.pending || m.error; });
+        var merged = msgs.concat(pending);
+        merged.sort(function(a,b){ return a.timestamp - b.timestamp; });
+        conversations[peer] = merged;
+        saveConversations();
+        if (activePeer === peer) {
+          renderMessages();
+          renderConversationList();
+        }
+      }).catch(function(err) {
+        logError('Refresh messages error: ' + err.message);
+      });
+  }
+
+  // Open/close settings modal
+  settingsBtn.addEventListener('click', function() {
+    settingsModal.classList.add('active');
+  });
+  settingsClose.addEventListener('click', function() {
+    settingsModal.classList.remove('active');
+  });
+  settingsModal.addEventListener('click', function(e) {
+    if (e.target === this) settingsModal.classList.remove('active');
+  });
+
+  // ===== REST OF APP (unchanged except added refresh calls) =====
   function updateNetStatus() {
     var online = navigator.onLine;
     document.getElementById('offlineBar').classList.toggle('show', !online);
@@ -597,7 +867,7 @@ const FIREBASE_CONFIG = {
     renderConversationList();
   }
 
-  // --- FIXED: No .orderBy() – sort in memory ---
+  // --- No .orderBy() – sort in memory ---
   function listenConversation(peerNumber, cb) {
     var id = [myNumber, peerNumber].sort().join('_');
     return db.collection('messages')
@@ -616,7 +886,6 @@ const FIREBASE_CONFIG = {
             delivered: true
           };
         });
-        // Sort by timestamp ascending
         msgs.sort(function(a,b){ return a.timestamp - b.timestamp; });
         cb(msgs);
       }, function(err) {
