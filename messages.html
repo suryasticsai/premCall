@@ -496,6 +496,7 @@
   /* ---------- State ---------- */
   var activePeer = null;
   var myNumber = null;
+  var chatReady = false; // true only once sign-in + number claim both succeed
   var conversationListUnsub = null;
   var activeConversationUnsub = null;
   var activePresenceUnsub = null;
@@ -611,6 +612,10 @@
 
   function sendMessage() {
     if (!activePeer) return;
+    if (!chatReady) {
+      showToast('Still connecting — try again in a second');
+      return;
+    }
     var input = document.getElementById('messageInput');
     var text = input.value.trim();
     if (!text) return;
@@ -626,6 +631,10 @@
 
   function setupEventListeners() {
     document.getElementById('newChatBtn').addEventListener('click', function() {
+      if (!chatReady) {
+        showToast('Still connecting — try again in a second');
+        return;
+      }
       var num = prompt('Enter 10-digit number to message:');
       if (num && /^\d{10}$/.test(num.trim())) {
         openChat(num.trim());
@@ -690,6 +699,7 @@
           if (!document.hidden) chat.touchPresence(myNumber);
         });
 
+        chatReady = true;
         conversationListUnsub = chat.listenConversationsList(myNumber, function(list) {
           latestConversations = list;
           if (!activePeer) renderConversationList();
