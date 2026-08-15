@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    /* ====== STYLES (same as before) ====== */
+    /* (All styles – same as before, unchanged) */
     :root{
       --bg-0:#05070d; --bg-1:#0a0e18; --surface:#0e1424; --surface-2:#141c30; --surface-3:#1b2540;
       --line:#1e2a42; --text:#eef2fb; --text-dim:#8891ab; --text-faint:#525d78;
@@ -492,6 +492,7 @@ const FIREBASE_CONFIG = {
     if (activePresenceUnsub) activePresenceUnsub();
     if (chatReady) {
       activeConversationUnsub = listenConversation(peer, function(msgs) {
+        // Replace with Firestore messages and keep only pending local ones
         var existing = conversations[activePeer] || [];
         var pending = existing.filter(function(m) { return m.pending || m.error; });
         var merged = msgs.concat(pending);
@@ -499,6 +500,9 @@ const FIREBASE_CONFIG = {
         conversations[activePeer] = merged;
         saveConversations();
         renderMessages();
+        // Also update conversation list because the preview might have changed
+        renderConversationList();
+        logError('Snapshot updated: ' + merged.length + ' messages');
       });
       activePresenceUnsub = listenPresence(peer, function(online) {
         var dot = document.querySelector('#chatPeerStatus .status-dot');
@@ -577,6 +581,7 @@ const FIREBASE_CONFIG = {
             };
           }
         });
+        // Merge with local conversations that have pending/error messages
         var peers = Object.keys(conversations);
         peers.forEach(function(p) {
           var msgs = conversations[p];
@@ -606,7 +611,9 @@ const FIREBASE_CONFIG = {
         var list = Object.keys(latestByPeer).map(function(k) { return latestByPeer[k]; });
         list.sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); });
         latestConversations = list;
-        if (!activePeer) renderConversationList();
+        // Update the list UI even if a chat is open (so the preview updates)
+        renderConversationList();
+        logError('Conversation list updated: ' + list.length + ' conversations');
       }, function(err) {
         logError('Conversation list error: ' + err.message);
         showToast('Error loading conversation list: ' + err.message);
@@ -701,30 +708,23 @@ const FIREBASE_CONFIG = {
 
     auth.signInAnonymously().then(function(cred) {
       var uid = cred.user.uid;
-      // Log UID for debugging
       logError('Your UID: ' + uid);
       logError('Your number: ' + myNumber);
-
-      // Check if uid mapping exists
       return db.collection('uids').doc(uid).get().then(function(doc) {
         if (doc.exists) {
           var mappedNumber = doc.data().number;
           logError('UID mapped to number: ' + mappedNumber);
-          if (mappedNumber === myNumber) {
-            // All good
-          } else {
-            logError('UID maps to different number: ' + mappedNumber + ' (expected ' + myNumber + ')');
-            // Try to update mapping
+          if (mappedNumber !== myNumber) {
+            logError('UID maps to different number, updating…');
             return db.collection('uids').doc(uid).set({ number: myNumber }, { merge: true });
           }
         } else {
-          logError('UID mapping not found – creating…');
-          // Create mapping
+          logError('UID mapping missing, creating…');
           var batch = db.batch();
           batch.set(db.collection('users').doc(myNumber), { uid: uid });
           batch.set(db.collection('uids').doc(uid), { number: myNumber });
           return batch.commit().then(function() {
-            logError('Mapping created successfully.');
+            logError('Mapping created.');
           }).catch(function(err) {
             logError('Failed to create mapping: ' + err.message);
             throw err;
