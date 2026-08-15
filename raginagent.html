@@ -10,8 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        /* ===== same styles as before ===== */
-        /* (keep the entire CSS block from the previous version) */
+        /* Minimal dark theme – same as before but simplified */
         :root {
             --bg-0: #05070d;
             --bg-1: #0a0e18;
@@ -23,38 +22,11 @@
             --text-dim: #8891ab;
             --text-faint: #525d78;
             --signal: #4f8cf7;
-            --signal-soft: #2f5fc4;
             --go: #2fd992;
-            --go-deep: #12683f;
             --stop: #ff5470;
-            --stop-deep: #7a1730;
-            --warn: #ffb648;
-            --warn-deep: #5c3d10;
-            --radius-lg: 22px;
-            --radius-md: 16px;
-            --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            --safe-t: env(safe-area-inset-top, 0px);
-            --safe-b: env(safe-area-inset-bottom, 0px);
-        }
-        body.light-mode {
-            --bg-0: #f0f2f5;
-            --bg-1: #ffffff;
-            --surface: #ffffff;
-            --surface-2: #f8fafc;
-            --surface-3: #f1f5f9;
-            --line: #d1d5db;
-            --text: #111827;
-            --text-dim: #4b5563;
-            --text-faint: #9ca3af;
-            --signal: #2563eb;
-            --signal-soft: #1d4ed8;
-            --go: #10b981;
-            --go-deep: #047857;
-            --stop: #ef4444;
-            --stop-deep: #b91c1c;
-            --warn: #f59e0b;
-            --warn-deep: #b45309;
+            --radius: 16px;
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-body: 'Inter', sans-serif;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         html, body { height: 100%; }
@@ -62,7 +34,6 @@
             font-family: var(--font-body);
             color: var(--text);
             background: var(--bg-0);
-            min-height: 100vh; min-height: 100dvh;
             display: flex; justify-content: center;
             padding: 0;
             overflow-x: hidden;
@@ -72,29 +43,21 @@
             background: var(--bg-1);
             display: flex; flex-direction: column;
             position: relative;
-            padding-top: var(--safe-t);
-            padding-bottom: var(--safe-b);
         }
         .header {
             display: flex; align-items: center; padding: 0.8rem 1rem;
             background: var(--surface); border-bottom: 1px solid var(--line);
             gap: 0.8rem; flex-shrink: 0;
         }
-        .header .back-btn {
-            background: none; border: none; color: var(--text); font-size: 1.4rem; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-        }
         .header .title {
             flex: 1; font-family: var(--font-display); font-weight: 700; font-size: 1.2rem;
-            display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+            display: flex; align-items: center; gap: 0.5rem;
         }
         .header .icon-btn {
             background: none; border: none; color: var(--text-dim); font-size: 1.2rem; cursor: pointer;
-            display: flex; align-items: center; justify-content: center; padding: 0.4rem;
-            transition: color .2s;
+            padding: 0.4rem; transition: color .2s;
         }
         .header .icon-btn:hover { color: var(--text); }
-        .header .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .conversation-list {
             flex: 1; overflow-y: auto; padding: 0.5rem 0;
         }
@@ -110,41 +73,38 @@
             color: var(--text); flex-shrink: 0;
         }
         .conversation-item .info { flex: 1; min-width: 0; }
-        .conversation-item .name { font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; }
+        .conversation-item .name { font-weight: 600; font-size: 0.95rem; }
         .conversation-item .preview {
             font-size: 0.8rem; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
         .conversation-item .time { font-size: 0.7rem; color: var(--text-faint); flex-shrink: 0; }
-        .status-dot {
-            width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-left: 0.4rem;
-        }
-        .status-dot.online { background: var(--go); }
-        .status-dot.offline { background: var(--text-faint); }
         .empty-state {
             text-align: center; color: var(--text-faint); padding: 2rem; font-size: 0.9rem;
         }
         .empty-state .icon { font-size: 2.5rem; display: block; margin-bottom: 0.8rem; opacity: 0.5; }
-        .chat-view {
-            flex: 1; display: flex; flex-direction: column;
-        }
+        .chat-view { flex: 1; display: none; flex-direction: column; }
+        .chat-view.active { display: flex; }
         .chat-header {
             display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem 1rem;
             background: var(--surface); border-bottom: 1px solid var(--line); flex-shrink: 0;
         }
         .chat-header .back-btn {
             background: none; border: none; color: var(--text); font-size: 1.4rem; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
         }
         .chat-header .avatar {
             width: 36px; height: 36px; border-radius: 50%; background: var(--surface-3);
-            display: flex; align-items: center; justify-content: center; font-weight: 700;
-            color: var(--text); flex-shrink: 0; font-size: 1.2rem;
+            display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+            color: var(--text); flex-shrink: 0;
         }
-        .chat-header .peer-info { flex: 1; display: flex; flex-direction: column; }
+        .chat-header .peer-info { flex: 1; }
         .chat-header .peer-name { font-family: var(--font-display); font-weight: 600; font-size: 0.95rem; }
-        .chat-header .peer-status {
-            font-size: 0.7rem; color: var(--text-dim); display: flex; align-items: center;
+        .chat-header .peer-status { font-size: 0.7rem; color: var(--text-dim); }
+        .chat-header .call-btn {
+            background: none; border: none; color: var(--text-dim); font-size: 1.2rem; cursor: pointer;
+            padding: 0.4rem; transition: color .2s;
         }
+        .chat-header .call-btn:hover { color: var(--go); }
+        .chat-header .call-btn.active { color: var(--stop); }
         .messages {
             flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.4rem;
         }
@@ -156,7 +116,7 @@
         .message-wrapper.incoming { align-self: flex-start; align-items: flex-start; }
         .message-bubble {
             padding: 0.6rem 0.9rem; border-radius: 16px; font-size: 0.9rem;
-            white-space: pre-wrap; word-break: break-word; position: relative;
+            white-space: pre-wrap; word-break: break-word;
         }
         .message-wrapper.outgoing .message-bubble {
             background: var(--signal); color: #fff; border-bottom-right-radius: 4px;
@@ -167,8 +127,6 @@
         .message-timestamp {
             font-size: 0.6rem; opacity: 0.6; margin-top: 0.15rem; display: block; text-align: right;
         }
-        .message-wrapper.outgoing .message-timestamp { color: var(--text-faint); }
-        .message-wrapper.incoming .message-timestamp { color: var(--text-faint); }
         .date-divider {
             text-align: center; font-size: 0.7rem; color: var(--text-faint); padding: 0.5rem 0;
         }
@@ -189,7 +147,6 @@
             transition: opacity .2s, transform .1s;
         }
         .chat-input-area button:disabled { opacity: 0.4; cursor: not-allowed; }
-        .chat-input-area button:active:not(:disabled) { transform: scale(0.95); }
         .hidden { display: none !important; }
         #toast {
             position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
@@ -203,25 +160,7 @@
             from { opacity: 0; transform: translateY(5px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .typing-dots {
-            display: inline-flex; align-items: center; gap: 3px; margin-left: 2px;
-        }
-        .typing-dots span {
-            display: inline-block; width: 5px; height: 5px; border-radius: 50%;
-            background: currentColor; animation: typing-bounce 1.2s ease-in-out infinite;
-        }
-        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes typing-bounce {
-            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-            30% { transform: translateY(-5px); opacity: 1; }
-        }
-        .chat-header .call-btn {
-            background: none; border: none; color: var(--text-dim); font-size: 1.2rem; cursor: pointer;
-            padding: 0.4rem; transition: color .2s;
-        }
-        .chat-header .call-btn:hover { color: var(--go); }
-        .chat-header .call-btn.active { color: var(--stop); }
+        /* settings modal minimal */
         #settingsModal {
             display: none;
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -231,7 +170,7 @@
         #settingsModal.active { display: flex; }
         .settings-card {
             background: var(--surface); border: 1px solid var(--line);
-            border-radius: var(--radius-lg); padding: 1.8rem 1.5rem;
+            border-radius: 22px; padding: 1.8rem 1.5rem;
             width: 90%; max-width: 360px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         }
         .settings-card h2 { font-family: var(--font-display); font-size: 1.3rem; margin-bottom: 1.2rem; text-align: center; }
@@ -263,23 +202,19 @@
 <div class="app-container" id="app">
     <!-- Header -->
     <div class="header" id="listHeader">
-        <span class="title">
-            <i class="fas fa-robot" style="color: var(--signal);"></i> RAGina Agent
-        </span>
+        <span class="title"><i class="fas fa-robot" style="color: var(--signal);"></i> RAGina Agent</span>
         <button class="icon-btn" id="settingsBtn"><i class="fas fa-gear"></i></button>
     </div>
     <!-- Conversation list -->
     <div class="conversation-list" id="conversationList"></div>
     <!-- Chat view -->
-    <div class="chat-view hidden" id="chatView">
+    <div class="chat-view" id="chatView">
         <div class="chat-header">
             <button class="back-btn" id="chatBackBtn"><i class="fas fa-arrow-left"></i></button>
             <div class="avatar" id="chatPeerAvatar">🤖</div>
             <div class="peer-info">
                 <span class="peer-name" id="chatPeerName">RAGina</span>
-                <span class="peer-status" id="chatPeerStatus">
-                    <span class="status-dot online"></span>&nbsp;Online
-                </span>
+                <span class="peer-status" id="chatPeerStatus">Online</span>
             </div>
             <button class="call-btn" id="chatCallBtn" title="Call RAGina">
                 <i class="fas fa-phone"></i>
@@ -311,81 +246,57 @@
 
 <script>
     // =========================================================================
-    // 1. FETCH KNOWLEDGE FROM premCall.html
+    // 0. CONFIG – Knowledge from premCall.html (optional)
     // =========================================================================
-    async function loadKnowledgeFromPremCall() {
+    async function loadKnowledge() {
         try {
-            const response = await fetch('premCall.html');
-            if (!response.ok) throw new Error('File not found');
-            const html = await response.text();
+            const resp = await fetch('premCall.html');
+            if (!resp.ok) throw new Error('File not found');
+            const html = await resp.text();
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-
-            // Remove script, style, and other non-content tags
-            const elementsToRemove = doc.querySelectorAll('script, style, link, meta, head, title, noscript');
-            elementsToRemove.forEach(el => el.remove());
-
-            // Get text content of the body (or whole document if body is empty)
+            // Remove scripts/styles
+            doc.querySelectorAll('script, style, link, meta, head, title, noscript').forEach(el => el.remove());
             let body = doc.body;
-            if (!body || !body.textContent.trim()) {
-                // Fallback: use the entire document's text
-                body = doc.documentElement;
+            if (!body || !body.textContent.trim()) body = doc.documentElement;
+            let text = body.textContent.replace(/\s+/g, ' ').trim();
+            if (text.length > 50) {
+                return { title: 'premCall Documentation', content: text.slice(0, 15000) };
             }
-            let cleanText = body.textContent || '';
-            // Normalize whitespace
-            cleanText = cleanText.replace(/\s+/g, ' ').trim();
-
-            if (cleanText.length < 50) {
-                throw new Error('Extracted text is too short');
-            }
-
-            return {
-                title: 'premCall Documentation',
-                content: cleanText.slice(0, 15000) // Limit to ~15k chars to avoid token overflow
-            };
-        } catch (err) {
-            console.warn('Could not fetch premCall.html:', err.message);
-            return null;
-        }
+        } catch (e) { /* ignore */ }
+        return null;
     }
 
     // =========================================================================
-    // 2. LOAD RAGina SCRIPT DYNAMICALLY
+    // 1. LOAD RAGina PRO
     // =========================================================================
-    function loadRAGinaScript(knowledgeItem) {
+    function loadRAGina(knowledge) {
         return new Promise((resolve, reject) => {
-            // Set up the config before loading the script
             window.RAGINA_CONFIG = {
-                knowledge: knowledgeItem ? [knowledgeItem] : []
+                knowledge: knowledge ? [knowledge] : []
             };
-
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-pro.min.js';
             script.onload = () => resolve();
-            script.onerror = () => reject(new Error('Failed to load RAGina script'));
+            script.onerror = () => reject(new Error('Failed to load RAGina'));
             document.head.appendChild(script);
         });
     }
 
     // =========================================================================
-    // 3. APPLICATION LOGIC (after RAGina is ready)
+    // 2. MAIN APP
     // =========================================================================
-    (async function initApp() {
-        // Step A: Load knowledge from premCall.html
-        const knowledge = await loadKnowledgeFromPremCall();
-
-        // Step B: Load RAGina with that knowledge
+    (async function init() {
+        // Load knowledge and RAGina
+        const knowledge = await loadKnowledge();
         try {
-            await loadRAGinaScript(knowledge);
-            console.log('RAGina loaded with knowledge:', knowledge ? 'premCall content' : 'default');
-        } catch (err) {
-            console.error('RAGina load failed:', err);
-            // Continue without RAGina (will show fallback messages)
+            await loadRAGina(knowledge);
+            console.log('RAGina loaded with knowledge');
+        } catch (e) {
+            console.warn('RAGina not loaded:', e.message);
         }
 
-        // =====================================================================
-        // 4. DOM references and state (same as before)
-        // =====================================================================
+        // --- DOM refs ---
         const conversationList = document.getElementById('conversationList');
         const chatView = document.getElementById('chatView');
         const listHeader = document.getElementById('listHeader');
@@ -411,7 +322,7 @@
         let recognition = null;
         let speechSynth = window.speechSynthesis;
 
-        // ----- Toast -----
+        // --- Helpers ---
         function showToast(msg) {
             toast.textContent = msg;
             toast.classList.add('show');
@@ -419,7 +330,6 @@
             showToast._timer = setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // ----- Formatting -----
         function formatTime(ts) {
             if (!ts) return '';
             const d = new Date(ts);
@@ -427,67 +337,58 @@
         }
 
         function formatDate(ts) {
-            if (!ts) return '';
             const d = new Date(ts);
             const today = new Date();
             if (d.toDateString() === today.toDateString()) return 'Today';
-            const y = new Date(today);
-            y.setDate(y.getDate() - 1);
+            const y = new Date(today); y.setDate(y.getDate() - 1);
             if (d.toDateString() === y.toDateString()) return 'Yesterday';
             return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
         }
 
-        // ----- Storage -----
         function loadConversations() {
             try { return JSON.parse(localStorage.getItem('raginaChats') || '{}'); } catch (e) { return {}; }
         }
-
         function saveConversations() {
             try { localStorage.setItem('raginaChats', JSON.stringify(conversations)); } catch (e) {}
         }
 
-        // ----- Render messages -----
+        // --- Render functions ---
         function renderMessages() {
-            const container = messagesContainer;
             const msgs = conversations[activePeer] || [];
-            container.innerHTML = '';
+            messagesContainer.innerHTML = '';
             let lastDate = null;
-            msgs.forEach((msg) => {
-                const msgDate = formatDate(msg.timestamp);
-                if (msgDate !== lastDate) {
-                    lastDate = msgDate;
-                    const dateDiv = document.createElement('div');
-                    dateDiv.className = 'date-divider';
-                    dateDiv.textContent = msgDate;
-                    container.appendChild(dateDiv);
+            msgs.forEach(msg => {
+                const d = formatDate(msg.timestamp);
+                if (d !== lastDate) {
+                    lastDate = d;
+                    const div = document.createElement('div');
+                    div.className = 'date-divider';
+                    div.textContent = d;
+                    messagesContainer.appendChild(div);
                 }
                 const wrapper = document.createElement('div');
                 wrapper.className = 'message-wrapper ' + msg.direction;
-                if (msg.pending) wrapper.classList.add('pending');
                 const bubble = document.createElement('div');
-                bubble.className = 'message-bubble' + (msg.pending ? ' pending' : '');
-                if (msg.error) bubble.style.border = '1px solid var(--stop)';
+                bubble.className = 'message-bubble';
                 bubble.textContent = msg.text || '';
                 wrapper.appendChild(bubble);
                 const time = document.createElement('span');
                 time.className = 'message-timestamp';
-                let statusText = '';
-                if (msg.pending) statusText = ' · sending…';
-                else if (msg.error) statusText = ' · failed';
-                time.textContent = formatTime(msg.timestamp) + statusText;
+                let status = '';
+                if (msg.pending) status = ' · sending…';
+                else if (msg.error) status = ' · failed';
+                time.textContent = formatTime(msg.timestamp) + status;
                 wrapper.appendChild(time);
-                container.appendChild(wrapper);
+                messagesContainer.appendChild(wrapper);
             });
-            container.scrollTop = container.scrollHeight;
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // ----- Render conversation list -----
         function renderConversationList() {
             conversationList.innerHTML = '';
             const peers = Object.keys(conversations);
             if (peers.length === 0) {
-                conversationList.innerHTML =
-                    '<div class="empty-state"><span class="icon"><i class="fas fa-robot"></i></span>No conversations yet</div>';
+                conversationList.innerHTML = '<div class="empty-state"><span class="icon"><i class="fas fa-robot"></i></span>No conversations</div>';
                 return;
             }
             peers.forEach(peer => {
@@ -501,10 +402,10 @@
                 item.appendChild(avatar);
                 const info = document.createElement('div');
                 info.className = 'info';
-                const nameDiv = document.createElement('div');
-                nameDiv.className = 'name';
-                nameDiv.textContent = peer === BOT_NUMBER ? BOT_NAME : peer;
-                info.appendChild(nameDiv);
+                const name = document.createElement('div');
+                name.className = 'name';
+                name.textContent = peer === BOT_NUMBER ? BOT_NAME : peer;
+                info.appendChild(name);
                 const preview = document.createElement('div');
                 preview.className = 'preview';
                 if (last) preview.textContent = (last.direction === 'outgoing' ? 'You: ' : '') + (last.text || '');
@@ -519,34 +420,34 @@
             });
         }
 
-        // ----- Open / close chat -----
+        // --- Open / close chat ---
         function openChat(peer) {
             activePeer = peer;
             listHeader.classList.add('hidden');
             conversationList.classList.add('hidden');
-            chatView.classList.remove('hidden');
+            chatView.classList.add('active');
             chatPeerAvatar.textContent = peer === BOT_NUMBER ? '🤖' : '👤';
             chatPeerName.textContent = peer === BOT_NUMBER ? BOT_NAME : peer;
-            chatPeerStatus.innerHTML = '<span class="status-dot online"></span>&nbsp;Online';
-            renderMessages();
-            messageInput.focus();
+            chatPeerStatus.textContent = 'Online';
             if (isCallActive) endCall();
             chatCallBtn.innerHTML = '<i class="fas fa-phone"></i>';
+            renderMessages();
+            messageInput.focus();
         }
 
         function closeChat() {
             if (isCallActive) endCall();
             activePeer = null;
-            chatView.classList.add('hidden');
+            chatView.classList.remove('active');
             listHeader.classList.remove('hidden');
             conversationList.classList.remove('hidden');
             renderConversationList();
         }
 
-        // ----- Add message -----
+        // --- Add message ---
         function addMessage(peer, msg) {
             if (!peer || !msg) return;
-            if (!Array.isArray(conversations[peer])) conversations[peer] = [];
+            if (!conversations[peer]) conversations[peer] = [];
             conversations[peer].push({
                 text: String(msg.text || ''),
                 timestamp: typeof msg.timestamp === 'number' ? msg.timestamp : Date.now(),
@@ -554,14 +455,42 @@
                 from: msg.from || null,
                 pending: msg.pending || false,
                 error: msg.error || false,
-                _tempId: msg._tempId || Date.now() + '-' + Math.random().toString(36).substr(2, 6)
+                _tempId: msg._tempId || Date.now() + '-' + Math.random().toString(36).substr(2,6)
             });
             saveConversations();
             if (activePeer === peer) renderMessages();
             else renderConversationList();
         }
 
-        // ----- Send message with AI -----
+        // --- AI call (core) ---
+        function askRAGina(query, callback) {
+            if (!window.RAGina) {
+                callback('🤖 RAGina is not available. Please check your internet connection.');
+                return;
+            }
+            try {
+                // Try the most common API: ask(query, onChunk, onComplete)
+                if (typeof window.RAGina.ask === 'function') {
+                    window.RAGina.ask(query, null, (answer) => {
+                        callback(answer);
+                    });
+                } else if (typeof window.RAGina.chat === 'function') {
+                    window.RAGina.chat(query, (answer) => {
+                        callback(answer);
+                    });
+                } else {
+                    // Fallback: try calling RAGina as a function
+                    const result = window.RAGina(query);
+                    if (typeof result === 'string') callback(result);
+                    else callback('🤖 RAGina is not responding.');
+                }
+            } catch (e) {
+                console.error(e);
+                callback('🤖 Sorry, I encountered an error: ' + e.message);
+            }
+        }
+
+        // --- Send message ---
         function sendMessage() {
             if (!activePeer) return;
             const text = messageInput.value.trim();
@@ -591,36 +520,15 @@
                     renderConversationList();
                 });
             } else {
-                // fallback for other peers (not used)
                 renderMessages();
                 renderConversationList();
             }
         }
 
-        // ----- RAGina AI call -----
-        function askRAGina(query, callback) {
-            if (!window.RAGina) {
-                callback('🤖 RAGina is not available. Please check your internet connection.');
-                return;
-            }
-            try {
-                if (typeof window.RAGina.ask === 'function') {
-                    window.RAGina.ask(query, null, (answer) => {
-                        callback(answer);
-                    });
-                } else {
-                    callback('🤖 RAGina is not properly initialized.');
-                }
-            } catch (e) {
-                console.error(e);
-                callback('🤖 Sorry, I encountered an error: ' + e.message);
-            }
-        }
-
-        // ----- Voice call -----
+        // --- Voice call ---
         function startCall() {
             if (activePeer !== BOT_NUMBER) {
-                showToast('Voice calls are only supported with RAGina.');
+                showToast('Voice calls only with RAGina.');
                 return;
             }
             if (isCallActive) {
@@ -640,7 +548,7 @@
             isCallActive = true;
             chatCallBtn.innerHTML = '<i class="fas fa-phone-slash"></i>';
             chatCallBtn.classList.add('active');
-            showToast('Calling RAGina...');
+            showToast('Call started. Speak your question.');
 
             addMessage(BOT_NUMBER, {
                 text: '🔊 Call started. Speak your question.',
@@ -652,6 +560,7 @@
             });
             renderMessages();
             renderConversationList();
+
             listenForSpeech();
         }
 
@@ -683,6 +592,7 @@
                     });
                     renderMessages();
                     renderConversationList();
+                    // Speak the response
                     speakText(answer);
                 });
             };
@@ -706,11 +616,14 @@
 
         function speakText(text) {
             if (!window.speechSynthesis) return;
+            // Cancel any ongoing speech
+            window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'en-US';
             utterance.rate = 1;
             utterance.pitch = 1;
-            speechSynth.speak(utterance);
+            utterance.volume = 1;
+            window.speechSynthesis.speak(utterance);
         }
 
         function endCall() {
@@ -719,8 +632,8 @@
                 try { recognition.stop(); } catch (e) {}
                 recognition = null;
             }
-            if (speechSynth) {
-                speechSynth.cancel();
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
             }
             chatCallBtn.innerHTML = '<i class="fas fa-phone"></i>';
             chatCallBtn.classList.remove('active');
@@ -737,20 +650,35 @@
             renderConversationList();
         }
 
-        // ----- Event listeners -----
+        // --- Event listeners ---
         chatCallBtn.addEventListener('click', () => {
-            if (isCallActive) {
-                endCall();
-            } else {
-                startCall();
+            if (isCallActive) endCall();
+            else startCall();
+        });
+
+        chatBackBtn.addEventListener('click', closeChat);
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
             }
         });
 
-        // ----- Init -----
+        // Settings
+        themeToggle.addEventListener('click', function() {
+            this.classList.toggle('active');
+            document.body.classList.toggle('light-mode');
+        });
+        settingsBtn.addEventListener('click', () => settingsModal.classList.add('active'));
+        settingsClose.addEventListener('click', () => settingsModal.classList.remove('active'));
+        settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) settingsModal.classList.remove('active'); });
+
+        // --- Init data ---
         conversations = loadConversations();
         if (!conversations[BOT_NUMBER]) {
             conversations[BOT_NUMBER] = [{
-                text: '🤖 Hello! I\'m RAGina. I\'ve read about premCall – ask me anything about it!',
+                text: '🤖 Hello! I\'m RAGina. I\'ve read about premCall – ask me anything!',
                 timestamp: Date.now(),
                 direction: 'incoming',
                 from: BOT_NUMBER,
@@ -762,26 +690,7 @@
         }
         renderConversationList();
 
-        themeToggle.addEventListener('click', function() {
-            this.classList.toggle('active');
-            document.body.classList.toggle('light-mode');
-        });
-
-        settingsBtn.addEventListener('click', () => settingsModal.classList.add('active'));
-        settingsClose.addEventListener('click', () => settingsModal.classList.remove('active'));
-        settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) settingsModal.classList.remove(
-            'active'); });
-
-        chatBackBtn.addEventListener('click', closeChat);
-        sendBtn.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                sendMessage();
-            }
-        });
-
-        // Start with a friendly message about knowledge loaded
+        // Show knowledge status
         if (knowledge) {
             showToast('📚 Loaded knowledge from premCall.html');
         } else {
