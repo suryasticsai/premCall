@@ -13,7 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    /* (your existing CSS – unchanged) */
+    /* ====== STYLES (unchanged) ====== */
     :root{
       --bg-0:#05070d; --bg-1:#0a0e18; --surface:#0e1424; --surface-2:#141c30; --surface-3:#1b2540;
       --line:#1e2a42; --text:#eef2fb; --text-dim:#8891ab; --text-faint:#525d78;
@@ -218,7 +218,7 @@
     .setup-banner.show{ display:block; }
     .setup-banner code{ background:rgba(0,0,0,0.25); padding:0.1rem 0.35rem; border-radius:4px; }
     
-    /* Error log area */
+    /* Error log */
     .error-log {
       background:var(--surface); border-top:1px solid var(--stop);
       padding:0.3rem 0.6rem; font-size:0.7rem; color:var(--stop);
@@ -241,7 +241,7 @@
   </div>
   <div class="setup-banner" id="setupBanner">
     Firebase isn't configured yet. Open this file and fill in <code>FIREBASE_CONFIG</code>
-    near the bottom with your project's config (see the comment above it for steps).
+    near the bottom with your project's config.
   </div>
 
   <div class="header" id="listHeader">
@@ -277,7 +277,7 @@
     </div>
   </div>
 
-  <!-- Error log (visible when errors occur) -->
+  <!-- Error log -->
   <div class="error-log" id="errorLog">
     <button class="clear-errors" id="clearErrorsBtn">Clear</button>
     <div id="errorLogContent"></div>
@@ -292,15 +292,15 @@
 
 <script>
 /* ============================================================
-   FIREBASE CONFIG – PASTE YOUR OWN BELOW
+   FIREBASE CONFIG – YOUR ACTUAL CONFIG
    ============================================================ */
 const FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDc2vue40jIyuVCnU-frnbC5o0aNzovUNk",
+  authDomain: "premcall-msg.firebaseapp.com",
+  projectId: "premcall-msg",
+  storageBucket: "premcall-msg.firebasestorage.app",
+  messagingSenderId: "50980568455",
+  appId: "1:50980568455:web:723fb612e7df28169d6722"
 };
 </script>
 
@@ -369,7 +369,7 @@ const FIREBASE_CONFIG = {
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
 
-  /* ---------- Chat engine ---------- */
+  /* ---------- Chat state ---------- */
   var db = null, auth = null;
   var chatReady = false;
   var myNumber = null;
@@ -398,7 +398,8 @@ const FIREBASE_CONFIG = {
       from: msg.from || null,
       pending: msg.pending || false,
       delivered: msg.delivered || false,
-      error: msg.error || false
+      error: msg.error || false,
+      _tempId: msg._tempId || null
     });
     saveConversations();
     if (activePeer === peer) renderMessages();
@@ -496,14 +497,10 @@ const FIREBASE_CONFIG = {
     document.getElementById('messagesContainer').innerHTML = '';
     if (activeConversationUnsub) activeConversationUnsub();
     if (activePresenceUnsub) activePresenceUnsub();
-    // Start listening to Firestore for this conversation
     if (chatReady) {
       activeConversationUnsub = listenConversation(peer, function(msgs) {
         // Merge with local pending messages
         var existing = conversations[activePeer] || [];
-        // We'll just re-render from the combined list
-        // But we'll keep local messages that are pending
-        // For simplicity, we replace with Firestore messages + keep our local pending ones
         var pending = existing.filter(function(m) { return m.pending || m.error; });
         var merged = msgs.concat(pending);
         merged.sort(function(a,b){ return a.timestamp - b.timestamp; });
@@ -511,7 +508,6 @@ const FIREBASE_CONFIG = {
         saveConversations();
         renderMessages();
       });
-      // Presence
       activePresenceUnsub = listenPresence(peer, function(online) {
         var dot = document.querySelector('#chatPeerStatus .status-dot');
         var text = document.getElementById('chatPeerStatusText');
@@ -591,7 +587,7 @@ const FIREBASE_CONFIG = {
             };
           }
         });
-        // Merge with local conversations (pending messages)
+        // Merge with local pending/error messages
         var peers = Object.keys(conversations);
         peers.forEach(function(p) {
           var msgs = conversations[p];
@@ -625,7 +621,6 @@ const FIREBASE_CONFIG = {
     var text = input.value.trim();
     if (!text) return;
 
-    // Optimistic local add
     var tempId = Date.now() + '-' + Math.random().toString(36).substr(2,6);
     addMessage(activePeer, {
       text: text,
@@ -641,7 +636,6 @@ const FIREBASE_CONFIG = {
     renderConversationList();
     isSending = true;
 
-    // Actually send to Firestore
     db.collection('messages').add({
       conversationId: [myNumber, activePeer].sort().join('_'),
       participants: [myNumber, activePeer],
@@ -650,29 +644,15 @@ const FIREBASE_CONFIG = {
       text: text,
       timestamp: Date.now()
     }).then(function(docRef) {
-      // Mark local message as delivered (remove pending)
       var msgs = conversations[activePeer] || [];
-      var found = false;
       for (var i = 0; i < msgs.length; i++) {
         if (msgs[i]._tempId === tempId) {
           msgs[i].pending = false;
           msgs[i].delivered = true;
           msgs[i].error = false;
           msgs[i].id = docRef.id;
-          found = true;
           break;
         }
-      }
-      if (!found) {
-        // If not found (maybe already replaced), add it
-        addMessage(activePeer, {
-          text: text,
-          timestamp: Date.now(),
-          direction: 'outgoing',
-          from: myNumber,
-          delivered: true,
-          pending: false
-        });
       }
       saveConversations();
       renderMessages();
@@ -680,7 +660,6 @@ const FIREBASE_CONFIG = {
       showToast('Sent');
     }).catch(function(err) {
       logError('Send failed: ' + err.message);
-      // Mark local message as error
       var msgs = conversations[activePeer] || [];
       for (var i = 0; i < msgs.length; i++) {
         if (msgs[i]._tempId === tempId) {
@@ -724,12 +703,10 @@ const FIREBASE_CONFIG = {
 
     auth.signInAnonymously().then(function(cred) {
       var uid = cred.user.uid;
-      // Claim number
       return db.collection('uids').doc(uid).get().then(function(doc) {
         if (doc.exists && doc.data().number === myNumber) {
           // Already claimed
         } else {
-          // Claim number
           var batch = db.batch();
           batch.set(db.collection('users').doc(myNumber), { uid: uid });
           batch.set(db.collection('uids').doc(uid), { number: myNumber });
@@ -739,15 +716,12 @@ const FIREBASE_CONFIG = {
     }).then(function() {
       chatReady = true;
       updateNetStatus();
-      // Load local conversations
       var saved = loadConversations();
       Object.keys(saved).forEach(function(k) {
         if (!conversations[k]) conversations[k] = saved[k];
       });
       renderConversationList();
-      // Start listening to conversation list
       conversationListUnsub = listenConversationsList();
-      // Presence heartbeat
       db.collection('presence').doc(myNumber).set({ lastSeen: Date.now() }, { merge: true });
       setInterval(function() {
         db.collection('presence').doc(myNumber).set({ lastSeen: Date.now() }, { merge: true });
