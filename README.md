@@ -1,4 +1,4 @@
-# 📞 premCall - Give Your Number a Life, Truly untraceable 
+# premCall - Give Your Number a Life, Truly untraceable 
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" alt="premCall Logo" width="200"/>
@@ -193,5 +193,5 @@ Distributed under the MIT License. See `LICENSE` for more information.
 ---
 
 <p align="center">
-  Made with ❤️ by <a href="https://github.com/suryasticsai">Surya</a>
+  Made with ❤️ by <a href="https://github.com/suryasticsai">Suryasticsai</a>
 </p>
