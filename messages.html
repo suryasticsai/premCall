@@ -24,6 +24,12 @@
     --safe-t: env(safe-area-inset-top, 0px);
     --safe-b: env(safe-area-inset-bottom, 0px);
   }
+  body.light-mode{
+    --bg-0:#f0f2f5; --bg-1:#ffffff; --surface:#ffffff; --surface-2:#f8fafc; --surface-3:#f1f5f9;
+    --line:#d1d5db; --text:#111827; --text-dim:#4b5563; --text-faint:#9ca3af;
+    --signal:#2563eb; --signal-soft:#1d4ed8; --go:#10b981; --go-deep:#047857;
+    --stop:#ef4444; --stop-deep:#b91c1c; --warn:#f59e0b; --warn-deep:#b45309;
+  }
   *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
   body{
@@ -72,9 +78,9 @@
     font-size:0.6rem; font-weight:600;
   }
   .status-badge.online { background:var(--go); color:#fff; }
-  .status-badge.offline { background:var(--stop); color:#fff; }
-  .status-badge.connecting { background:var(--warn); color:#fff; }
-  
+  .status-badge.offline { background:var(--warn); color:#fff; }
+  .status-badge.error { background:var(--stop); color:#fff; }
+
   .conversation-list{
     flex:1; overflow-y:auto; padding:0.5rem 0;
   }
@@ -90,32 +96,23 @@
     flex-shrink:0;
   }
   .conversation-item .info{ flex:1; min-width:0; }
-  .conversation-item .name{ font-weight:600; font-size:0.95rem; }
+  .conversation-item .name{ font-weight:600; font-size:0.95rem; display:flex; align-items:center; }
   .conversation-item .preview{
     font-size:0.8rem; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .conversation-item .time{ font-size:0.7rem; color:var(--text-faint); flex-shrink:0; }
-  .conversation-item .status-dot{
-    width:8px; height:8px; border-radius:50%; display:inline-block; margin-left:0.3rem;
+  .status-dot{
+    width:8px; height:8px; border-radius:50%; display:inline-block; margin-left:0.4rem;
   }
-  .conversation-item .status-dot.online{ background:var(--go); }
-  .conversation-item .status-dot.offline{ background:var(--stop); }
-  .conversation-item .status-dot.unknown{ background:var(--text-faint); }
-  .conversation-item .pending-badge{
-    background:var(--warn);
-    color:#fff;
-    font-size:0.6rem;
-    padding:0.1rem 0.4rem;
-    border-radius:10px;
-    margin-left:0.3rem;
-  }
-  
+  .status-dot.online{ background:var(--go); }
+  .status-dot.offline{ background:var(--text-faint); }
+
   .empty-state{
     text-align:center; color:var(--text-faint); padding:2rem; font-size:0.9rem;
   }
   .empty-state .icon{ font-size:2.5rem; display:block; margin-bottom:0.8rem; opacity:0.5; }
   .empty-state .sub-text{ font-size:0.8rem; opacity:0.7; margin-top:0.3rem; }
-  
+
   .chat-view{
     flex:1; display:flex; flex-direction:column;
   }
@@ -139,35 +136,17 @@
     font-family:var(--font-display); font-weight:600; font-size:0.95rem;
   }
   .chat-header .peer-status{
-    font-size:0.7rem; color:var(--text-dim);
+    font-size:0.7rem; color:var(--text-dim); display:flex; align-items:center;
   }
-  .chat-header .peer-status .status-dot{
-    width:6px; height:6px; border-radius:50%; display:inline-block; margin-right:0.3rem;
-  }
-  .chat-header .peer-status .status-dot.online{ background:var(--go); }
-  .chat-header .peer-status .status-dot.offline{ background:var(--stop); }
-  .chat-header .peer-status .status-dot.unknown{ background:var(--text-faint); }
-  .chat-header .pending-count{
-    background:var(--warn);
-    color:#fff;
-    font-size:0.6rem;
-    padding:0.1rem 0.5rem;
-    border-radius:10px;
-    margin-left:0.5rem;
-  }
-  
+
   .messages{
     flex:1; overflow-y:auto; padding:1rem; display:flex; flex-direction:column; gap:0.4rem;
   }
   .message-wrapper{
     display:flex; flex-direction:column; max-width:85%;
   }
-  .message-wrapper.outgoing{
-    align-self:flex-end; align-items:flex-end;
-  }
-  .message-wrapper.incoming{
-    align-self:flex-start; align-items:flex-start;
-  }
+  .message-wrapper.outgoing{ align-self:flex-end; align-items:flex-end; }
+  .message-wrapper.incoming{ align-self:flex-start; align-items:flex-start; }
   .message-bubble{
     padding:0.6rem 0.9rem; border-radius:16px; font-size:0.9rem;
     white-space:pre-wrap; word-break:break-word; position:relative;
@@ -185,46 +164,17 @@
     background:var(--surface-2); color:var(--text);
     border-bottom-left-radius:4px;
   }
-  .message-wrapper.pending .message-bubble{
-    background:var(--warn-deep); color:#fff;
-    border-bottom-right-radius:4px;
-    opacity:0.8;
-  }
-  .message-sender{
-    font-size:0.65rem; color:var(--text-faint); margin:0 0.3rem 0.1rem 0.3rem;
-    font-weight:500;
-  }
-  .message-wrapper.outgoing .message-sender{
-    color:var(--signal);
-  }
-  .message-wrapper.incoming .message-sender{
-    color:var(--text-dim);
-  }
-  .message-wrapper.pending .message-sender{
-    color:var(--warn);
-  }
+  .message-wrapper.outgoing .message-bubble.pending{ opacity:0.6; }
   .message-timestamp{
     font-size:0.6rem; opacity:0.6; margin-top:0.15rem; display:block; text-align:right;
   }
-  .message-wrapper.outgoing .message-timestamp{
-    color:rgba(255,255,255,0.7);
+  .message-wrapper.outgoing .message-timestamp{ color:var(--text-faint); }
+  .message-wrapper.incoming .message-timestamp{ color:var(--text-faint); }
+
+  .date-divider{
+    text-align:center;font-size:0.7rem;color:var(--text-faint);padding:0.5rem 0;
   }
-  .message-wrapper.incoming .message-timestamp{
-    color:var(--text-faint);
-  }
-  .message-wrapper.pending .message-timestamp{
-    color:rgba(255,255,255,0.6);
-  }
-  .message-status{
-    font-size:0.55rem; color:var(--text-faint); margin-top:0.1rem;
-  }
-  .message-wrapper.pending .message-status{
-    color:var(--warn);
-  }
-  .message-wrapper.delivered .message-status{
-    color:var(--go);
-  }
-  
+
   .chat-input-area{
     display:flex; gap:0.5rem; padding:0.8rem; background:var(--surface);
     border-top:1px solid var(--line); flex-shrink:0;
@@ -234,28 +184,17 @@
     background:var(--bg-0); color:var(--text); outline:none;
     font-family:inherit; font-size:0.95rem;
   }
-  .chat-input-area input::placeholder{
-    color:var(--text-faint);
-  }
-  .chat-input-area input:focus{
-    border-color:var(--signal);
-  }
-  .chat-input-area input:disabled{
-    opacity:0.5;
-  }
+  .chat-input-area input::placeholder{ color:var(--text-faint); }
+  .chat-input-area input:focus{ border-color:var(--signal); }
   .chat-input-area button{
     width:42px; height:42px; border-radius:50%; border:none; background:var(--signal);
     color:#fff; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center;
     transition:opacity .2s, transform .1s;
   }
-  .chat-input-area button:disabled{
-    opacity:0.4; cursor:not-allowed;
-  }
-  .chat-input-area button:active:not(:disabled){
-    transform:scale(0.95);
-  }
+  .chat-input-area button:disabled{ opacity:0.4; cursor:not-allowed; }
+  .chat-input-area button:active:not(:disabled){ transform:scale(0.95); }
   .hidden{ display:none !important; }
-  
+
   #toast {
     position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
     background:var(--surface-3); border:1px solid var(--line);
@@ -265,42 +204,29 @@
     font-family:var(--font-body);
   }
 
-  .reconnect-bar {
-    background:var(--warn-deep);
-    color:#fff;
-    padding:0.4rem 1rem;
-    text-align:center;
-    font-size:0.75rem;
-    display:none;
+  .offline-bar {
+    background:var(--warn-deep); color:#fff; padding:0.4rem 1rem;
+    text-align:center; font-size:0.75rem; display:none;
   }
-  .reconnect-bar.show {
-    display:block;
-  }
-  .reconnect-bar .spinner {
-    display:inline-block;
-    animation:spin 1s linear infinite;
-    margin-right:0.5rem;
-  }
-  @keyframes spin {
-    from { transform:rotate(0deg); }
-    to { transform:rotate(360deg); }
-  }
+  .offline-bar.show{ display:block; }
 
-  .delivery-status {
-    font-size:0.55rem;
-    margin-left:0.3rem;
+  .setup-banner{
+    background:var(--stop-deep); color:#fff; padding:0.9rem 1rem; font-size:0.8rem;
+    line-height:1.5; display:none;
   }
-  .delivery-status.sent { color:var(--text-faint); }
-  .delivery-status.delivered { color:var(--go); }
-  .delivery-status.pending { color:var(--warn); }
+  .setup-banner.show{ display:block; }
+  .setup-banner code{ background:rgba(0,0,0,0.25); padding:0.1rem 0.35rem; border-radius:4px; }
 </style>
 </head>
 <body>
 
 <div class="app-container" id="app">
-  <div class="reconnect-bar" id="reconnectBar">
-    <span class="spinner"><i class="fas fa-spinner"></i></span>
-    Reconnecting to server...
+  <div class="offline-bar" id="offlineBar">
+    <i class="fas fa-cloud-slash"></i> You're offline — messages will send once you're back online
+  </div>
+  <div class="setup-banner" id="setupBanner">
+    Firebase isn't configured yet. Open this file and fill in <code>FIREBASE_CONFIG</code>
+    near the bottom with your project's config (see the comment above it for steps).
   </div>
 
   <div class="header" id="listHeader">
@@ -325,715 +251,205 @@
       <div class="peer-info">
         <span class="peer-name" id="chatPeerName"></span>
         <span class="peer-status" id="chatPeerStatus">
-          <span class="status-dot unknown"></span>
-          <span class="peer-online-status unknown">Checking...</span>
-          <span class="pending-count" id="pendingCount" style="display:none;">0 pending</span>
+          <span class="status-dot offline"></span>&nbsp;<span id="chatPeerStatusText">Offline</span>
         </span>
       </div>
-      <button class="icon-btn" id="refreshPeerStatus" title="Check status"><i class="fas fa-sync-alt"></i></button>
     </div>
     <div class="messages" id="messagesContainer"></div>
     <div class="chat-input-area">
-      <input type="text" id="messageInput" placeholder="Connecting..." autocomplete="off" disabled />
-      <button id="sendBtn" disabled><i class="fas fa-paper-plane"></i></button>
+      <input type="text" id="messageInput" placeholder="Type a message…" autocomplete="off" />
+      <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
     </div>
   </div>
 </div>
 <div id="toast"></div>
 
-<!-- Load PeerJS -->
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<!-- Firebase (free tier, no server to run — this replaces the old PeerJS-based
+     chat, which could only deliver a message if both people were online at the
+     exact same moment. Firestore stores messages so the recipient gets them
+     the next time they open the app, online or not — like SMS/WhatsApp. -->
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 
 <script>
 /* ============================================================
-   PremCall v2.4  (Offline Message Queuing)
-   Messages are stored when peer is offline and delivered when they come back
+   SETUP (one-time, ~5 minutes, free, no credit card):
+   1. Go to https://console.firebase.google.com -> "Add project".
+   2. In the project, go to Build -> Firestore Database -> Create
+      database -> Start in test mode (fine for a personal app; see
+      the security note further down before sharing this widely).
+   3. Go to Project settings (gear icon) -> General -> "Your apps"
+      -> click the </> (web) icon -> register the app -> copy the
+      firebaseConfig object it shows you.
+   4. Paste that object below, replacing FIREBASE_CONFIG.
+
+   SECURITY NOTE: Firestore's "test mode" rules allow anyone with
+   your config (visible in this file's source, unavoidable for a
+   client-only app) to read/write your whole database for 30 days,
+   after which test mode auto-locks everything. For a personal
+   project between you and a few people that's usually fine, but
+   before wider use, tighten your Firestore rules, e.g.:
+
+     rules_version = '2';
+     service cloud.firestore {
+       match /databases/{database}/documents {
+         match /messages/{msgId} {
+           allow read, write: if request.resource.data.participants is list
+             && request.resource.data.participants.size() == 2;
+         }
+         match /presence/{num} {
+           allow read, write: if true;
+         }
+       }
+     }
+
+   That's a light guard (correct shape), not real auth. True
+   per-user privacy needs Firebase Anonymous/Phone Auth tied into
+   the rules — ask me if you want that added.
    ============================================================ */
-(function (global) {
-  'use strict';
-
-  if (typeof global.Peer === 'undefined') {
-    console.error('[PremCall] The PeerJS library was not found.');
-    return;
-  }
-
-  const CONFIG = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-      { urls: 'stun:stun3.l.google.com:19302' },
-      { urls: 'stun:stun4.l.google.com:19302' },
-      { urls: 'stun:stun.ekiga.net' },
-      { urls: 'stun:stun.ideasip.com' },
-      {
-        urls: ['turn:numb.viagenie.ca:3478', 'turn:numb.viagenie.ca:443'],
-        username: 'webrtc@live.com',
-        credential: 'muazkh'
-      }
-    ],
-    iceCandidatePoolSize: 10
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyDc2vue40jIyuVCnU-frnbC5o0aNzovUNk",
+    authDomain: "premcall-msg.firebaseapp.com",
+    projectId: "premcall-msg",
+    storageBucket: "premcall-msg.firebasestorage.app",
+    messagingSenderId: "50980568455",
+    appId: "1:50980568455:web:723fb612e7df28169d6722"
   };
-
-  // ─── State ──────────────────────────────────────────────────
-  let peer = null;
-  let myNumber = null;
-  let incomingCall = null;
-  let activeCall = null;
-  let localStream = null;
-  let remoteStream = null;
-  let inCall = false;
-  let muted = false;
-  let speakerOn = false;
-  let callbacks = {};
-  let messageListeners = new Set();
-  let persistentConnections = {};
-  let messageQueue = {}; // Messages waiting to be sent
-  let isReconnecting = false;
-  let connectionAttempts = 0;
-  const MAX_ATTEMPTS = 5;
-  let messageIdCounter = 0;
-
-  // ─── Internal helpers ──────────────────────────────────────
-  function log(message, level) {
-    console.log('[PremCall]', message);
-    if (callbacks.onLog) callbacks.onLog(message, level);
-  }
-
-  function fire(name, data) {
-    if (callbacks[name]) callbacks[name](data);
-  }
-
-  function generateMessageId() {
-    return ++messageIdCounter + '-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
-  }
-
-  function resetCallState() {
-    if (activeCall) {
-      try { activeCall.close(); } catch (e) {}
-    }
-    activeCall = null;
-    remoteStream = null;
-    inCall = false;
-    incomingCall = null;
-    muted = false;
-  }
-
-  async function getLocalStream() {
-    if (localStream && localStream.getAudioTracks().length > 0) return localStream;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-      });
-      localStream = stream;
-      log('Microphone acquired', 'info');
-      return stream;
-    } catch (e) {
-      log('Microphone error: ' + e.message, 'error');
-      throw e;
-    }
-  }
-
-  function wireCallEvents(call, isCaller) {
-    activeCall = call;
-    inCall = true;
-    fire('onCallStarted', { target: call.peer, isCaller: isCaller });
-
-    call.on('stream', function (stream) {
-      remoteStream = stream;
-      fire('onRemoteStream', remoteStream);
-    });
-
-    call.on('close', function () {
-      resetCallState();
-      fire('onCallEnded', null);
-    });
-
-    call.on('error', function (err) {
-      log('Call error: ' + err.message, 'error');
-      resetCallState();
-      fire('onError', err);
-    });
-
-    const pc = call.peerConnection;
-    if (pc) {
-      pc.oniceconnectionstatechange = function () {
-        const state = pc.iceConnectionState;
-        log('ICE state: ' + state, 'info');
-        if (state === 'connected' || state === 'completed') {
-          fire('onConnected', null);
-        }
-        if (state === 'failed' || state === 'disconnected') {
-          resetCallState();
-          fire('onError', new Error('Connection lost'));
-        }
-      };
-    }
-  }
-
-  function setupPersistentConnection(conn) {
-    const peerId = conn.peer;
-    persistentConnections[peerId] = conn;
-    
-    conn.on('data', function (data) {
-      try {
-        const msg = typeof data === 'string' ? JSON.parse(data) : data;
-        if (msg && msg.type === 'premcall-message') {
-          // Send delivery confirmation
-          if (msg.messageId) {
-            const ack = {
-              type: 'premcall-ack',
-              messageId: msg.messageId,
-              from: myNumber,
-              timestamp: Date.now()
-            };
-            try { conn.send(JSON.stringify(ack)); } catch(e) {}
-          }
-          
-          const message = {
-            from: msg.from,
-            text: msg.text,
-            timestamp: msg.timestamp || Date.now(),
-            direction: 'incoming',
-            messageId: msg.messageId
-          };
-          messageListeners.forEach(function (cb) { cb(message); });
-          fire('onMessage', message);
-        } else if (msg && msg.type === 'premcall-ack') {
-          // Delivery confirmation received
-          fire('onDeliveryConfirmation', { messageId: msg.messageId, from: msg.from });
-        }
-      } catch (e) {
-        console.warn('[PremCall] Invalid message data', e);
-      }
-    });
-
-    conn.on('close', function () {
-      log('Connection closed with: ' + peerId, 'warn');
-      delete persistentConnections[peerId];
-      // Try to deliver queued messages when peer comes back online
-      deliverQueuedMessages(peerId);
-    });
-
-    conn.on('open', function () {
-      log('Connection opened with: ' + peerId, 'info');
-      // Deliver any queued messages
-      deliverQueuedMessages(peerId);
-    });
-
-    conn.on('error', function (err) {
-      log('Connection error with ' + peerId + ': ' + err.message, 'error');
-      delete persistentConnections[peerId];
-    });
-  }
-
-  function connectToPeer(peerId) {
-    if (!peer || peer.destroyed) return;
-    if (persistentConnections[peerId] && persistentConnections[peerId].open) {
-      return;
-    }
-    if (peerId === myNumber) return;
-    
-    log('Connecting to peer: ' + peerId, 'info');
-    const conn = peer.connect(peerId, { reliable: true });
-    
-    let connected = false;
-    conn.on('open', function () {
-      if (!connected) {
-        connected = true;
-        log('Connected to peer: ' + peerId, 'info');
-        setupPersistentConnection(conn);
-        fire('onPeerConnected', peerId);
-        // Deliver queued messages
-        deliverQueuedMessages(peerId);
-      }
-    });
-    
-    conn.on('error', function (err) {
-      if (!connected) {
-        log('Failed to connect to ' + peerId + ': ' + err.message, 'error');
-      }
-    });
-  }
-
-  // ─── Message Queuing ──────────────────────────────────────
-  function queueMessage(target, text, messageId) {
-    if (!messageQueue[target]) {
-      messageQueue[target] = [];
-    }
-    const msg = {
-      id: messageId || generateMessageId(),
-      text: text,
-      timestamp: Date.now(),
-      from: myNumber,
-      attempts: 0
-    };
-    messageQueue[target].push(msg);
-    saveMessageQueue();
-    return msg.id;
-  }
-
-  function deliverQueuedMessages(peerId) {
-    if (!messageQueue[peerId] || messageQueue[peerId].length === 0) return;
-    if (!persistentConnections[peerId] || !persistentConnections[peerId].open) {
-      // Try to connect
-      connectToPeer(peerId);
-      return;
-    }
-    
-    const conn = persistentConnections[peerId];
-    const queued = messageQueue[peerId];
-    const delivered = [];
-    
-    queued.forEach(function(msg, index) {
-      const payload = {
-        type: 'premcall-message',
-        from: myNumber,
-        text: msg.text,
-        timestamp: msg.timestamp,
-        messageId: msg.id
-      };
-      
-      try {
-        conn.send(JSON.stringify(payload));
-        delivered.push(index);
-        log('Delivered queued message to ' + peerId + ': ' + msg.text, 'info');
-        // Fire delivery event
-        const messageObj = {
-          target: peerId,
-          text: msg.text,
-          timestamp: msg.timestamp,
-          direction: 'outgoing',
-          messageId: msg.id,
-          delivered: true
-        };
-        fire('onMessage', messageObj);
-      } catch (e) {
-        log('Failed to deliver queued message to ' + peerId + ': ' + e.message, 'error');
-      }
-    });
-    
-    // Remove delivered messages from queue
-    if (delivered.length > 0) {
-      messageQueue[peerId] = messageQueue[peerId].filter(function(_, index) {
-        return !delivered.includes(index);
-      });
-      if (messageQueue[peerId].length === 0) {
-        delete messageQueue[peerId];
-      }
-      saveMessageQueue();
-    }
-  }
-
-  function saveMessageQueue() {
-    try {
-      localStorage.setItem('premCallMessageQueue', JSON.stringify(messageQueue));
-    } catch (e) {
-      console.error('Failed to save message queue:', e);
-    }
-  }
-
-  function loadMessageQueue() {
-    try {
-      const data = JSON.parse(localStorage.getItem('premCallMessageQueue') || '{}');
-      // Clean up old messages (older than 7 days)
-      const now = Date.now();
-      const sevenDays = 7 * 24 * 60 * 60 * 1000;
-      Object.keys(data).forEach(function(peer) {
-        data[peer] = data[peer].filter(function(msg) {
-          return (now - msg.timestamp) < sevenDays;
-        });
-        if (data[peer].length === 0) {
-          delete data[peer];
-        }
-      });
-      return data;
-    } catch (e) {
-      console.error('Failed to load message queue:', e);
-      return {};
-    }
-  }
-
-  // ─── Attach Peer Handlers ──────────────────────────────────
-  function attachPeerHandlers() {
-    peer.on('open', function (id) {
-      log('Connected with ID: ' + id, 'info');
-      connectionAttempts = 0;
-      isReconnecting = false;
-      fire('online', id);
-      fire('onConnected', id);
-      
-      // Deliver any queued messages
-      Object.keys(messageQueue).forEach(function(peerId) {
-        if (messageQueue[peerId] && messageQueue[peerId].length > 0) {
-          setTimeout(function() {
-            deliverQueuedMessages(peerId);
-          }, 1000);
-        }
-      });
-    });
-
-    peer.on('error', function (err) {
-      log('Peer error: ' + err.type + ' - ' + err.message, 'error');
-      if (err.type === 'unavailable-id') {
-        fire('onError', new Error('Number already taken'));
-      } else if (err.type === 'network' || err.type === 'server-error') {
-        if (peer && peer.id) {
-          handleReconnect();
-        }
-      } else {
-        fire('onError', err);
-      }
-    });
-
-    peer.on('close', function () {
-      log('Connection closed', 'warn');
-      fire('offline', null);
-      fire('onDisconnected', null);
-      if (inCall) resetCallState();
-      if (myNumber) {
-        handleReconnect();
-      }
-    });
-
-    peer.on('disconnected', function () {
-      log('Disconnected from server', 'warn');
-      fire('offline', null);
-      fire('onDisconnected', null);
-      if (myNumber) {
-        handleReconnect();
-      }
-    });
-
-    peer.on('call', function (call) {
-      log('Incoming call from: ' + call.peer, 'info');
-      if (inCall) {
-        call.close();
-        log('Rejected - already in call', 'warn');
-        return;
-      }
-      incomingCall = call;
-      fire('onIncoming', call.peer);
-    });
-
-    peer.on('connection', function (conn) {
-      log('New connection from: ' + conn.peer, 'info');
-      setupPersistentConnection(conn);
-      fire('onPeerConnected', conn.peer);
-    });
-  }
-
-  function handleReconnect() {
-    if (isReconnecting) return;
-    if (connectionAttempts >= MAX_ATTEMPTS) {
-      log('Max reconnect attempts reached', 'error');
-      fire('onError', new Error('Unable to reconnect to server'));
-      return;
-    }
-    
-    isReconnecting = true;
-    connectionAttempts++;
-    
-    const delay = Math.min(2000 * connectionAttempts, 10000);
-    log('Reconnect attempt ' + connectionAttempts + ' in ' + delay + 'ms', 'info');
-    fire('onReconnecting', { attempt: connectionAttempts, delay: delay });
-    
-    setTimeout(function() {
-      isReconnecting = false;
-      if (peer && !peer.destroyed) {
-        try {
-          peer.reconnect();
-          setTimeout(function() {
-            if (peer && !peer.id && !peer.destroyed) {
-              log('Reconnect failed, recreating peer', 'info');
-              const oldPeer = peer;
-              peer = new global.Peer(myNumber, { debug: 2, config: CONFIG });
-              attachPeerHandlers();
-              if (oldPeer) {
-                try { oldPeer.destroy(); } catch(e) {}
-              }
-            }
-          }, 3000);
-        } catch(e) {
-          log('Reconnect error: ' + e.message, 'error');
-        }
-      }
-    }, delay);
-  }
-
-  // ─── Public API ──────────────────────────────────────────
-  const PremCall = {
-    init: function (number, opts) {
-      if (!/^\d{10}$/.test(number)) {
-        throw new Error('Number must be exactly 10 digits');
-      }
-      
-      if (peer) {
-        peer.destroy();
-        peer = null;
-      }
-      
-      myNumber = number;
-      callbacks = opts || {};
-      connectionAttempts = 0;
-      isReconnecting = false;
-      
-      // Load message queue
-      messageQueue = loadMessageQueue();
-      
-      peer = new global.Peer(number, { debug: 2, config: CONFIG });
-      attachPeerHandlers();
-      
-      // Restore connections from localStorage
-      try {
-        const savedPeers = JSON.parse(localStorage.getItem('premCallPeers') || '[]');
-        savedPeers.forEach(function(peerId) {
-          if (peerId && peerId !== myNumber) {
-            setTimeout(function() {
-              connectToPeer(peerId);
-            }, 2000);
-          }
-        });
-      } catch (e) {}
-    },
-
-    connectToPeer: function(peerId) {
-      if (!peer || peer.destroyed) {
-        log('Cannot connect: Peer not initialized', 'error');
-        return;
-      }
-      if (!/^\d{10}$/.test(peerId)) {
-        log('Invalid peer ID: ' + peerId, 'error');
-        return;
-      }
-      if (peerId === myNumber) {
-        log('Cannot connect to self', 'warn');
-        return;
-      }
-      
-      try {
-        let savedPeers = JSON.parse(localStorage.getItem('premCallPeers') || '[]');
-        if (!savedPeers.includes(peerId)) {
-          savedPeers.push(peerId);
-          localStorage.setItem('premCallPeers', JSON.stringify(savedPeers));
-        }
-      } catch (e) {}
-      
-      connectToPeer(peerId);
-    },
-
-    call: async function (target) {
-      if (inCall) throw new Error('Already in a call');
-      if (!peer) throw new Error('Not initialized. Call init() first.');
-      if (!/^\d{10}$/.test(target)) throw new Error('Target must be exactly 10 digits');
-      if (target === myNumber) throw new Error('Cannot call yourself');
-      
-      log('Calling ' + target + '...', 'info');
-      try {
-        const stream = await getLocalStream();
-        const call = peer.call(target, stream);
-        if (!call) throw new Error('Target unreachable');
-        wireCallEvents(call, true);
-      } catch (e) {
-        log('Call failed: ' + e.message, 'error');
-        throw e;
-      }
-    },
-
-    answer: async function () {
-      if (!incomingCall) throw new Error('No incoming call');
-      const call = incomingCall;
-      incomingCall = null;
-      try {
-        const stream = await getLocalStream();
-        call.answer(stream);
-        wireCallEvents(call, false);
-      } catch (e) {
-        log('Answer failed: ' + e.message, 'error');
-        throw e;
-      }
-    },
-
-    hangup: function () {
-      resetCallState();
-      fire('onCallEnded', null);
-      log('Call ended', 'info');
-    },
-
-    mute: function () {
-      if (!localStream) return muted;
-      muted = !muted;
-      localStream.getAudioTracks().forEach(function (t) { t.enabled = !muted; });
-      fire('onMuteToggled', muted);
-      return muted;
-    },
-
-    speaker: function () {
-      speakerOn = !speakerOn;
-      fire('onSpeakerToggled', speakerOn);
-      return speakerOn;
-    },
-
-    checkStatus: function (number) {
-      return new Promise(function (resolve) {
-        if (!peer) return resolve(false);
-        
-        if (persistentConnections[number] && persistentConnections[number].open) {
-          return resolve(true);
-        }
-        
-        const conn = peer.connect(number);
-        let done = false;
-        conn.on('open', function () {
-          if (!done) { 
-            done = true; 
-            resolve(true); 
-            setupPersistentConnection(conn);
-          }
-        });
-        conn.on('error', function () {
-          if (!done) { done = true; resolve(false); }
-        });
-        setTimeout(function () {
-          if (!done) { 
-            done = true; 
-            resolve(false); 
-            try { conn.close(); } catch (e) {} 
-          }
-        }, 3000);
-      });
-    },
-
-    getNumber: function () { return myNumber; },
-    isInCall: function () { return inCall; },
-    getPeerConnections: function () { return Object.keys(persistentConnections); },
-    getPendingMessages: function (peerId) {
-      if (peerId && messageQueue[peerId]) {
-        return messageQueue[peerId].length;
-      }
-      let total = 0;
-      Object.keys(messageQueue).forEach(function(key) {
-        total += messageQueue[key].length;
-      });
-      return total;
-    },
-
-    destroy: function () {
-      isReconnecting = false;
-      
-      Object.keys(persistentConnections).forEach(function(key) {
-        try { persistentConnections[key].close(); } catch(e) {}
-      });
-      persistentConnections = {};
-      
-      if (peer) { 
-        peer.destroy(); 
-        peer = null; 
-      }
-      if (localStream) {
-        localStream.getTracks().forEach(function (t) { t.stop(); });
-        localStream = null;
-      }
-      remoteStream = null;
-      inCall = false;
-      incomingCall = null;
-      activeCall = null;
-      myNumber = null;
-      muted = false;
-      speakerOn = false;
-      messageListeners.clear();
-      
-      try {
-        localStorage.removeItem('premCallPeers');
-      } catch(e) {}
-    },
-
-    sendMessage: function (target, text) {
-      return new Promise(function (resolve, reject) {
-        if (!peer) return reject(new Error('PremCall not initialized.'));
-        if (!/^\d{10}$/.test(target)) return reject(new Error('Target must be 10 digits.'));
-        if (!text || typeof text !== 'string' || text.trim().length === 0) {
-          return reject(new Error('Message cannot be empty.'));
-        }
-        
-        const messageId = generateMessageId();
-        const payload = {
-          type: 'premcall-message',
-          from: myNumber,
-          text: text.trim(),
-          timestamp: Date.now(),
-          messageId: messageId
-        };
-        
-        let delivered = false;
-        let pending = false;
-        
-        // Try to send using persistent connection
-        if (persistentConnections[target] && persistentConnections[target].open) {
-          try {
-            persistentConnections[target].send(JSON.stringify(payload));
-            delivered = true;
-            const messageObj = { 
-              target: target, 
-              text: payload.text, 
-              timestamp: payload.timestamp, 
-              direction: 'outgoing',
-              messageId: messageId,
-              delivered: true
-            };
-            resolve(messageObj);
-            fire('onMessage', messageObj);
-            return;
-          } catch (e) {
-            delete persistentConnections[target];
-          }
-        }
-        
-        // If not delivered, queue the message
-        const queuedId = queueMessage(target, text.trim(), messageId);
-        pending = true;
-        
-        const messageObj = { 
-          target: target, 
-          text: text.trim(), 
-          timestamp: Date.now(), 
-          direction: 'outgoing',
-          messageId: queuedId,
-          pending: true,
-          queued: true
-        };
-        
-        // Try to establish connection for delivery
-        connectToPeer(target);
-        
-        // Schedule delivery attempt
-        setTimeout(function() {
-          deliverQueuedMessages(target);
-        }, 1000);
-        
-        resolve(messageObj);
-        fire('onMessage', messageObj);
-        fire('onMessageQueued', { target: target, messageId: queuedId });
-      });
-    },
-
-    onMessage: function (cb) { 
-      if (typeof cb === 'function') messageListeners.add(cb); 
-    },
-
-    offMessage: function (cb) { 
-      messageListeners.delete(cb); 
-    }
-  };
-
-  global.PremCall = PremCall;
-  console.log('[PremCall] Library loaded (v2.4 - Offline Queuing).');
-})(window);
 </script>
 
 <script>
 (function() {
   'use strict';
+
+  var FIREBASE_NOT_CONFIGURED = !FIREBASE_CONFIG.apiKey || FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY';
+
+  /* ---------- Chat engine (Firestore) ---------- */
+  var db = null;
+  var auth = null;
+  var chat = {
+    ready: false,
+
+    init: function () {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+      auth = firebase.auth();
+      try {
+        db.enablePersistence({ synchronizeTabs: true }).catch(function (err) {
+          console.warn('[Chat] Offline persistence unavailable:', err.code);
+        });
+      } catch (e) {}
+      this.ready = true;
+    },
+
+    // Free (Spark plan), no SMS: gives this browser a permanent, silent
+    // device ID. Not phone-verified — just a stable identity to gate
+    // reads/writes with, so a stranger with the Firebase config can't
+    // read your chats or send messages pretending to be your number.
+    signIn: function () {
+      return new Promise(function (resolve, reject) {
+        var unsub = auth.onAuthStateChanged(function (user) {
+          if (user) { unsub(); resolve(user.uid); }
+        });
+        auth.signInAnonymously().catch(function (err) { unsub(); reject(err); });
+      });
+    },
+
+    // First device to register a number "claims" it (uid <-> number,
+    // written both ways so Firestore rules can check either direction).
+    // Returns { ownedByMe: bool } — false means another device already
+    // holds this number.
+    claimNumber: function (number, uid) {
+      var userRef = db.collection('users').doc(number);
+      return userRef.get().then(function (doc) {
+        if (doc.exists) {
+          return { ownedByMe: doc.data().uid === uid };
+        }
+        var batch = db.batch();
+        batch.set(userRef, { uid: uid });
+        batch.set(db.collection('uids').doc(uid), { number: number });
+        return batch.commit().then(function () { return { ownedByMe: true }; });
+      });
+    },
+
+    conversationId: function (a, b) {
+      return [a, b].sort().join('_');
+    },
+
+    sendMessage: function (myNumber, toNumber, text) {
+      return db.collection('messages').add({
+        conversationId: this.conversationId(myNumber, toNumber),
+        participants: [myNumber, toNumber],
+        from: myNumber,
+        to: toNumber,
+        text: text.trim(),
+        timestamp: Date.now()
+      });
+    },
+
+    // Live-subscribes to one conversation. Returns an unsubscribe fn.
+    listenConversation: function (myNumber, peerNumber, cb) {
+      var id = this.conversationId(myNumber, peerNumber);
+      return db.collection('messages')
+        .where('conversationId', '==', id)
+        .orderBy('timestamp', 'asc')
+        .onSnapshot(function (snapshot) {
+          var msgs = snapshot.docs.map(function (doc) {
+            var d = doc.data();
+            return {
+              id: doc.id,
+              text: d.text,
+              timestamp: d.timestamp,
+              direction: d.from === myNumber ? 'outgoing' : 'incoming',
+              pending: doc.metadata.hasPendingWrites
+            };
+          });
+          cb(msgs);
+        }, function (err) {
+          console.error('[Chat] Conversation listener error:', err);
+        });
+    },
+
+    // Live-subscribes to the conversation list (last message per peer).
+    listenConversationsList: function (myNumber, cb) {
+      return db.collection('messages')
+        .where('participants', 'array-contains', myNumber)
+        .orderBy('timestamp', 'desc')
+        .onSnapshot(function (snapshot) {
+          var latestByPeer = {};
+          snapshot.docs.forEach(function (doc) {
+            var d = doc.data();
+            var peer = d.from === myNumber ? d.to : d.from;
+            if (!latestByPeer[peer]) {
+              latestByPeer[peer] = {
+                peer: peer,
+                text: d.text,
+                timestamp: d.timestamp,
+                direction: d.from === myNumber ? 'outgoing' : 'incoming'
+              };
+            }
+          });
+          cb(Object.keys(latestByPeer).map(function (k) { return latestByPeer[k]; }));
+        }, function (err) {
+          console.error('[Chat] Conversation list listener error:', err);
+          // Most common cause on first run: Firestore needs a composite index
+          // for this query. Check the browser console — Firestore prints a
+          // direct "create index" link in the error, one click and it's done.
+        });
+    },
+
+    // Lightweight presence: heartbeat + "seen in the last 30s" == online.
+    touchPresence: function (myNumber) {
+      db.collection('presence').doc(myNumber).set({ lastSeen: Date.now() }, { merge: true });
+    },
+    listenPresence: function (peerNumber, cb) {
+      return db.collection('presence').doc(peerNumber).onSnapshot(function (doc) {
+        var data = doc.data();
+        var online = !!data && (Date.now() - data.lastSeen < 30000);
+        cb(online);
+      });
+    }
+  };
 
   /* ---------- Helpers ---------- */
   function showToast(msg) {
@@ -1044,32 +460,12 @@
     showToast._t = setTimeout(function() { toast.style.opacity = '0'; }, 3000);
   }
 
-  function updateStatus(status) {
+  function updateNetStatus() {
+    var online = navigator.onLine;
+    document.getElementById('offlineBar').classList.toggle('show', !online);
     var badge = document.getElementById('statusBadge');
-    var statusMap = {
-      'online': 'Online',
-      'offline': 'Offline',
-      'connecting': 'Connecting...'
-    };
-    badge.textContent = statusMap[status] || status;
-    badge.className = 'status-badge ' + status;
-    
-    var reconnectBar = document.getElementById('reconnectBar');
-    if (status === 'offline' || status === 'connecting') {
-      reconnectBar.classList.add('show');
-    } else {
-      reconnectBar.classList.remove('show');
-    }
-  }
-
-  function setInputEnabled(enabled) {
-    var input = document.getElementById('messageInput');
-    var sendBtn = document.getElementById('sendBtn');
-    if (input) input.disabled = !enabled;
-    if (sendBtn) sendBtn.disabled = !enabled;
-    if (input) {
-      input.placeholder = enabled ? 'Type a message…' : 'Connecting...';
-    }
+    badge.textContent = online ? 'Online' : 'Offline';
+    badge.className = 'status-badge ' + (online ? 'online' : 'offline');
   }
 
   function initials(peer) {
@@ -1090,159 +486,36 @@
     var d = new Date(ts);
     if (isNaN(d.getTime())) return '';
     var today = new Date();
-    if (d.toDateString() === today.toDateString()) {
-      return 'Today';
-    }
+    if (d.toDateString() === today.toDateString()) return 'Today';
     var yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    if (d.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday';
-    }
+    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
 
-  function sanitizeConversations(data) {
-    var out = {};
-    for (var key in data) {
-      if (Object.prototype.hasOwnProperty.call(data, key)) {
-        var arr = data[key];
-        if (Array.isArray(arr)) {
-          out[key] = arr.filter(function(m) {
-            return m && typeof m === 'object';
-          }).map(function(m) {
-            return {
-              text: String(m.text || ''),
-              timestamp: typeof m.timestamp === 'number' ? m.timestamp : Date.now(),
-              direction: m.direction === 'outgoing' ? 'outgoing' : 'incoming',
-              from: m.from || null,
-              messageId: m.messageId || null,
-              delivered: m.delivered || false,
-              pending: m.pending || false,
-              queued: m.queued || false
-            };
-          });
-        } else {
-          out[key] = [];
-        }
-      }
-    }
-    return out;
-  }
-
   /* ---------- State ---------- */
-  var conversations = {};
   var activePeer = null;
-  var isSending = false;
-  var isReady = false;
   var myNumber = null;
-  var peerStatusCache = {};
-
-  function loadConversations() {
-    try {
-      return JSON.parse(localStorage.getItem('premCallChats') || '{}');
-    } catch (e) {
-      console.error('Failed to load conversations:', e);
-      return {};
-    }
-  }
-
-  function saveConversations() {
-    try {
-      localStorage.setItem('premCallChats', JSON.stringify(conversations));
-    } catch (e) {
-      console.error('Failed to save conversations:', e);
-      showToast('Storage full: unable to save message');
-    }
-  }
-
-  function checkPeerStatus(peerNumber) {
-    if (!isReady || typeof PremCall === 'undefined' || typeof PremCall.checkStatus !== 'function') {
-      return;
-    }
-    
-    PremCall.checkStatus(peerNumber)
-      .then(function(isOnline) {
-        peerStatusCache[peerNumber] = {
-          online: isOnline,
-          lastCheck: Date.now()
-        };
-        updatePeerStatusUI(peerNumber, isOnline);
-      })
-      .catch(function(err) {
-        console.warn('Status check failed for', peerNumber, err);
-      });
-  }
-
-  function updatePeerStatusUI(peerNumber, isOnline) {
-    var items = document.querySelectorAll('.conversation-item');
-    items.forEach(function(item) {
-      var nameEl = item.querySelector('.name');
-      if (nameEl && nameEl.textContent === peerNumber) {
-        var dot = item.querySelector('.status-dot');
-        if (dot) {
-          dot.className = 'status-dot ' + (isOnline ? 'online' : 'offline');
-        }
-      }
-    });
-
-    if (activePeer === peerNumber) {
-      var statusEl = document.getElementById('chatPeerStatus');
-      var dot = statusEl.querySelector('.status-dot');
-      var text = statusEl.querySelector('.peer-online-status');
-      if (dot) {
-        dot.className = 'status-dot ' + (isOnline ? 'online' : 'offline');
-      }
-      if (text) {
-        text.textContent = isOnline ? 'Online' : 'Offline';
-        text.className = 'peer-online-status ' + (isOnline ? 'online' : 'offline');
-      }
-    }
-    
-    // Update pending count
-    updatePendingCount(peerNumber);
-  }
-
-  function updatePendingCount(peerNumber) {
-    var pendingCountEl = document.getElementById('pendingCount');
-    if (!pendingCountEl) return;
-    
-    if (typeof PremCall !== 'undefined' && PremCall.getPendingMessages) {
-      var count = PremCall.getPendingMessages(peerNumber);
-      if (count > 0) {
-        pendingCountEl.style.display = 'inline';
-        pendingCountEl.textContent = count + ' pending';
-      } else {
-        pendingCountEl.style.display = 'none';
-      }
-    }
-  }
+  var conversationListUnsub = null;
+  var activeConversationUnsub = null;
+  var activePresenceUnsub = null;
+  var latestConversations = []; // cache for rendering the list
 
   function renderConversationList() {
     var listEl = document.getElementById('conversationList');
     listEl.innerHTML = '';
-    var peers = Object.keys(conversations);
-    if (peers.length === 0) {
-      listEl.innerHTML = '<div class="empty-state"><span class="icon"><i class="fas fa-comments"></i></span>No conversations yet<span class="sub-text">Start a chat with any registered number</span></div>';
+    if (latestConversations.length === 0) {
+      listEl.innerHTML = '<div class="empty-state"><span class="icon"><i class="fas fa-comments"></i></span>No conversations yet<span class="sub-text">Tap + to message any registered number</span></div>';
       return;
     }
-    peers.sort(function(a, b) {
-      var msgsA = conversations[a];
-      var msgsB = conversations[b];
-      var lastA = msgsA.length ? (Number(msgsA[msgsA.length - 1].timestamp) || 0) : 0;
-      var lastB = msgsB.length ? (Number(msgsB[msgsB.length - 1].timestamp) || 0) : 0;
-      return lastB - lastA;
-    });
-
-    peers.forEach(function(peer) {
-      var msgs = conversations[peer];
-      var lastMsg = msgs[msgs.length - 1] || { text: '', timestamp: 0, direction: '' };
-
+    var sorted = latestConversations.slice().sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); });
+    sorted.forEach(function(convo) {
       var item = document.createElement('div');
       item.className = 'conversation-item';
 
       var avatar = document.createElement('div');
       avatar.className = 'avatar';
-      avatar.textContent = initials(peer);
+      avatar.textContent = initials(convo.peer);
       item.appendChild(avatar);
 
       var info = document.createElement('div');
@@ -1250,52 +523,23 @@
 
       var nameDiv = document.createElement('div');
       nameDiv.className = 'name';
-      nameDiv.textContent = peer;
-      
-      var statusDot = document.createElement('span');
-      statusDot.className = 'status-dot unknown';
-      nameDiv.appendChild(statusDot);
-      
-      // Check for pending messages
-      var pendingCount = 0;
-      if (typeof PremCall !== 'undefined' && PremCall.getPendingMessages) {
-        pendingCount = PremCall.getPendingMessages(peer);
-      }
-      if (pendingCount > 0) {
-        var pendingBadge = document.createElement('span');
-        pendingBadge.className = 'pending-badge';
-        pendingBadge.textContent = pendingCount;
-        nameDiv.appendChild(pendingBadge);
-      }
-      
+      nameDiv.textContent = convo.peer;
       info.appendChild(nameDiv);
 
       var preview = document.createElement('div');
       preview.className = 'preview';
-      var sender = lastMsg.direction === 'outgoing' ? 'You' : (lastMsg.from || peer);
-      var prefix = lastMsg.direction === 'outgoing' ? 'You: ' : '';
-      if (lastMsg.pending) {
-        prefix = '[Pending] You: ';
-      }
-      preview.textContent = prefix + (lastMsg.text || '');
+      preview.textContent = (convo.direction === 'outgoing' ? 'You: ' : '') + (convo.text || '');
       info.appendChild(preview);
 
       item.appendChild(info);
 
       var time = document.createElement('span');
       time.className = 'time';
-      time.textContent = formatTime(lastMsg.timestamp);
+      time.textContent = formatTime(convo.timestamp);
       item.appendChild(time);
 
-      item.addEventListener('click', function() { openChat(peer); });
+      item.addEventListener('click', function() { openChat(convo.peer); });
       listEl.appendChild(item);
-
-      if (isReady) {
-        checkPeerStatus(peer);
-        if (typeof PremCall !== 'undefined' && PremCall.connectToPeer) {
-          PremCall.connectToPeer(peer);
-        }
-      }
     });
   }
 
@@ -1304,102 +548,60 @@
     document.getElementById('listHeader').classList.add('hidden');
     document.getElementById('conversationList').classList.add('hidden');
     document.getElementById('chatView').classList.remove('hidden');
-
     document.getElementById('chatPeerName').textContent = peer;
     document.getElementById('chatPeerAvatar').textContent = initials(peer);
-    
-    if (isReady && typeof PremCall !== 'undefined' && PremCall.connectToPeer) {
-      PremCall.connectToPeer(peer);
-    }
-    
-    if (isReady) {
-      checkPeerStatus(peer);
-    } else {
-      var statusEl = document.getElementById('chatPeerStatus');
-      var dot = statusEl.querySelector('.status-dot');
-      var text = statusEl.querySelector('.peer-online-status');
-      if (dot) dot.className = 'status-dot unknown';
-      if (text) {
-        text.textContent = 'Checking...';
-        text.className = 'peer-online-status unknown';
-      }
-    }
-    
-    updatePendingCount(peer);
-    renderMessages();
-    setInputEnabled(isReady);
-    if (isReady) {
-      document.getElementById('messageInput').focus();
-    }
+    document.getElementById('messagesContainer').innerHTML = '';
+
+    if (activeConversationUnsub) activeConversationUnsub();
+    if (activePresenceUnsub) activePresenceUnsub();
+
+    activeConversationUnsub = chat.listenConversation(myNumber, peer, renderMessages);
+    activePresenceUnsub = chat.listenPresence(peer, function(online) {
+      var dot = document.querySelector('#chatPeerStatus .status-dot');
+      var text = document.getElementById('chatPeerStatusText');
+      dot.className = 'status-dot ' + (online ? 'online' : 'offline');
+      text.textContent = online ? 'Online' : 'Offline';
+    });
+
+    document.getElementById('messageInput').focus();
   }
 
   function closeChat() {
     activePeer = null;
+    if (activeConversationUnsub) { activeConversationUnsub(); activeConversationUnsub = null; }
+    if (activePresenceUnsub) { activePresenceUnsub(); activePresenceUnsub = null; }
     document.getElementById('chatView').classList.add('hidden');
     document.getElementById('listHeader').classList.remove('hidden');
     document.getElementById('conversationList').classList.remove('hidden');
-    renderConversationList();
   }
 
-  function renderMessages() {
+  function renderMessages(msgs) {
     var container = document.getElementById('messagesContainer');
     container.innerHTML = '';
-    if (!activePeer || !conversations[activePeer]) return;
-
-    var msgs = conversations[activePeer];
     var lastDate = null;
-    
+
     msgs.forEach(function(msg) {
       var msgDate = formatDate(msg.timestamp);
       if (msgDate !== lastDate) {
         lastDate = msgDate;
         var dateDiv = document.createElement('div');
-        dateDiv.style.cssText = 'text-align:center;font-size:0.7rem;color:var(--text-faint);padding:0.5rem 0;';
+        dateDiv.className = 'date-divider';
         dateDiv.textContent = msgDate;
         container.appendChild(dateDiv);
       }
 
       var wrapper = document.createElement('div');
-      var isPending = msg.pending || false;
-      var wrapperClass = 'message-wrapper ' + (msg.direction === 'outgoing' ? 'outgoing' : 'incoming');
-      if (isPending) {
-        wrapperClass += ' pending';
-      }
-      wrapper.className = wrapperClass;
-
-      var sender = document.createElement('div');
-      sender.className = 'message-sender';
-      if (msg.direction === 'outgoing') {
-        sender.textContent = 'You (' + (myNumber || 'Me') + ')';
-      } else {
-        sender.textContent = msg.from || activePeer;
-      }
-      wrapper.appendChild(sender);
+      wrapper.className = 'message-wrapper ' + msg.direction;
 
       var bubble = document.createElement('div');
-      bubble.className = 'message-bubble';
+      bubble.className = 'message-bubble' + (msg.pending ? ' pending' : '');
       bubble.textContent = msg.text || '';
       wrapper.appendChild(bubble);
 
       var time = document.createElement('span');
       time.className = 'message-timestamp';
-      time.textContent = formatTime(msg.timestamp);
+      time.textContent = formatTime(msg.timestamp) + (msg.pending ? ' · sending…' : '');
       wrapper.appendChild(time);
-
-      // Status indicator
-      var status = document.createElement('div');
-      status.className = 'message-status';
-      if (isPending) {
-        status.textContent = '⏳ Pending delivery';
-        status.style.color = 'var(--warn)';
-      } else if (msg.delivered && msg.direction === 'outgoing') {
-        status.textContent = '✓ Delivered';
-        status.style.color = 'var(--go)';
-      } else if (msg.direction === 'outgoing') {
-        status.textContent = '✓ Sent';
-        status.style.color = 'var(--text-faint)';
-      }
-      wrapper.appendChild(status);
 
       container.appendChild(wrapper);
     });
@@ -1407,134 +609,26 @@
     container.scrollTop = container.scrollHeight;
   }
 
-  function addMessage(peer, msg) {
-    if (!peer || !msg) return;
-    if (!Array.isArray(conversations[peer])) conversations[peer] = [];
-    conversations[peer].push({
-      text: String(msg.text || ''),
-      timestamp: typeof msg.timestamp === 'number' ? msg.timestamp : Date.now(),
-      direction: msg.direction === 'outgoing' ? 'outgoing' : 'incoming',
-      from: msg.from || null,
-      messageId: msg.messageId || null,
-      delivered: msg.delivered || false,
-      pending: msg.pending || false,
-      queued: msg.queued || false
-    });
-    saveConversations();
-    if (activePeer === peer) {
-      renderMessages();
-    } else {
-      renderConversationList();
-    }
-  }
-
-  function handleIncomingMessage(msg) {
-    if (!msg || typeof msg !== 'object') {
-      console.warn('Invalid message received:', msg);
-      return;
-    }
-    var peer = msg.from;
-    var text = msg.text;
-    var timestamp = msg.timestamp;
-
-    if (!peer || text == null) {
-      console.warn('Message missing from or text:', msg);
-      return;
-    }
-
-    addMessage(peer, {
-      text: String(text),
-      timestamp: (typeof timestamp === 'number' && timestamp > 0) ? timestamp : Date.now(),
-      direction: 'incoming',
-      from: peer,
-      messageId: msg.messageId || null,
-      delivered: true
-    });
-
-    if (activePeer !== peer) {
-      showToast('New message from ' + peer + ': ' + (text.length > 30 ? text.substring(0, 30) + '...' : text));
-      if (navigator.vibrate) navigator.vibrate(50);
-    }
-    renderConversationList();
-    if (activePeer === peer) {
-      renderMessages();
-    }
-  }
-
-  function handleMessageQueued(data) {
-    if (data && data.target) {
-      updatePendingCount(data.target);
-      renderConversationList();
-    }
-  }
-
   function sendMessage() {
-    if (!activePeer || isSending) return;
-    if (!isReady) {
-      showToast('Please wait, connecting...');
-      return;
-    }
-    
-    if (typeof PremCall === 'undefined' || typeof PremCall.sendMessage !== 'function') {
-      showToast('Messaging service not available');
-      return;
-    }
-
+    if (!activePeer) return;
     var input = document.getElementById('messageInput');
     var text = input.value.trim();
     if (!text) return;
 
-    isSending = true;
-    var sendBtn = document.getElementById('sendBtn');
-    sendBtn.disabled = true;
-    sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-    PremCall.sendMessage(activePeer, text)
-      .then(function(result) {
-        addMessage(activePeer, {
-          text: text,
-          timestamp: Date.now(),
-          direction: 'outgoing',
-          from: myNumber || 'You',
-          messageId: result.messageId,
-          delivered: result.delivered || false,
-          pending: result.pending || false,
-          queued: result.queued || false
-        });
-        input.value = '';
-        renderConversationList();
-        updatePendingCount(activePeer);
-        if (result.pending) {
-          showToast('Message queued - will deliver when peer comes online');
-        }
-      })
-      .catch(function(err) {
-        var errorMsg = err && err.message ? err.message : 'Unknown error';
-        showToast('Send failed: ' + errorMsg);
-        console.error('Send error:', err);
-      })
-      .finally(function() {
-        isSending = false;
-        sendBtn.disabled = !isReady;
-        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
-      });
+    input.value = '';
+    // Firestore queues this locally if offline and sends automatically
+    // once connectivity returns — no manual retry logic needed.
+    chat.sendMessage(myNumber, activePeer, text).catch(function(err) {
+      showToast('Send failed: ' + (err && err.message ? err.message : 'Unknown error'));
+      console.error('Send error:', err);
+    });
   }
 
   function setupEventListeners() {
     document.getElementById('newChatBtn').addEventListener('click', function() {
-      if (!isReady) {
-        showToast('Please wait for connection...');
-        return;
-      }
-      var num = prompt('Enter 10-digit number to start a chat:');
+      var num = prompt('Enter 10-digit number to message:');
       if (num && /^\d{10}$/.test(num.trim())) {
-        var trimmed = num.trim();
-        if (!Array.isArray(conversations[trimmed])) conversations[trimmed] = [];
-        saveConversations();
-        openChat(trimmed);
-        if (typeof PremCall !== 'undefined' && PremCall.connectToPeer) {
-          PremCall.connectToPeer(trimmed);
-        }
+        openChat(num.trim());
       } else if (num) {
         showToast('Please enter a valid 10-digit number');
       }
@@ -1545,121 +639,74 @@
     document.getElementById('messageInput').addEventListener('keydown', function(e) {
       if (e.key === 'Enter') sendMessage();
     });
-    
-    document.getElementById('refreshPeerStatus').addEventListener('click', function() {
-      if (activePeer && isReady) {
-        checkPeerStatus(activePeer);
-        showToast('Checking status...');
-        if (typeof PremCall !== 'undefined' && PremCall.connectToPeer) {
-          PremCall.connectToPeer(activePeer);
+
+    window.addEventListener('online', updateNetStatus);
+    window.addEventListener('offline', updateNetStatus);
+  }
+
+  function boot() {
+    updateNetStatus();
+    setupEventListeners();
+
+    if (FIREBASE_NOT_CONFIGURED) {
+      document.getElementById('setupBanner').classList.add('show');
+      document.getElementById('conversationList').innerHTML =
+        '<div class="empty-state"><span class="icon"><i class="fas fa-gear"></i></span>Messaging isn\'t set up yet.<span class="sub-text">Add your Firebase config near the bottom of this file — see the comment above FIREBASE_CONFIG.</span></div>';
+      return;
+    }
+
+    var storedNumber = localStorage.getItem('premCallNumber');
+    var verified = localStorage.getItem('premCallVerified') === 'true';
+
+    if (!storedNumber || !verified) {
+      document.getElementById('conversationList').innerHTML =
+        '<div class="empty-state"><span class="icon"><i class="fas fa-phone"></i></span>Please register in the dialer first.<span class="sub-text">Go to the dialer and verify your number</span></div>';
+      return;
+    }
+
+    myNumber = storedNumber;
+    document.getElementById('myNumberDisplay').textContent = myNumber;
+
+    try {
+      chat.init();
+    } catch (e) {
+      console.error('Firebase init error:', e);
+      document.getElementById('setupBanner').classList.add('show');
+      document.getElementById('setupBanner').textContent = 'Could not connect to Firebase: ' + e.message;
+      return;
+    }
+
+    chat.signIn().then(function (uid) {
+      return chat.claimNumber(myNumber, uid).then(function (result) {
+        if (!result.ownedByMe) {
+          document.getElementById('conversationList').innerHTML =
+            '<div class="empty-state" style="color:var(--stop)"><span class="icon"><i class="fas fa-lock"></i></span>This number is already registered on a different browser or device.<span class="sub-text">There\'s no SMS verification, so each number can only be claimed once. Use the original device, or register a different number.</span></div>';
+          return;
         }
-      }
+
+        chat.touchPresence(myNumber);
+        setInterval(function() { chat.touchPresence(myNumber); }, 15000);
+        document.addEventListener('visibilitychange', function() {
+          if (!document.hidden) chat.touchPresence(myNumber);
+        });
+
+        conversationListUnsub = chat.listenConversationsList(myNumber, function(list) {
+          latestConversations = list;
+          if (!activePeer) renderConversationList();
+        });
+      });
+    }).catch(function (err) {
+      console.error('Auth/claim error:', err);
+      document.getElementById('conversationList').innerHTML =
+        '<div class="empty-state" style="color:var(--stop)">Could not connect: ' + err.message + '</div>';
     });
   }
 
-  function initPremCall(number) {
-    myNumber = number;
-    document.getElementById('myNumberDisplay').textContent = number;
-    
-    try {
-      PremCall.init(number, {
-        onMessage: handleIncomingMessage,
-        onMessageQueued: handleMessageQueued,
-        onError: function(err) {
-          console.warn('PremCall error:', err);
-          var msg = err && err.message ? err.message : 'Unknown error';
-          showToast('Error: ' + msg);
-          updateStatus('offline');
-          isReady = false;
-          setInputEnabled(false);
-        },
-        onConnected: function() {
-          console.log('Connected to PeerJS network');
-          updateStatus('online');
-          showToast('Connected!');
-          isReady = true;
-          setInputEnabled(true);
-          renderConversationList();
-          if (activePeer) {
-            checkPeerStatus(activePeer);
-            updatePendingCount(activePeer);
-            document.getElementById('messageInput').focus();
-          }
-        },
-        onDisconnected: function() {
-          console.warn('Disconnected from PeerJS network');
-          updateStatus('offline');
-          isReady = false;
-          setInputEnabled(false);
-          showToast('Disconnected - reconnecting...');
-        },
-        onReconnecting: function(data) {
-          console.log('Reconnecting... attempt ' + data.attempt);
-          updateStatus('connecting');
-        },
-        online: function() {
-          updateStatus('online');
-          isReady = true;
-          setInputEnabled(true);
-          renderConversationList();
-        },
-        offline: function() {
-          updateStatus('offline');
-          isReady = false;
-          setInputEnabled(false);
-        },
-        onPeerConnected: function(peerId) {
-          console.log('Peer connected:', peerId);
-          checkPeerStatus(peerId);
-          updatePendingCount(peerId);
-          renderConversationList();
-        },
-        onDeliveryConfirmation: function(data) {
-          console.log('Delivery confirmed for:', data.messageId);
-          // Update message status
-          if (activePeer && data.from === activePeer) {
-            renderMessages();
-          }
-        }
-      });
-      updateStatus('connecting');
-      console.log('PremCall initialized with number:', number);
-      return true;
-    } catch (e) {
-      console.error('PremCall init error:', e);
-      showToast('Init failed: ' + e.message);
-      updateStatus('offline');
-      isReady = false;
-      setInputEnabled(false);
-      return false;
-    }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
   }
-
-  document.addEventListener('DOMContentLoaded', function() {
-    conversations = sanitizeConversations(loadConversations());
-    renderConversationList();
-    setupEventListeners();
-
-    if (typeof PremCall !== 'undefined' && typeof PremCall.init === 'function') {
-      console.log('PremCall loaded');
-      var storedNumber = localStorage.getItem('premCallNumber');
-      var verified = localStorage.getItem('premCallVerified') === 'true';
-
-      if (storedNumber && verified) {
-        initPremCall(storedNumber);
-      } else {
-        document.getElementById('conversationList').innerHTML =
-          '<div class="empty-state"><span class="icon"><i class="fas fa-phone"></i></span>Please register in the dialer first.<span class="sub-text">Go to the dialer and verify your number</span></div>';
-        updateStatus('offline');
-        setInputEnabled(false);
-      }
-    } else {
-      document.getElementById('conversationList').innerHTML =
-        '<div class="empty-state" style="color:var(--stop)"><span class="icon"><i class="fas fa-exclamation-circle"></i></span>PremCall library failed to load.</div>';
-      updateStatus('offline');
-      setInputEnabled(false);
-    }
-  });
 })();
 </script>
 </body>
