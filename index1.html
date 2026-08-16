@@ -263,7 +263,7 @@
     #transcriptContainer {
       display: none;
       margin-top: 0.8rem;
-      max-height: 120px;
+      max-height: 160px;
       overflow-y: auto;
       background: rgba(14, 20, 36, 0.6);
       border-radius: 10px;
@@ -279,6 +279,12 @@
     #transcriptContainer .msg .who { font-weight: 600; color: var(--text); min-width: 2.6rem; }
     #transcriptContainer .msg .who.user { color: var(--signal); }
     #transcriptContainer .msg .who.ragina { color: var(--go); }
+    #transcriptContainer .dl-row { text-align: right; margin-bottom: 0.4rem; }
+    #transcriptContainer .dl-btn{
+      background: var(--surface-3); border: 1px solid var(--line); color: var(--text-dim);
+      border-radius: 20px; padding: 3px 10px; font-size: 0.65rem; cursor: pointer; font-weight: 600;
+    }
+    #transcriptContainer .dl-btn:hover{ color: var(--text); border-color: var(--signal-soft); }
   </style>
 </head>
 <body>
@@ -403,7 +409,7 @@
 <!-- ===== PREMCALL + RAGina Call Integration ===== -->
 <script>
 /* ============================================================
-   PremCall v2.1 (merged) + RAGina Voice Call – FIXED
+   PremCall v2.2 (merged) + RAGina Voice Call – TTS FIX + TRANSCRIPT EXPORT
    ============================================================ */
 (function (global) {
   'use strict';
@@ -457,7 +463,73 @@
   let raginaIsMuted = false;
   let raginaEngineReady = false;
 
-  // Check RAGina engine readiness
+  // ---------- Speech synthesis reliability layer ----------
+  // Two real-world bugs killed RAGina's voice before:
+  // 1) Chrome/Edge silently drop speak() if it's called in the same tick as cancel().
+  // 2) Mobile Safari/Chrome only allow speechSynthesis to actually produce audio the
+  //    first time if it was kicked off directly inside a user gesture (a click). Since
+  //    speakText() was only ever invoked later from an async STT callback, it had no
+  //    gesture behind it and got silently swallowed. unlockSpeech() (called from the
+  //    dial button's click handler) fixes that by "priming" the engine synchronously.
+  let ttsVoices = [];
+  let speechUnlocked = false;
+  function refreshVoices() {
+    if (window.speechSynthesis) ttsVoices = window.speechSynthesis.getVoices();
+  }
+  if (window.speechSynthesis) {
+    refreshVoices();
+    window.speechSynthesis.onvoiceschanged = refreshVoices;
+  }
+
+  function unlockSpeech() {
+    if (!window.speechSynthesis || speechUnlocked) return;
+    try {
+      const primer = new SpeechSynthesisUtterance(' ');
+      primer.volume = 0;
+      window.speechSynthesis.speak(primer);
+      speechUnlocked = true;
+    } catch (e) {
+      console.warn('[PremCall] speech unlock failed:', e);
+    }
+  }
+
+  let speechQueue = Promise.resolve();
+  function speakText(text) {
+    if (!window.speechSynthesis) {
+      console.warn('Speech synthesis not available');
+      return;
+    }
+    const clean = text.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+    if (!clean) return;
+
+    // Serialize speech so overlapping answers can't stomp on each other.
+    speechQueue = speechQueue.then(() => new Promise((resolve) => {
+      window.speechSynthesis.cancel();
+      // Give the engine a beat after cancel() before speaking again — avoids the
+      // Chrome race where an immediate speak() after cancel() is dropped silently.
+      setTimeout(() => {
+        const utterance = new SpeechSynthesisUtterance(clean);
+        utterance.lang = 'en-US';
+        utterance.rate = 1;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        const preferred = ttsVoices.find(v => v.lang === 'en-US') || ttsVoices[0];
+        if (preferred) utterance.voice = preferred;
+        utterance.onerror = (e) => { console.warn('Speech synthesis error:', e.error || e); resolve(); };
+        utterance.onend = () => { console.log('Speech finished'); resolve(); };
+        try {
+          window.speechSynthesis.speak(utterance);
+          if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+        } catch (e) {
+          console.warn('[PremCall] speak() threw:', e);
+          resolve();
+        }
+        // Safety net: some mobile browsers never fire onend if the tab loses focus.
+        setTimeout(resolve, 12000);
+      }, 60);
+    }));
+  }
+
   function checkRAGinaEngine() {
     try {
       const engine = window.RAGina?.getEngine?.();
@@ -465,9 +537,7 @@
         raginaEngineReady = true;
         return true;
       }
-      // If engine exists but not ready, we might need to load data
       if (window.RAGina && typeof window.RAGina.loadData === 'function') {
-        // Load empty data to initialise
         window.RAGina.loadData({});
         raginaEngineReady = true;
         return true;
@@ -616,7 +686,6 @@
 
   // ---------- RAGina call logic ----------
   async function askRAGina(query) {
-    // Ensure engine is ready
     if (!raginaEngineReady) {
       checkRAGinaEngine();
     }
@@ -649,35 +718,14 @@ Answer (as RAGina, with sass):`;
       return data.text || 'No response from RAGina.';
     } catch (err) {
       console.error('askRAGina error:', err);
-      // Fallback response
       return "I'm sorry, I'm having trouble answering right now. Please try again in a moment.";
     }
-  }
-
-  function speakText(text) {
-    if (!window.speechSynthesis) {
-      console.warn('Speech synthesis not available');
-      return;
-    }
-    const clean = text.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
-    if (!clean) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(clean);
-    utterance.lang = 'en-US';
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    utterance.onerror = (e) => console.warn('Speech synthesis error:', e);
-    utterance.onend = () => console.log('Speech finished');
-    window.speechSynthesis.speak(utterance);
-    console.log('Speaking:', clean);
   }
 
   // Add a message to the transcript container (real-time)
   function addTranscriptMessage(role, text) {
     const container = document.getElementById('transcriptContainer');
     if (!container) return;
-    // Ensure container is visible
     container.classList.add('active');
     const div = document.createElement('div');
     div.className = 'msg';
@@ -692,13 +740,60 @@ Answer (as RAGina, with sass):`;
     container.scrollTop = container.scrollHeight;
   }
 
+  // ---------- Transcript export ----------
+  function buildTranscriptText() {
+    const lines = raginaTranscript.map(m => {
+      const time = new Date(m.timestamp).toLocaleTimeString();
+      const who = m.role === 'user' ? 'You' : 'RAGina';
+      return `[${time}] ${who}: ${m.text}`;
+    });
+    const header = `RAGina Call Transcript\nStarted: ${new Date(raginaCallStart || Date.now()).toLocaleString()}\n\n`;
+    return header + (lines.length ? lines.join('\n') : '(no exchanges recorded)');
+  }
+
+  function exportTranscript() {
+    if (!raginaTranscript.length) return;
+    try {
+      const content = buildTranscriptText();
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date(raginaCallStart || Date.now()).toISOString().replace(/[:.]/g, '-');
+      a.href = url;
+      a.download = `ragina-transcript-${stamp}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      log('Transcript exported', 'success');
+    } catch (e) {
+      console.warn('[PremCall] transcript export failed:', e);
+    }
+  }
+
+  function addDownloadButton() {
+    const container = document.getElementById('transcriptContainer');
+    if (!container || !raginaTranscript.length) return;
+    // Avoid stacking duplicate buttons if this ever runs twice.
+    const existing = container.querySelector('.dl-row');
+    if (existing) existing.remove();
+    const row = document.createElement('div');
+    row.className = 'dl-row';
+    const btn = document.createElement('button');
+    btn.className = 'dl-btn';
+    btn.type = 'button';
+    btn.innerHTML = '<i class="fas fa-download"></i> Download transcript';
+    btn.addEventListener('click', exportTranscript);
+    row.appendChild(btn);
+    container.insertBefore(row, container.firstChild);
+  }
+
   function startRAGinaCall() {
     if (raginaCallActive || inCall) {
       showToast('Already in a call.');
       return;
     }
 
-    // Check if RAGina engine is ready
     if (!checkRAGinaEngine()) {
       showToast('RAGina engine is loading. Please try again in a moment.');
       log('RAGina engine not ready', 'warning');
@@ -715,14 +810,12 @@ Answer (as RAGina, with sass):`;
     raginaTranscript = [];
     raginaCallStart = Date.now();
 
-    // Clear previous transcript
     const container = document.getElementById('transcriptContainer');
     container.innerHTML = '';
     container.classList.add('active');
 
     fire('onCallStarted', { target: RAGINA_NUMBER, isCaller: true, isRAGina: true });
 
-    // Show call UI with RAGina info
     const avatarEl = document.getElementById('callAvatar');
     avatarEl.innerHTML = '<img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" alt="RAGina" onerror="this.textContent=\'🤖\'">';
     document.getElementById('callName').textContent = RAGINA_NAME;
@@ -733,7 +826,6 @@ Answer (as RAGina, with sass):`;
     document.getElementById('callScreen').classList.add('active');
     document.getElementById('dialCallBtn').classList.add('disabled');
 
-    // Start timer
     let seconds = 0;
     if (raginaTimerInterval) clearInterval(raginaTimerInterval);
     raginaTimerInterval = setInterval(() => {
@@ -743,16 +835,15 @@ Answer (as RAGina, with sass):`;
       document.getElementById('callTimer').textContent = m + ':' + s;
     }, 1000);
 
-    // Simulate connection
     setTimeout(() => {
       document.getElementById('callSubstatus').textContent = 'Connected';
       document.getElementById('callRingWrap').classList.remove('ring-anim');
       showToast('Connected to RAGina');
-      // Start listening
       listenToRAGina();
-      // Add welcome message to transcript
-      addTranscriptMessage('ragina', 'Hello! I\'m RAGina. Ask me anything.');
-      speakText('Hello! I\'m RAGina. Ask me anything.');
+      const greeting = 'Hello! I\'m RAGina. Ask me anything.';
+      addTranscriptMessage('ragina', greeting);
+      raginaTranscript.push({ role: 'assistant', text: greeting, timestamp: Date.now() });
+      speakText(greeting);
     }, 1200);
   }
 
@@ -776,11 +867,9 @@ Answer (as RAGina, with sass):`;
     raginaRecognition.onresult = async (event) => {
       const transcript = event.results[0][0].transcript;
       console.log('User said:', transcript);
-      // Add user message to transcript
       addTranscriptMessage('user', transcript);
       raginaTranscript.push({ role: 'user', text: transcript, timestamp: Date.now() });
 
-      // Show thinking
       document.getElementById('callSubstatus').textContent = 'RAGina is thinking...';
 
       try {
@@ -788,14 +877,13 @@ Answer (as RAGina, with sass):`;
         console.log('RAGina answer:', answer);
         raginaTranscript.push({ role: 'assistant', text: answer, timestamp: Date.now() });
         document.getElementById('callSubstatus').textContent = 'Connected';
-        // Add to transcript
         addTranscriptMessage('ragina', answer);
-        // Speak
         speakText(answer);
       } catch (err) {
         console.error('RAGina error:', err);
         document.getElementById('callSubstatus').textContent = 'Error: ' + err.message;
         addTranscriptMessage('ragina', 'Sorry, I encountered an error.');
+        raginaTranscript.push({ role: 'assistant', text: 'Sorry, I encountered an error.', timestamp: Date.now() });
         speakText('Sorry, I encountered an error.');
       }
 
@@ -851,9 +939,6 @@ Answer (as RAGina, with sass):`;
       raginaTimerInterval = null;
     }
 
-    // Keep transcript visible after call ends
-    // We'll keep the container active
-
     // Reset UI
     document.getElementById('callScreen').classList.remove('active');
     document.getElementById('callRingWrap').classList.remove('ring-anim');
@@ -866,7 +951,11 @@ Answer (as RAGina, with sass):`;
     const durStr = String(Math.floor(duration / 60)).padStart(2, '0') + ':' + String(duration % 60).padStart(2, '0');
     addHistoryEntry(RAGINA_NUMBER, 'outgoing', durStr);
 
-    showToast('Call with RAGina ended');
+    // Keep transcript visible, add a manual download fallback, and auto-export.
+    addDownloadButton();
+    exportTranscript();
+
+    showToast('Call with RAGina ended — transcript saved');
     fire('onCallEnded', null);
   }
 
@@ -896,7 +985,6 @@ Answer (as RAGina, with sass):`;
       callbacks = opts || {};
       peer = new global.Peer(number, { debug: 2, config: CONFIG });
       attachPeerHandlers();
-      // Check RAGina engine after a short delay
       setTimeout(checkRAGinaEngine, 1000);
     },
 
@@ -981,6 +1069,8 @@ Answer (as RAGina, with sass):`;
 
     getNumber: function () { return myNumber; },
     isInCall: function () { return inCall || raginaCallActive; },
+    unlockSpeech: unlockSpeech,
+    exportLastTranscript: exportTranscript,
 
     destroy: function () {
       if (peer) { peer.destroy(); peer = null; }
@@ -1045,7 +1135,7 @@ Answer (as RAGina, with sass):`;
   };
 
   global.PremCall = PremCall;
-  console.log('[PremCall] Library loaded (v2.1 with RAGina call).');
+  console.log('[PremCall] Library loaded (v2.2 with RAGina call — TTS fix + transcript export).');
 })(window);
 
 // =====================================================================
@@ -1251,7 +1341,7 @@ Answer (as RAGina, with sass):`;
     hideIncomingOverlay();
     if (callTimerInterval) clearInterval(callTimerInterval);
     callTimerInterval = null; getCallDuration = null;
-    // Hide transcript if visible
+    // Hide transcript if visible (regular calls don't use it)
     transcriptContainer.classList.remove('active');
     transcriptContainer.innerHTML = '';
   }
@@ -1264,6 +1354,13 @@ Answer (as RAGina, with sass):`;
     if (dialCallBtn) dialCallBtn.classList.remove('disabled');
   }
 
+  // Primes speechSynthesis inside a real user gesture so RAGina's later,
+  // async replies are actually allowed to produce audio on mobile browsers.
+  function unlockSpeechSynthesis() {
+    if (PremCall && typeof PremCall.unlockSpeech === 'function') {
+      PremCall.unlockSpeech();
+    }
+  }
 
   function initPremCall() {
     const number = getStoredNumber();
@@ -1310,8 +1407,7 @@ Answer (as RAGina, with sass):`;
         },
         onCallStarted: (data) => {
           if (data.isRAGina) {
-            // RAGina call is handled separately, but we use this hook to show UI
-            // already done in startRAGinaCall
+            // RAGina call UI is handled inside startRAGinaCall() itself.
           } else {
             pendingCallDirection = data.isCaller ? 'outgoing' : 'incoming';
             showCallScreen(data.target, data.isCaller);
@@ -1378,6 +1474,9 @@ Answer (as RAGina, with sass):`;
         log('Not connected to signaling server yet — wait for the status dot to turn green.', 'warning');
         showToast('Still connecting, try again in a moment'); vibrate([40,40,40]); return;
       }
+      // Must run synchronously inside this click handler — this is what lets
+      // RAGina's later, async speech actually produce audio on mobile.
+      unlockSpeechSynthesis();
       dialCallBtn.classList.add('disabled'); vibrate(15);
       try { PremCall.call(dialedNumber); } catch (err) {
         log('Call failed: ' + err.message, 'error'); showToast('Call failed: ' + err.message); dialCallBtn.classList.remove('disabled');
