@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#070a12" />
+    <title>RAGina Agent</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        /* ===== same styles as before ===== */
+        :root {
+            --bg-0: #05070d;
+            --bg-1: #0a0e18;
+            --surface: #0e1424;
+            --surface-2: #141c30;
+            --surface-3: #1b2540;
+            --line: #1e2a42;
+            --text: #eef2fb;
+            --text-dim: #8891ab;
+            --text-faint: #525d78;
+            --signal: #4f8cf7;
+            --go: #2fd992;
+            --stop: #ff5470;
+            --radius: 16px;
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100%; }
+        body {
+            font-family: var(--font-body);
+            color: var(--text);
+            background: var(--bg-0);
+            display: flex; justify-content: center;
+            padding: 0;
+            overflow-x: hidden;
+            transition: background 0.3s, color 0.3s;
+        }
+        .app-container {
+            width: 100%; max-width: 480px; min-height: 100vh; min-height: 100dvh;
+            background: var(--bg-1);
+            display: flex; flex-direction: column;
+            position: relative;
+            transition: background 0.3s;
+        }
+        .header {
+            display: flex; align-items: center; padding: 0.8rem 1rem;
+            background: var(--surface); border-bottom: 1px solid var(--line);
+            gap: 0.8rem; flex-shrink: 0;
+        }
+        .header .title {
+            flex: 1; font-family: var(--font-display); font-weight: 700; font-size: 1.2rem;
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+        .header .icon-btn {
+            background: none; border: none; color: var(--text-dim); font-size: 1.2rem; cursor: pointer;
+            padding: 0.4rem; transition: color .2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .header .icon-btn:hover { color: var(--text); }
+        .conversation-list {
+            flex: 1; overflow-y: auto; padding: 0.5rem 0;
+        }
+        .conversation-item {
+            display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem 1rem;
+            border-bottom: 1px solid var(--surface-2); cursor: pointer; transition: background .15s;
+        }
+        .conversation-item:hover { background: var(--surface-2); }
+        .conversation-item .avatar {
+            width: 48px; height: 48px; border-radius: 50%; background: var(--surface-3);
+            display: flex; align-items: center; justify-content: center;
+            font-family: var(--font-display); font-weight: 700; font-size: 1.5rem;
+            color: var(--text); flex-shrink: 0; overflow: hidden;
+        }
+        .conversation-item .avatar img {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        .conversation-item .info { flex: 1; min-width: 0; }
+        .conversation-item .name { font-weight: 600; font-size: 0.95rem; }
+        .conversation-item .preview {
+            font-size: 0.8rem; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .conversation-item .time { font-size: 0.7rem; color: var(--text-faint); flex-shrink: 0; }
+        .conversation-item .call-badge {
+            background: var(--go); color: #fff; font-size: 0.6rem; padding: 0.1rem 0.5rem; border-radius: 10px; margin-left: 0.4rem;
+        }
+        .empty-state {
+            text-align: center; color: var(--text-faint); padding: 2rem; font-size: 0.9rem;
+        }
+        .empty-state .icon { font-size: 2.5rem; display: block; margin-bottom: 0.8rem; opacity: 0.5; }
+        .chat-view { flex: 1; display: none; flex-direction: column; }
+        .chat-view.active { display: flex; }
+        .chat-header {
+            display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem 1rem;
+            background: var(--surface); border-bottom: 1px solid var(--line); flex-shrink: 0;
+        }
+        .chat-header .back-btn {
+            background: none; border: none; color: var(--text); font-size: 1.4rem; cursor: pointer;
+        }
+        .chat-header .avatar {
+            width: 36px; height: 36px; border-radius: 50%; background: var(--surface-3);
+            display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+            color: var(--text); flex-shrink: 0; overflow: hidden;
+        }
+        .chat-header .avatar img {
+            width: 100%; height: 100%; object-fit: cover;
+        }
+        .chat-header .peer-info { flex: 1; }
+        .chat-header .peer-name { font-family: var(--font-display); font-weight: 600; font-size: 0.95rem; }
+        .chat-header .peer-status { font-size: 0.7rem; color: var(--text-dim); }
+        .chat-header .call-btn {
+            background: none; border: none; color: var(--text-dim); font-size: 1.2rem; cursor: pointer;
+            padding: 0.4rem; transition: color .2s; position: relative;
+        }
+        .chat-header .call-btn:hover { color: var(--go); }
+        .chat-header .call-btn.active { color: var(--stop); }
+        .chat-header .call-btn.pulsing::after {
+            content: '';
+            position: absolute; top: 50%; left: 50%;
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--go);
+            transform: translate(-50%, -50%) scale(1);
+            animation: voicePulse 1.5s ease-out infinite;
+            pointer-events: none;
+        }
+        @keyframes voicePulse {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+        }
+        .messages {
+            flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.4rem;
+        }
+        .message-wrapper {
+            display: flex; flex-direction: column; max-width: 85%;
+            animation: fadeIn .15s ease;
+        }
+        .message-wrapper.outgoing { align-self: flex-end; align-items: flex-end; }
+        .message-wrapper.incoming { align-self: flex-start; align-items: flex-start; }
+        .message-bubble {
+            padding: 0.6rem 0.9rem; border-radius: 16px; font-size: 0.9rem;
+            white-space: pre-wrap; word-break: break-word;
+        }
+        .message-wrapper.outgoing .message-bubble {
+            background: var(--signal); color: #fff; border-bottom-right-radius: 4px;
+        }
+        .message-wrapper.incoming .message-bubble {
+            background: var(--surface-2); color: var(--text); border-bottom-left-radius: 4px;
+        }
+        .message-timestamp {
+            font-size: 0.6rem; opacity: 0.6; margin-top: 0.15rem; display: block; text-align: right;
+        }
+        .date-divider {
+            text-align: center; font-size: 0.7rem; color: var(--text-faint); padding: 0.5rem 0;
+        }
+        .chat-input-area {
+            display: flex; gap: 0.5rem; padding: 0.8rem; background: var(--surface);
+            border-top: 1px solid var(--line); flex-shrink: 0; align-items: center;
+        }
+        .chat-input-area input {
+            flex: 1; padding: 0.6rem 1rem; border-radius: 20px; border: 1px solid var(--line);
+            background: var(--bg-0); color: var(--text); outline: none;
+            font-family: inherit; font-size: 0.95rem;
+        }
+        .chat-input-area input::placeholder { color: var(--text-faint); }
+        .chat-input-area input:focus { border-color: var(--signal); }
+        .chat-input-area .mic-btn {
+            width: 42px; height: 42px; border-radius: 50%; border: none;
+            background: var(--surface-3); color: var(--text-dim);
+            cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center;
+            transition: all .2s;
+        }
+        .chat-input-area .mic-btn:hover { background: var(--line); color: var(--text); }
+        .chat-input-area .mic-btn.active {
+            background: var(--stop); color: #fff;
+            animation: micPulse 1.2s ease-in-out infinite;
+        }
+        @keyframes micPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 84, 112, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(255, 84, 112, 0); }
+        }
+        .chat-input-area button.send-btn {
+            width: 42px; height: 42px; border-radius: 50%; border: none; background: var(--signal);
+            color: #fff; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center;
+            transition: opacity .2s, transform .1s;
+        }
+        .chat-input-area button.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .hidden { display: none !important; }
+        #toast {
+            position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+            background: var(--surface-3); border: 1px solid var(--line);
+            color: var(--text); padding: 0.7rem 1.3rem; border-radius: 40px;
+            font-size: 0.85rem; z-index: 11000; opacity: 0; transition: opacity .3s;
+            pointer-events: none; max-width: 90%;
+        }
+        #toast.show { opacity: 1; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* settings modal */
+        #settingsModal {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+            align-items: center; justify-content: center; z-index: 20000;
+        }
+        #settingsModal.active { display: flex; }
+        .settings-card {
+            background: var(--surface); border: 1px solid var(--line);
+            border-radius: 22px; padding: 1.8rem 1.5rem;
+            width: 90%; max-width: 360px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        .settings-card h2 { font-family: var(--font-display); font-size: 1.3rem; margin-bottom: 1.2rem; text-align: center; }
+        .settings-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.6rem 0; border-bottom: 1px solid var(--surface-2); font-size: 0.9rem;
+        }
+        .settings-item .label { color: var(--text-dim); }
+        .settings-item .toggle {
+            position: relative; width: 44px; height: 24px; background: var(--line);
+            border-radius: 12px; cursor: pointer; transition: background .2s;
+        }
+        .settings-item .toggle.active { background: var(--signal); }
+        .settings-item .toggle .knob {
+            position: absolute; top: 2px; left: 2px; width: 20px; height: 20px;
+            background: #fff; border-radius: 50%; transition: transform .2s;
+        }
+        .settings-item .toggle.active .knob { transform: translateX(20px); }
+        .settings-close {
+            margin-top: 1.2rem; width: 100%; padding: 0.6rem; border-radius: 40px;
+            border: 1px solid var(--line); background: transparent; color: var(--text-dim);
+            cursor: pointer; font-weight: 600;
+        }
+        .settings-close:hover { background: var(--surface-2); color: var(--text); }
+
+        /* Light mode */
+        body.light-mode {
+            --bg-0: #f0f2f5;
+            --bg-1: #ffffff;
+            --surface: #ffffff;
+            --surface-2: #f5f6f8;
+            --surface-3: #e8eaed;
+            --line: #dadce0;
+            --text: #1a1a2e;
+            --text-dim: #5f6368;
+            --text-faint: #9aa0a6;
+            --signal: #4f8cf7;
+        }
+        body.light-mode .message-wrapper.incoming .message-bubble {
+            background: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--line);
+        }
+        body.light-mode .chat-input-area input {
+            background: var(--bg-1);
+            color: var(--text);
+        }
+
+        /* Thinking indicator */
+        .thinking-bubble {
+            display: flex; gap: 4px; padding: 12px 16px;
+            background: var(--surface-2); border-radius: 16px;
+            border-bottom-left-radius: 4px; align-self: flex-start;
+        }
+        .thinking-bubble span {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--text-dim);
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .thinking-bubble span:nth-child(1) { animation-delay: -0.32s; }
+        .thinking-bubble span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Voice chat status bar */
+        .voice-status-bar {
+            display: none; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.4rem; background: rgba(47, 217, 146, 0.1);
+            border-bottom: 1px solid rgba(47, 217, 146, 0.2);
+            font-size: 0.8rem; color: var(--go);
+            flex-shrink: 0;
+        }
+        .voice-status-bar.active { display: flex; }
+        .voice-status-bar .voice-wave {
+            display: flex; align-items: center; gap: 2px; height: 16px;
+        }
+        .voice-status-bar .voice-wave span {
+            width: 3px; background: var(--go); border-radius: 2px;
+            animation: voiceWave 0.8s ease-in-out infinite;
+        }
+        .voice-status-bar .voice-wave span:nth-child(1) { height: 6px; animation-delay: 0s; }
+        .voice-status-bar .voice-wave span:nth-child(2) { height: 12px; animation-delay: 0.1s; }
+        .voice-status-bar .voice-wave span:nth-child(3) { height: 8px; animation-delay: 0.2s; }
+        .voice-status-bar .voice-wave span:nth-child(4) { height: 14px; animation-delay: 0.15s; }
+        .voice-status-bar .voice-wave span:nth-child(5) { height: 6px; animation-delay: 0.05s; }
+        @keyframes voiceWave {
+            0%, 100% { transform: scaleY(1); opacity: 0.6; }
+            50% { transform: scaleY(1.4); opacity: 1; }
+        }
+
+        /* Call controls overlay */
+        .call-controls {
+            display: none; align-items: center; justify-content: center; gap: 1.2rem;
+            padding: 0.8rem; background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+            border-top: 1px solid var(--line); flex-shrink: 0;
+        }
+        .call-controls.active { display: flex; flex-wrap: wrap; }
+        .call-controls .call-btn {
+            width: 50px; height: 50px; border-radius: 50%; border: none;
+            font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all .2s;
+        }
+        .call-controls .call-btn.hangup {
+            background: var(--stop); color: #fff;
+        }
+        .call-controls .call-btn.hangup:hover { background: #d43f5a; }
+        .call-controls .call-btn.mute {
+            background: var(--surface-3); color: var(--text-dim);
+        }
+        .call-controls .call-btn.mute.active { background: var(--warn); color: #fff; }
+        .call-controls .call-btn.speaker {
+            background: var(--surface-3); color: var(--text-dim);
+        }
+        .call-controls .call-btn.speaker.active { background: var(--signal); color: #fff; }
+        .call-controls .call-timer {
+            font-size: 0.9rem; color: var(--text-dim); font-variant-numeric: tabular-nums;
+            min-width: 60px; text-align: center;
+        }
+
+        /* Strip any RAGina widget that leaks through */
+        .ragina-bubble, .ragina-panel, #ragina-styles { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="app-container" id="app">
+    <!-- Header with Home button -->
+    <div class="header" id="listHeader">
+        <a href="index.html" class="icon-btn" aria-label="Home">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <span class="title"><i class="fas fa-robot" style="color: var(--signal);"></i> RAGina Agent</span>
+        <button class="icon-btn" id="settingsBtn"><i class="fas fa-gear"></i></button>
+    </div>
+    <div class="conversation-list" id="conversationList"></div>
+    <div class="chat-view" id="chatView">
+        <div class="chat-header">
+            <button class="back-btn" id="chatBackBtn"><i class="fas fa-arrow-left"></i></button>
+            <div class="avatar" id="chatPeerAvatar">
+                <img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" alt="RAGina" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-robot\'></i>';">
+            </div>
+            <div class="peer-info">
+                <span class="peer-name" id="chatPeerName">RAGina</span>
+                <span class="peer-status" id="chatPeerStatus">Online</span>
+            </div>
+            <button class="call-btn" id="voiceChatBtn" title="Call RAGina">
+                <i class="fas fa-phone"></i>
+            </button>
+        </div>
+        <div class="voice-status-bar" id="voiceStatusBar">
+            <div class="voice-wave"><span></span><span></span><span></span><span></span><span></span></div>
+            <span>Listening...</span>
+        </div>
+        <div class="messages" id="messagesContainer"></div>
+        <!-- Call Controls -->
+        <div class="call-controls" id="callControls">
+            <button class="call-btn mute" id="muteBtn" title="Mute"><i class="fas fa-microphone"></i></button>
+            <span class="call-timer" id="callTimer">00:00</span>
+            <button class="call-btn hangup" id="hangupBtn" title="Hang up"><i class="fas fa-phone-slash"></i></button>
+            <button class="call-btn speaker" id="speakerBtn" title="Speaker"><i class="fas fa-volume-up"></i></button>
+        </div>
+        <div class="chat-input-area">
+            <button class="mic-btn" id="micBtn" title="Voice Chat">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <input type="text" id="messageInput" placeholder="Ask me anything..." autocomplete="off" />
+            <button class="send-btn" id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+</div>
+
+<div id="settingsModal">
+    <div class="settings-card">
+        <h2>Settings</h2>
+        <div class="settings-item">
+            <span class="label">Dark / Light</span>
+            <div class="toggle" id="themeToggle">
+                <div class="knob"></div>
+            </div>
+        </div>
+        <button class="settings-close" id="settingsClose">Close</button>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    // =====================================================================
+    // CONFIG
+    // =====================================================================
+    const RAGINA_PHONE_NUMBER = '0000000000';  // RAGina's dedicated number
+    const RAGINA_LOGO = 'https://ragina-crawler-ragina.vercel.app/ragina-logo.png';
+    const CALL_HISTORY_KEY = 'raginaCallHistory';
+
+    // =====================================================================
+    // 0. LOAD KNOWLEDGE from premCall.html
+    // =====================================================================
+    async function loadKnowledge() {
+        try {
+            const resp = await fetch('premCall.html');
+            if (!resp.ok) throw new Error('File not found');
+            const html = await resp.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            doc.querySelectorAll('script, style, link, meta, head, title, noscript').forEach(el => el.remove());
+            const body = doc.body || doc.documentElement;
+            const text = body.textContent.replace(/\s+/g, ' ').trim();
+            if (text.length > 50) {
+                return { "premCall.html": { bodyText: text.slice(0, 15000) } };
+            }
+        } catch (e) { /* ignore */ }
+        return null;
+    }
+
+    // =====================================================================
+    // 1. LOAD RAGina PRO
+    // =====================================================================
+    function loadRAGinaScript() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-pro.min.js';
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Failed to load RAGina'));
+            document.head.appendChild(script);
+        });
+    }
+
+    // =====================================================================
+    // 2. MAIN APP
+    // =====================================================================
+    (async function init() {
+        const knowledge = await loadKnowledge();
+
+        let raginaReady = false;
+        try {
+            await loadRAGinaScript();
+            console.log('RAGina script loaded');
+
+            if (knowledge && window.RAGina && typeof window.RAGina.loadData === 'function') {
+                window.RAGina.loadData(knowledge);
+                setTimeout(() => {
+                    document.querySelectorAll('.ragina-bubble, .ragina-panel, #ragina-styles').forEach(el => el.remove());
+                }, 50);
+                raginaReady = true;
+            } else if (window.RAGina) {
+                window.RAGina.loadData({});
+                setTimeout(() => {
+                    document.querySelectorAll('.ragina-bubble, .ragina-panel, #ragina-styles').forEach(el => el.remove());
+                }, 50);
+                raginaReady = true;
+            }
+        } catch (e) {
+            console.warn('RAGina not loaded:', e.message);
+        }
+
+        // --- DOM refs ---
+        const conversationList = document.getElementById('conversationList');
+        const chatView = document.getElementById('chatView');
+        const listHeader = document.getElementById('listHeader');
+        const chatBackBtn = document.getElementById('chatBackBtn');
+        const chatPeerAvatar = document.getElementById('chatPeerAvatar');
+        const chatPeerName = document.getElementById('chatPeerName');
+        const chatPeerStatus = document.getElementById('chatPeerStatus');
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const voiceChatBtn = document.getElementById('voiceChatBtn');
+        const micBtn = document.getElementById('micBtn');
+        const voiceStatusBar = document.getElementById('voiceStatusBar');
+        const callControls = document.getElementById('callControls');
+        const muteBtn = document.getElementById('muteBtn');
+        const hangupBtn = document.getElementById('hangupBtn');
+        const speakerBtn = document.getElementById('speakerBtn');
+        const callTimer = document.getElementById('callTimer');
+        const toast = document.getElementById('toast');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const settingsClose = document.getElementById('settingsClose');
+        const themeToggle = document.getElementById('themeToggle');
+
+        const BOT_NUMBER = RAGINA_PHONE_NUMBER;
+        const BOT_NAME = 'RAGina';
+        let conversations = {};
+        let activePeer = null;
+        let isVoiceActive = false;
+        let isCallActive = false;
+        let recognition = null;
+        let isSending = false;
+        let isSpeaking = false;
+        let isMuted = false;
+        let isSpeakerOn = false;
+        let callStartTime = null;
+        let callTimerInterval = null;
+        let callTranscript = [];
+        let callLogs = [];
+
+        // --- Helpers ---
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(showToast._timer);
+            showToast._timer = setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function formatTime(ts) {
+            if (!ts) return '';
+            const d = new Date(ts);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function formatDate(ts) {
+            const d = new Date(ts);
+            const today = new Date();
+            if (d.toDateString() === today.toDateString()) return 'Today';
+            const y = new Date(today); y.setDate(y.getDate() - 1);
+            if (d.toDateString() === y.toDateString()) return 'Yesterday';
+            return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        }
+
+        function formatDuration(ms) {
+            const totalSec = Math.floor(ms / 1000);
+            const mins = String(Math.floor(totalSec / 60)).padStart(2, '0');
+            const secs = String(totalSec % 60).padStart(2, '0');
+            return mins + ':' + secs;
+        }
+
+        function loadConversations() {
+            try { return JSON.parse(localStorage.getItem('raginaChats') || '{}'); } catch (e) { return {}; }
+        }
+        function saveConversations() {
+            try { localStorage.setItem('raginaChats', JSON.stringify(conversations)); } catch (e) {}
+        }
+
+        function loadCallLogs() {
+            try { return JSON.parse(localStorage.getItem(CALL_HISTORY_KEY) || '[]'); } catch (e) { return []; }
+        }
+        function saveCallLogs() {
+            try { localStorage.setItem(CALL_HISTORY_KEY, JSON.stringify(callLogs)); } catch (e) {}
+        }
+
+        function getRaginaAvatarHTML() {
+            return `<img src="${RAGINA_LOGO}" alt="RAGina" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-robot\'></i>';">`;
+        }
+
+        function getUserAvatarHTML() {
+            return '<i class="fas fa-user"></i>';
+        }
+
+        // --- Render functions ---
+        function renderMessages() {
+            if (!activePeer) return;
+            const msgs = conversations[activePeer] || [];
+            messagesContainer.innerHTML = '';
+            let lastDate = null;
+            msgs.forEach(msg => {
+                const d = formatDate(msg.timestamp);
+                if (d !== lastDate) {
+                    lastDate = d;
+                    const div = document.createElement('div');
+                    div.className = 'date-divider';
+                    div.textContent = d;
+                    messagesContainer.appendChild(div);
+                }
+                const wrapper = document.createElement('div');
+                wrapper.className = 'message-wrapper ' + msg.direction;
+                const bubble = document.createElement('div');
+                bubble.className = 'message-bubble';
+                bubble.textContent = msg.text || '';
+                wrapper.appendChild(bubble);
+                const time = document.createElement('span');
+                time.className = 'message-timestamp';
+                let status = '';
+                if (msg.pending) status = ' sending...';
+                else if (msg.error) status = ' failed';
+                time.textContent = formatTime(msg.timestamp) + status;
+                wrapper.appendChild(time);
+                messagesContainer.appendChild(wrapper);
+            });
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function renderConversationList() {
+            conversationList.innerHTML = '';
+            // Merge call logs into conversations
+            const callLogs = loadCallLogs();
+            callLogs.forEach(log => {
+                const peer = log.caller || BOT_NUMBER;
+                if (!conversations[peer]) {
+                    conversations[peer] = [];
+                }
+                // Add a call entry if not already present
+                const exists = conversations[peer].some(m => m._tempId === 'call-' + log.timestamp);
+                if (!exists) {
+                    conversations[peer].push({
+                        text: '📞 Call with RAGina (' + formatDuration(log.duration) + ')',
+                        timestamp: log.timestamp,
+                        direction: 'incoming',
+                        from: BOT_NUMBER,
+                        pending: false,
+                        error: false,
+                        _tempId: 'call-' + log.timestamp,
+                        isCallLog: true,
+                        callLog: log
+                    });
+                }
+            });
+            saveConversations();
+
+            const peers = Object.keys(conversations);
+            if (peers.length === 0) {
+                conversationList.innerHTML = '<div class="empty-state"><span class="icon"><i class="fas fa-robot"></i></span>No conversations</div>';
+                return;
+            }
+            peers.forEach(peer => {
+                const msgs = conversations[peer];
+                const last = msgs[msgs.length - 1];
+                const item = document.createElement('div');
+                item.className = 'conversation-item';
+                const avatar = document.createElement('div');
+                avatar.className = 'avatar';
+                avatar.innerHTML = peer === BOT_NUMBER ? getRaginaAvatarHTML() : getUserAvatarHTML();
+                item.appendChild(avatar);
+                const info = document.createElement('div');
+                info.className = 'info';
+                const name = document.createElement('div');
+                name.className = 'name';
+                name.textContent = peer === BOT_NUMBER ? BOT_NAME : peer;
+                if (peer === BOT_NUMBER) {
+                    const badge = document.createElement('span');
+                    badge.className = 'call-badge';
+                    badge.textContent = '📞 Call';
+                    name.appendChild(badge);
+                }
+                info.appendChild(name);
+                const preview = document.createElement('div');
+                preview.className = 'preview';
+                if (last) {
+                    let text = last.text || '';
+                    if (last.isCallLog) {
+                        text = '📞 Call ended - ' + formatDuration(last.callLog.duration);
+                    } else if (last.direction === 'outgoing') {
+                        text = 'You: ' + text;
+                    }
+                    preview.textContent = text;
+                }
+                info.appendChild(preview);
+                item.appendChild(info);
+                const time = document.createElement('span');
+                time.className = 'time';
+                if (last) time.textContent = formatTime(last.timestamp);
+                item.appendChild(time);
+                item.addEventListener('click', () => openChat(peer));
+                conversationList.appendChild(item);
+            });
+        }
+
+        function openChat(peer) {
+            activePeer = peer;
+            listHeader.classList.add('hidden');
+            conversationList.classList.add('hidden');
+            chatView.classList.add('active');
+            chatPeerAvatar.innerHTML = peer === BOT_NUMBER ? getRaginaAvatarHTML() : getUserAvatarHTML();
+            chatPeerName.textContent = peer === BOT_NUMBER ? BOT_NAME : peer;
+            chatPeerStatus.textContent = 'Online';
+            if (isCallActive) endCall();
+            if (isVoiceActive) stopVoiceChat();
+            voiceChatBtn.innerHTML = '<i class="fas fa-phone"></i>';
+            voiceChatBtn.classList.remove('active', 'pulsing');
+            micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            micBtn.classList.remove('active');
+            callControls.classList.remove('active');
+            renderMessages();
+            messageInput.focus();
+        }
+
+        function closeChat() {
+            if (isCallActive) endCall();
+            if (isVoiceActive) stopVoiceChat();
+            activePeer = null;
+            chatView.classList.remove('active');
+            listHeader.classList.remove('hidden');
+            conversationList.classList.remove('hidden');
+            renderConversationList();
+        }
+
+        function addMessage(peer, msg) {
+            if (!peer || !msg) return;
+            if (!conversations[peer]) conversations[peer] = [];
+            conversations[peer].push({
+                text: String(msg.text || ''),
+                timestamp: typeof msg.timestamp === 'number' ? msg.timestamp : Date.now(),
+                direction: msg.direction === 'outgoing' ? 'outgoing' : 'incoming',
+                from: msg.from || null,
+                pending: msg.pending || false,
+                error: msg.error || false,
+                _tempId: msg._tempId || Date.now() + '-' + Math.random().toString(36).substr(2,6),
+                isCallLog: msg.isCallLog || false,
+                callLog: msg.callLog || null
+            });
+            saveConversations();
+            if (activePeer === peer) renderMessages();
+            else renderConversationList();
+        }
+
+        // =====================================================================
+        // 3. AI CALL
+        // =====================================================================
+        async function askRAGina(query) {
+            const engine = window.RAGina?.getEngine?.();
+            if (!engine || !engine.isReady) {
+                throw new Error('RAGina engine is not ready. Please wait a moment and try again.');
+            }
+
+            const chunks = engine.retrieve(query, 3);
+            const hasContext = chunks.length > 0;
+            const contextText = hasContext
+                ? chunks.map((c, i) => `[${i+1}] ${c.source || 'doc'}\n${c.text}`).join('\n\n')
+                : 'No relevant documents found.';
+
+            const prompt = `You are RAGina, a sassy mentalist who can read any document. Answer using ONLY the context below. If the answer isn\'t there, respond with attitude that the info isn\'t in the files.
+
+        Context:
+        ${contextText}
+
+        Question: ${query}
+        Answer (as RAGina, with sass):`;
+
+            const resp = await fetch('https://ragina-crawler-ragina.vercel.app/api/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt })
+            });
+            if (!resp.ok) throw new Error(`LLM error: ${resp.status}`);
+            const data = await resp.json();
+            if (data.error) throw new Error(data.error);
+            return data.text || 'No response from RAGina.';
+        }
+
+        // =====================================================================
+        // 4. SEND MESSAGE
+        // =====================================================================
+        async function sendMessage() {
+            if (!activePeer || isSending) return;
+            const text = messageInput.value.trim();
+            if (!text) return;
+
+            // Add to transcript if call is active
+            if (isCallActive) {
+                callTranscript.push({ role: 'user', text: text, timestamp: Date.now() });
+            }
+
+            addMessage(activePeer, {
+                text: text,
+                timestamp: Date.now(),
+                direction: 'outgoing',
+                from: 'user'
+            });
+            messageInput.value = '';
+
+            if (activePeer === BOT_NUMBER) {
+                isSending = true;
+                sendBtn.disabled = true;
+                const thinkingId = 'thinking-' + Date.now();
+                const thinkingWrapper = document.createElement('div');
+                thinkingWrapper.className = 'message-wrapper incoming';
+                thinkingWrapper.id = thinkingId;
+                thinkingWrapper.innerHTML = `
+                    <div class="thinking-bubble">
+                        <span></span><span></span><span></span>
+                    </div>
+                `;
+                messagesContainer.appendChild(thinkingWrapper);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                try {
+                    const answer = await askRAGina(text);
+                    const t = document.getElementById(thinkingId);
+                    if (t) t.remove();
+
+                    // Add to transcript if call is active
+                    if (isCallActive) {
+                        callTranscript.push({ role: 'assistant', text: answer, timestamp: Date.now() });
+                    }
+
+                    addMessage(BOT_NUMBER, {
+                        text: answer,
+                        timestamp: Date.now(),
+                        direction: 'incoming',
+                        from: BOT_NUMBER
+                    });
+                    if (isCallActive || isVoiceActive) {
+                        speakText(answer);
+                    }
+                } catch (err) {
+                    const t = document.getElementById(thinkingId);
+                    if (t) t.remove();
+                    addMessage(BOT_NUMBER, {
+                        text: 'Sorry, I encountered an error: ' + err.message,
+                        timestamp: Date.now(),
+                        direction: 'incoming',
+                        from: BOT_NUMBER,
+                        error: true
+                    });
+                } finally {
+                    isSending = false;
+                    sendBtn.disabled = false;
+                    renderMessages();
+                    renderConversationList();
+                }
+            } else {
+                renderMessages();
+                renderConversationList();
+            }
+        }
+
+        // =====================================================================
+        // 5. VOICE CHAT (Legacy - kept for compatibility)
+        // =====================================================================
+        function toggleVoiceChat() {
+            if (activePeer !== BOT_NUMBER) {
+                showToast('Voice chat only available with RAGina.');
+                return;
+            }
+            if (isVoiceActive) {
+                stopVoiceChat();
+            } else {
+                startVoiceChat();
+            }
+        }
+
+        function startVoiceChat() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showToast('Your browser does not support voice chat.');
+                return;
+            }
+
+            isVoiceActive = true;
+            voiceChatBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+            voiceChatBtn.classList.add('active', 'pulsing');
+            micBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+            micBtn.classList.add('active');
+            voiceStatusBar.classList.add('active');
+            showToast('Voice chat started. Speak your question.');
+
+            addMessage(BOT_NUMBER, {
+                text: 'Voice chat started. Speak your question.',
+                timestamp: Date.now(),
+                direction: 'incoming',
+                from: BOT_NUMBER
+            });
+            renderMessages();
+            renderConversationList();
+
+            listenForSpeech();
+        }
+
+        function listenForSpeech() {
+            if (!isVoiceActive) return;
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return;
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = async (event) => {
+                const transcript = event.results[0][0].transcript;
+                addMessage(BOT_NUMBER, {
+                    text: transcript,
+                    timestamp: Date.now(),
+                    direction: 'outgoing',
+                    from: 'user'
+                });
+                renderMessages();
+                renderConversationList();
+
+                isSending = true;
+                sendBtn.disabled = true;
+                const thinkingId = 'thinking-' + Date.now();
+                const thinkingWrapper = document.createElement('div');
+                thinkingWrapper.className = 'message-wrapper incoming';
+                thinkingWrapper.id = thinkingId;
+                thinkingWrapper.innerHTML = `
+                    <div class="thinking-bubble">
+                        <span></span><span></span><span></span>
+                    </div>
+                `;
+                messagesContainer.appendChild(thinkingWrapper);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                try {
+                    const answer = await askRAGina(transcript);
+                    const t = document.getElementById(thinkingId);
+                    if (t) t.remove();
+                    addMessage(BOT_NUMBER, {
+                        text: answer,
+                        timestamp: Date.now(),
+                        direction: 'incoming',
+                        from: BOT_NUMBER
+                    });
+                    renderMessages();
+                    renderConversationList();
+                    if (isVoiceActive) speakText(answer);
+                } catch (err) {
+                    const t = document.getElementById(thinkingId);
+                    if (t) t.remove();
+                    addMessage(BOT_NUMBER, {
+                        text: 'Error: ' + err.message,
+                        timestamp: Date.now(),
+                        direction: 'incoming',
+                        from: BOT_NUMBER,
+                        error: true
+                    });
+                    renderMessages();
+                    renderConversationList();
+                } finally {
+                    isSending = false;
+                    sendBtn.disabled = false;
+                }
+
+                if (isVoiceActive) {
+                    setTimeout(listenForSpeech, 1200);
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech error:', event.error);
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                    showToast('Microphone access denied. Stopping voice chat.');
+                    stopVoiceChat();
+                    return;
+                }
+                if (isVoiceActive) {
+                    recognition = null;
+                    setTimeout(listenForSpeech, 800);
+                }
+            };
+
+            recognition.onend = () => {
+                if (isVoiceActive && recognition) {
+                    recognition = null;
+                    setTimeout(listenForSpeech, 400);
+                }
+            };
+
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error('Failed to start recognition:', e);
+                if (isVoiceActive) {
+                    recognition = null;
+                    setTimeout(listenForSpeech, 800);
+                }
+            }
+        }
+
+        function speakText(text) {
+            if (!window.speechSynthesis) return;
+            const cleanText = text.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').replace(/[\u{2600}-\u{26FF}]/gu, '').trim();
+            if (!cleanText) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.lang = 'en-US';
+            utterance.rate = 1;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+            isSpeaking = true;
+            utterance.onend = () => { isSpeaking = false; };
+            utterance.onerror = () => { isSpeaking = false; };
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function stopVoiceChat() {
+            isVoiceActive = false;
+            if (recognition) {
+                try { recognition.stop(); } catch (e) {}
+                recognition = null;
+            }
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+            isSpeaking = false;
+            voiceChatBtn.innerHTML = '<i class="fas fa-phone"></i>';
+            voiceChatBtn.classList.remove('active', 'pulsing');
+            micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            micBtn.classList.remove('active');
+            voiceStatusBar.classList.remove('active');
+            showToast('Voice chat stopped.');
+            addMessage(BOT_NUMBER, {
+                text: 'Voice chat stopped.',
+                timestamp: Date.now(),
+                direction: 'incoming',
+                from: BOT_NUMBER
+            });
+            renderMessages();
+            renderConversationList();
+        }
+
+        // =====================================================================
+        // 6. REAL CALL FUNCTIONALITY
+        // =====================================================================
+        function toggleCall() {
+            if (activePeer !== BOT_NUMBER) {
+                showToast('Calls only available with RAGina.');
+                return;
+            }
+            if (isCallActive) {
+                endCall();
+            } else {
+                startCall();
+            }
+        }
+
+        function startCall() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showToast('Your browser does not support calls.');
+                return;
+            }
+
+            // Reset call state
+            callTranscript = [];
+            callStartTime = Date.now();
+            isCallActive = true;
+
+            // Update UI
+            voiceChatBtn.innerHTML = '<i class="fas fa-phone-slash"></i>';
+            voiceChatBtn.classList.add('active', 'pulsing');
+            micBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+            micBtn.classList.add('active');
+            callControls.classList.add('active');
+            voiceStatusBar.classList.add('active');
+            showToast('🔊 Call connected with RAGina');
+
+            // Start timer
+            callTimerInterval = setInterval(() => {
+                if (callStartTime) {
+                    callTimer.textContent = formatDuration(Date.now() - callStartTime);
+                }
+            }, 1000);
+
+            addMessage(BOT_NUMBER, {
+                text: '🔊 Call connected. You can speak or type your questions.',
+                timestamp: Date.now(),
+                direction: 'incoming',
+                from: BOT_NUMBER
+            });
+            renderMessages();
+            renderConversationList();
+
+            // Start listening for speech
+            listenForCallSpeech();
+        }
+
+        function listenForCallSpeech() {
+            if (!isCallActive) return;
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return;
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = async (event) => {
+                const transcript = event.results[0][0].transcript;
+
+                // Add to transcript
+                callTranscript.push({ role: 'user', text: transcript, timestamp: Date.now() });
+
+                // Add as message
+                addMessage(BOT_NUMBER, {
+                    text: transcript,
+                    timestamp: Date.now(),
+                    direction: 'outgoing',
+                    from: 'user'
+                });
+                renderMessages();
+                renderConversationList();
+
+                // Get AI response
+                isSending = true;
+                sendBtn.disabled = true;
+                const thinkingId = 'thinking-' + Date.now();
+                const thinkingWrapper = document.createElement('div');
+                thinkingWrapper.className = 'message-wrapper incoming';
+                thinkingWrapper.id = thinkingId;
+                thinkingWrapper.innerHTML = `
+                    <div class="thinking-bubble">
+                        <span></span><span></span><span></span>
+                    </div>
+                `;
+                messagesContainer.appendChild(thinkingWrapper);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                try {
+                    const answer = await askRAGina(transcript);
+                    const t = document.getElementById(thinkingId);
+                    if (t) t.remove();
+
+                    // Add to transcript
+                    callTranscript.push({ role: 'assistant', text: answer, timestamp: Date.now() });
+
+                    addMessage(BOT_NUMBER, {
+                        text: answer,
+                        timestamp: Date.now(),
+                        direction: 'incoming',
+                        from: BOT_NUMBER
+                    });
+                    renderMessages();
+                    renderConversationList();
+                    if (isCallActive) {
+                        speakText(answer);
+                    }
+                } catch (err) {
+                    const t = document.getElementById(thinkingId);
+                    if (t) t.remove();
+                    addMessage(BOT_NUMBER, {
+                        text: 'Error: ' + err.message,
+                        timestamp: Date.now(),
+                        direction: 'incoming',
+                        from: BOT_NUMBER,
+                        error: true
+                    });
+                    renderMessages();
+                    renderConversationList();
+                } finally {
+                    isSending = false;
+                    sendBtn.disabled = false;
+                }
+
+                if (isCallActive) {
+                    setTimeout(listenForCallSpeech, 800);
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Call speech error:', event.error);
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                    showToast('Microphone access denied. Ending call.');
+                    endCall();
+                    return;
+                }
+                if (isCallActive) {
+                    recognition = null;
+                    setTimeout(listenForCallSpeech, 600);
+                }
+            };
+
+            recognition.onend = () => {
+                if (isCallActive && recognition) {
+                    recognition = null;
+                    setTimeout(listenForCallSpeech, 400);
+                }
+            };
+
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error('Failed to start call recognition:', e);
+                if (isCallActive) {
+                    recognition = null;
+                    setTimeout(listenForCallSpeech, 600);
+                }
+            }
+        }
+
+        function endCall() {
+            const duration = callStartTime ? Date.now() - callStartTime : 0;
+
+            // Save call transcript as JSON
+            if (callTranscript.length > 0) {
+                const callLog = {
+                    timestamp: callStartTime || Date.now(),
+                    duration: duration,
+                    caller: 'user',
+                    callee: BOT_NUMBER,
+                    transcript: callTranscript,
+                    summary: callTranscript.map(m => m.text).join(' ')
+                };
+
+                // Save to call logs
+                callLogs = loadCallLogs();
+                callLogs.push(callLog);
+                saveCallLogs();
+
+                // Download as JSON
+                downloadCallLog(callLog);
+            }
+
+            // Clean up
+            isCallActive = false;
+            if (recognition) {
+                try { recognition.stop(); } catch (e) {}
+                recognition = null;
+            }
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+            }
+            isSpeaking = false;
+            callStartTime = null;
+
+            // Update UI
+            voiceChatBtn.innerHTML = '<i class="fas fa-phone"></i>';
+            voiceChatBtn.classList.remove('active', 'pulsing');
+            micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+            micBtn.classList.remove('active');
+            callControls.classList.remove('active');
+            voiceStatusBar.classList.remove('active');
+            callTimer.textContent = '00:00';
+            showToast('📞 Call ended. Transcript saved.');
+
+            addMessage(BOT_NUMBER, {
+                text: '📞 Call ended. Duration: ' + formatDuration(duration),
+                timestamp: Date.now(),
+                direction: 'incoming',
+                from: BOT_NUMBER,
+                isCallLog: true,
+                callLog: { timestamp: Date.now(), duration: duration }
+            });
+            renderMessages();
+            renderConversationList();
+        }
+
+        function downloadCallLog(callLog) {
+            const json = JSON.stringify(callLog, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const dateStr = new Date(callLog.timestamp).toISOString().replace(/[:.]/g, '-');
+            a.download = `ragina-call-${dateStr}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Call controls
+        muteBtn.addEventListener('click', function() {
+            isMuted = !isMuted;
+            this.classList.toggle('active');
+            this.innerHTML = isMuted ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>';
+            if (recognition) {
+                if (isMuted) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
+            }
+            showToast(isMuted ? '🔇 Muted' : '🎤 Unmuted');
+        });
+
+        speakerBtn.addEventListener('click', function() {
+            isSpeakerOn = !isSpeakerOn;
+            this.classList.toggle('active');
+            this.innerHTML = isSpeakerOn ? '<i class="fas fa-volume-up"></i>' : '<i class="fas fa-volume-off"></i>';
+            showToast(isSpeakerOn ? '🔊 Speaker on' : '🔇 Speaker off');
+        });
+
+        hangupBtn.addEventListener('click', endCall);
+
+        // =====================================================================
+        // 7. EVENT LISTENERS
+        // =====================================================================
+        voiceChatBtn.addEventListener('click', toggleCall);
+        micBtn.addEventListener('click', toggleCall);
+        chatBackBtn.addEventListener('click', closeChat);
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Settings
+        themeToggle.addEventListener('click', function() {
+            this.classList.toggle('active');
+            document.body.classList.toggle('light-mode');
+        });
+        settingsBtn.addEventListener('click', () => settingsModal.classList.add('active'));
+        settingsClose.addEventListener('click', () => settingsModal.classList.remove('active'));
+        settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) settingsModal.classList.remove('active'); });
+
+        // =====================================================================
+        // 8. INIT
+        // =====================================================================
+        conversations = loadConversations();
+        if (!conversations[BOT_NUMBER]) {
+            conversations[BOT_NUMBER] = [{
+                text: '📞 Hello! I am RAGina. Call me at ' + RAGINA_PHONE_NUMBER + ' or chat with me!',
+                timestamp: Date.now(),
+                direction: 'incoming',
+                from: BOT_NUMBER,
+                pending: false,
+                error: false,
+                _tempId: 'welcome'
+            }];
+            saveConversations();
+        }
+
+        // Load call logs into conversation list
+        const logs = loadCallLogs();
+        logs.forEach(log => {
+            const peer = log.caller || BOT_NUMBER;
+            if (!conversations[peer]) {
+                conversations[peer] = [];
+            }
+            const exists = conversations[peer].some(m => m._tempId === 'call-' + log.timestamp);
+            if (!exists) {
+                conversations[peer].push({
+                    text: '📞 Call with RAGina (' + formatDuration(log.duration) + ')',
+                    timestamp: log.timestamp,
+                    direction: 'incoming',
+                    from: BOT_NUMBER,
+                    pending: false,
+                    error: false,
+                    _tempId: 'call-' + log.timestamp,
+                    isCallLog: true,
+                    callLog: log
+                });
+            }
+        });
+        saveConversations();
+
+        renderConversationList();
+
+        // Show status
+        if (raginaReady && knowledge) {
+            showToast('📚 RAGina loaded with premCall knowledge');
+        } else if (raginaReady) {
+            showToast('🤖 RAGina is ready — call ' + RAGINA_PHONE_NUMBER);
+        } else {
+            showToast('⚠️ RAGina failed to load — check connection');
+        }
+    })();
+</script>
+</body>
+</html>
