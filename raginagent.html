@@ -10,7 +10,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        /* Minimal dark theme – same as before but simplified */
         :root {
             --bg-0: #05070d;
             --bg-1: #0a0e18;
@@ -37,12 +36,14 @@
             display: flex; justify-content: center;
             padding: 0;
             overflow-x: hidden;
+            transition: background 0.3s, color 0.3s;
         }
         .app-container {
             width: 100%; max-width: 480px; min-height: 100vh; min-height: 100dvh;
             background: var(--bg-1);
             display: flex; flex-direction: column;
             position: relative;
+            transition: background 0.3s;
         }
         .header {
             display: flex; align-items: center; padding: 0.8rem 1rem;
@@ -160,7 +161,7 @@
             from { opacity: 0; transform: translateY(5px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        /* settings modal minimal */
+        /* settings modal */
         #settingsModal {
             display: none;
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -195,19 +196,60 @@
             cursor: pointer; font-weight: 600;
         }
         .settings-close:hover { background: var(--surface-2); color: var(--text); }
+
+        /* Light mode */
+        body.light-mode {
+            --bg-0: #f0f2f5;
+            --bg-1: #ffffff;
+            --surface: #ffffff;
+            --surface-2: #f5f6f8;
+            --surface-3: #e8eaed;
+            --line: #dadce0;
+            --text: #1a1a2e;
+            --text-dim: #5f6368;
+            --text-faint: #9aa0a6;
+            --signal: #4f8cf7;
+        }
+        body.light-mode .message-wrapper.incoming .message-bubble {
+            background: var(--surface-2);
+            color: var(--text);
+            border: 1px solid var(--line);
+        }
+        body.light-mode .chat-input-area input {
+            background: var(--bg-1);
+            color: var(--text);
+        }
+
+        /* Thinking indicator */
+        .thinking-bubble {
+            display: flex; gap: 4px; padding: 12px 16px;
+            background: var(--surface-2); border-radius: 16px;
+            border-bottom-left-radius: 4px; align-self: flex-start;
+        }
+        .thinking-bubble span {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--text-dim);
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .thinking-bubble span:nth-child(1) { animation-delay: -0.32s; }
+        .thinking-bubble span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Strip any RAGina widget that leaks through */
+        .ragina-bubble, .ragina-panel, #ragina-styles { display: none !important; }
     </style>
 </head>
 <body>
 
 <div class="app-container" id="app">
-    <!-- Header -->
     <div class="header" id="listHeader">
         <span class="title"><i class="fas fa-robot" style="color: var(--signal);"></i> RAGina Agent</span>
         <button class="icon-btn" id="settingsBtn"><i class="fas fa-gear"></i></button>
     </div>
-    <!-- Conversation list -->
     <div class="conversation-list" id="conversationList"></div>
-    <!-- Chat view -->
     <div class="chat-view" id="chatView">
         <div class="chat-header">
             <button class="back-btn" id="chatBackBtn"><i class="fas fa-arrow-left"></i></button>
@@ -228,7 +270,6 @@
     </div>
 </div>
 
-<!-- Settings Modal -->
 <div id="settingsModal">
     <div class="settings-card">
         <h2>Settings</h2>
@@ -245,9 +286,9 @@
 <div id="toast"></div>
 
 <script>
-    // =========================================================================
-    // 0. CONFIG – Knowledge from premCall.html (optional)
-    // =========================================================================
+    // =====================================================================
+    // 0. LOAD KNOWLEDGE from premCall.html
+    // =====================================================================
     async function loadKnowledge() {
         try {
             const resp = await fetch('premCall.html');
@@ -255,26 +296,24 @@
             const html = await resp.text();
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            // Remove scripts/styles
             doc.querySelectorAll('script, style, link, meta, head, title, noscript').forEach(el => el.remove());
-            let body = doc.body;
-            if (!body || !body.textContent.trim()) body = doc.documentElement;
-            let text = body.textContent.replace(/\s+/g, ' ').trim();
+            const body = doc.body || doc.documentElement;
+            const text = body.textContent.replace(/\s+/g, ' ').trim();
             if (text.length > 50) {
-                return { title: 'premCall Documentation', content: text.slice(0, 15000) };
+                // RAGina expects { "filename": { "bodyText": "..." } }
+                return { "premCall.html": { bodyText: text.slice(0, 15000) } };
             }
         } catch (e) { /* ignore */ }
         return null;
     }
 
-    // =========================================================================
-    // 1. LOAD RAGina PRO
-    // =========================================================================
-    function loadRAGina(knowledge) {
+    // =====================================================================
+    // 1. LOAD RAGina PRO (do NOT set RAGINA_CONFIG before load)
+    // =====================================================================
+    function loadRAGinaScript() {
         return new Promise((resolve, reject) => {
-            window.RAGINA_CONFIG = {
-                knowledge: knowledge ? [knowledge] : []
-            };
+            // Do NOT set window.RAGINA_CONFIG here — that triggers auto-init
+            // and creates the floating bubble we don't want.
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-pro.min.js';
             script.onload = () => resolve();
@@ -283,15 +322,36 @@
         });
     }
 
-    // =========================================================================
+    // =====================================================================
     // 2. MAIN APP
-    // =========================================================================
+    // =====================================================================
     (async function init() {
-        // Load knowledge and RAGina
+        // --- Load knowledge ---
         const knowledge = await loadKnowledge();
+
+        // --- Load RAGina script ---
+        let raginaReady = false;
         try {
-            await loadRAGina(knowledge);
-            console.log('RAGina loaded with knowledge');
+            await loadRAGinaScript();
+            console.log('RAGina script loaded');
+
+            // Initialize engine with knowledge (this also builds the UI bubble,
+            // so we immediately nuke it — we want our own minimal UI)
+            if (knowledge && window.RAGina && typeof window.RAGina.loadData === 'function') {
+                window.RAGina.loadData(knowledge);
+                // Remove RAGina's floating widget & injected styles
+                setTimeout(() => {
+                    document.querySelectorAll('.ragina-bubble, .ragina-panel, #ragina-styles').forEach(el => el.remove());
+                }, 50);
+                raginaReady = true;
+            } else if (window.RAGina) {
+                // No knowledge — still init empty engine so getEngine() works
+                window.RAGina.loadData({});
+                setTimeout(() => {
+                    document.querySelectorAll('.ragina-bubble, .ragina-panel, #ragina-styles').forEach(el => el.remove());
+                }, 50);
+                raginaReady = true;
+            }
         } catch (e) {
             console.warn('RAGina not loaded:', e.message);
         }
@@ -320,7 +380,7 @@
         let activePeer = null;
         let isCallActive = false;
         let recognition = null;
-        let speechSynth = window.speechSynthesis;
+        let isSending = false;
 
         // --- Helpers ---
         function showToast(msg) {
@@ -354,6 +414,7 @@
 
         // --- Render functions ---
         function renderMessages() {
+            if (!activePeer) return;
             const msgs = conversations[activePeer] || [];
             messagesContainer.innerHTML = '';
             let lastDate = null;
@@ -420,7 +481,6 @@
             });
         }
 
-        // --- Open / close chat ---
         function openChat(peer) {
             activePeer = peer;
             listHeader.classList.add('hidden');
@@ -431,6 +491,7 @@
             chatPeerStatus.textContent = 'Online';
             if (isCallActive) endCall();
             chatCallBtn.innerHTML = '<i class="fas fa-phone"></i>';
+            chatCallBtn.classList.remove('active');
             renderMessages();
             messageInput.focus();
         }
@@ -444,7 +505,6 @@
             renderConversationList();
         }
 
-        // --- Add message ---
         function addMessage(peer, msg) {
             if (!peer || !msg) return;
             if (!conversations[peer]) conversations[peer] = [];
@@ -462,70 +522,111 @@
             else renderConversationList();
         }
 
-        // --- AI call (core) ---
-        function askRAGina(query, callback) {
-            if (!window.RAGina) {
-                callback('🤖 RAGina is not available. Please check your internet connection.');
-                return;
+        // =====================================================================
+        // 3. AI CALL — uses RAGina engine for retrieval + direct API for LLM
+        // =====================================================================
+        async function askRAGina(query) {
+            const engine = window.RAGina?.getEngine?.();
+            if (!engine || !engine.isReady) {
+                throw new Error('RAGina engine is not ready. Please wait a moment and try again.');
             }
-            try {
-                // Try the most common API: ask(query, onChunk, onComplete)
-                if (typeof window.RAGina.ask === 'function') {
-                    window.RAGina.ask(query, null, (answer) => {
-                        callback(answer);
-                    });
-                } else if (typeof window.RAGina.chat === 'function') {
-                    window.RAGina.chat(query, (answer) => {
-                        callback(answer);
-                    });
-                } else {
-                    // Fallback: try calling RAGina as a function
-                    const result = window.RAGina(query);
-                    if (typeof result === 'string') callback(result);
-                    else callback('🤖 RAGina is not responding.');
-                }
-            } catch (e) {
-                console.error(e);
-                callback('🤖 Sorry, I encountered an error: ' + e.message);
-            }
+
+            // Retrieve relevant chunks from the knowledge base
+            const chunks = engine.retrieve(query, 3);
+            const hasContext = chunks.length > 0;
+            const contextText = hasContext
+                ? chunks.map((c, i) => `[${i+1}] ${c.source || 'doc'}\n${c.text}`).join('\n\n')
+                : 'No relevant documents found.';
+
+            // Build the same prompt RAGina Pro uses internally
+            const prompt = `You are RAGina, a sassy mentalist who can read any document. Answer using ONLY the context below. If the answer isn\'t there, respond with attitude that the info isn\'t in the files.
+
+Context:
+${contextText}
+
+Question: ${query}
+Answer (as RAGina, with sass):`;
+
+            const resp = await fetch('https://ragina-crawler-ragina.vercel.app/api/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt })
+            });
+            if (!resp.ok) throw new Error(`LLM error: ${resp.status}`);
+            const data = await resp.json();
+            if (data.error) throw new Error(data.error);
+            return data.text || '🤖 No response from RAGina.';
         }
 
-        // --- Send message ---
-        function sendMessage() {
-            if (!activePeer) return;
+        // =====================================================================
+        // 4. SEND MESSAGE
+        // =====================================================================
+        async function sendMessage() {
+            if (!activePeer || isSending) return;
             const text = messageInput.value.trim();
             if (!text) return;
 
+            // Add user message
             addMessage(activePeer, {
                 text: text,
                 timestamp: Date.now(),
                 direction: 'outgoing',
-                from: 'user',
-                pending: false,
-                error: false
+                from: 'user'
             });
             messageInput.value = '';
 
             if (activePeer === BOT_NUMBER) {
-                askRAGina(text, (answer) => {
+                // Show thinking indicator
+                isSending = true;
+                sendBtn.disabled = true;
+                const thinkingId = 'thinking-' + Date.now();
+                const thinkingWrapper = document.createElement('div');
+                thinkingWrapper.className = 'message-wrapper incoming';
+                thinkingWrapper.id = thinkingId;
+                thinkingWrapper.innerHTML = `
+                    <div class="thinking-bubble">
+                        <span></span><span></span><span></span>
+                    </div>
+                `;
+                messagesContainer.appendChild(thinkingWrapper);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+                try {
+                    const answer = await askRAGina(text);
+                    // Remove thinking
+                    const t = document.getElementById(thinkingId);
+                    if (t) t.remove();
                     addMessage(BOT_NUMBER, {
                         text: answer,
                         timestamp: Date.now(),
                         direction: 'incoming',
-                        from: BOT_NUMBER,
-                        pending: false,
-                        error: false
+                        from: BOT_NUMBER
                     });
+                } catch (err) {
+                    const t = document.getElementById(thinkingId);
+                    if (t) t.remove();
+                    addMessage(BOT_NUMBER, {
+                        text: '🤖 Sorry, I encountered an error: ' + err.message,
+                        timestamp: Date.now(),
+                        direction: 'incoming',
+                        from: BOT_NUMBER,
+                        error: true
+                    });
+                } finally {
+                    isSending = false;
+                    sendBtn.disabled = false;
                     renderMessages();
                     renderConversationList();
-                });
+                }
             } else {
                 renderMessages();
                 renderConversationList();
             }
         }
 
-        // --- Voice call ---
+        // =====================================================================
+        // 5. VOICE CALL — fixed with fresh recognition instances
+        // =====================================================================
         function startCall() {
             if (activePeer !== BOT_NUMBER) {
                 showToast('Voice calls only with RAGina.');
@@ -540,10 +641,6 @@
                 showToast('Your browser does not support voice calls.');
                 return;
             }
-            recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.lang = 'en-US';
 
             isCallActive = true;
             chatCallBtn.innerHTML = '<i class="fas fa-phone-slash"></i>';
@@ -554,9 +651,7 @@
                 text: '🔊 Call started. Speak your question.',
                 timestamp: Date.now(),
                 direction: 'incoming',
-                from: BOT_NUMBER,
-                pending: false,
-                error: false
+                from: BOT_NUMBER
             });
             renderMessages();
             renderConversationList();
@@ -565,60 +660,97 @@
         }
 
         function listenForSpeech() {
-            if (!recognition || !isCallActive) return;
-            recognition.start();
+            if (!isCallActive) return;
 
-            recognition.onresult = (event) => {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return;
+
+            // Always create a fresh instance — prevents "already started" DOM error
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = async (event) => {
                 const transcript = event.results[0][0].transcript;
                 addMessage(BOT_NUMBER, {
                     text: '🎤 ' + transcript,
                     timestamp: Date.now(),
                     direction: 'outgoing',
-                    from: 'user',
-                    pending: false,
-                    error: false
+                    from: 'user'
                 });
                 renderMessages();
                 renderConversationList();
 
-                askRAGina(transcript, (answer) => {
+                try {
+                    const answer = await askRAGina(transcript);
                     addMessage(BOT_NUMBER, {
-                        text: '🤖 ' + answer,
+                        text: answer,
                         timestamp: Date.now(),
                         direction: 'incoming',
-                        from: BOT_NUMBER,
-                        pending: false,
-                        error: false
+                        from: BOT_NUMBER
                     });
                     renderMessages();
                     renderConversationList();
-                    // Speak the response
                     speakText(answer);
-                });
+                } catch (err) {
+                    addMessage(BOT_NUMBER, {
+                        text: '🤖 Error: ' + err.message,
+                        timestamp: Date.now(),
+                        direction: 'incoming',
+                        from: BOT_NUMBER,
+                        error: true
+                    });
+                    renderMessages();
+                    renderConversationList();
+                }
+
+                // Restart listening after a short pause
+                if (isCallActive) {
+                    setTimeout(listenForSpeech, 600);
+                }
             };
 
             recognition.onerror = (event) => {
                 console.error('Speech error:', event.error);
-                if (event.error === 'not-allowed') {
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
                     showToast('Microphone access denied. Ending call.');
                     endCall();
-                } else {
-                    setTimeout(listenForSpeech, 500);
+                    return;
+                }
+                // Restart after other errors
+                if (isCallActive) {
+                    recognition = null;
+                    setTimeout(listenForSpeech, 800);
                 }
             };
 
             recognition.onend = () => {
-                if (isCallActive) {
-                    setTimeout(listenForSpeech, 300);
+                // If still active and not already restarting via onresult/onerror
+                if (isCallActive && recognition) {
+                    recognition = null;
+                    setTimeout(listenForSpeech, 400);
                 }
             };
+
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error('Failed to start recognition:', e);
+                if (isCallActive) {
+                    recognition = null;
+                    setTimeout(listenForSpeech, 800);
+                }
+            }
         }
 
         function speakText(text) {
             if (!window.speechSynthesis) return;
-            // Cancel any ongoing speech
+            // Strip emoji for cleaner speech
+            const cleanText = text.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').replace(/[\u{2600}-\u{26FF}]/gu, '').trim();
+            if (!cleanText) return;
             window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
+            const utterance = new SpeechSynthesisUtterance(cleanText);
             utterance.lang = 'en-US';
             utterance.rate = 1;
             utterance.pitch = 1;
@@ -642,9 +774,7 @@
                 text: '🔇 Call ended.',
                 timestamp: Date.now(),
                 direction: 'incoming',
-                from: BOT_NUMBER,
-                pending: false,
-                error: false
+                from: BOT_NUMBER
             });
             renderMessages();
             renderConversationList();
@@ -690,11 +820,13 @@
         }
         renderConversationList();
 
-        // Show knowledge status
-        if (knowledge) {
-            showToast('📚 Loaded knowledge from premCall.html');
-        } else {
+        // Show status
+        if (raginaReady && knowledge) {
+            showToast('📚 RAGina loaded with premCall knowledge');
+        } else if (raginaReady) {
             showToast('🤖 RAGina is ready (no custom knowledge)');
+        } else {
+            showToast('⚠️ RAGina failed to load — check connection');
         }
     })();
 </script>
