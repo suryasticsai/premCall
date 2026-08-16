@@ -760,16 +760,15 @@
             justify-content: center;
             align-items: center;
             padding: calc(2.5rem + var(--safe-t)) 1.5rem calc(1.5rem + var(--safe-b));
-            background: radial-gradient(800px 600px at 50% 30%, rgba(20, 30, 60, 0.9), #05070d 90%);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            background: radial-gradient(800px 600px at 50% 30%, rgba(20, 30, 60, 0.92), #05070d 95%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             color: #fff;
             font-family: var(--font-display);
         }
         #callScreen.active {
             display: flex;
         }
-        /* phone notch / dynamic island accommodation */
         #callScreen::before {
             content: "";
             position: absolute;
@@ -869,7 +868,6 @@
             text-shadow: 0 0 40px rgba(47, 217, 146, 0.15);
         }
 
-        /* call control buttons */
         #callScreen .call-actions {
             display: flex;
             gap: 1.8rem;
@@ -984,43 +982,6 @@
             padding: 0.5rem 0;
         }
 
-        /* ===== toast ===== */
-        #toast {
-            position: fixed;
-            bottom: calc(28px + var(--safe-b));
-            left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            background: var(--surface-3);
-            border: 1px solid var(--line);
-            color: var(--text);
-            padding: 0.7rem 1.3rem;
-            border-radius: 40px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity .25s ease, transform .25s ease;
-            z-index: 4000;
-            max-width: 88%;
-            text-align: center;
-            box-shadow: 0 10px 34px rgba(0, 0, 0, 0.55);
-        }
-        #toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-
-        /* ===== utility ===== */
-        .hidden {
-            display: none !important;
-        }
-
-        /* ===== hide ragina widget ===== */
-        .ragina-bubble,
-        .ragina-panel {
-            display: none !important;
-        }
-
         /* ===== export buttons inside call screen ===== */
         #exportButtons {
             display: none;
@@ -1052,6 +1013,48 @@
         #exportButtons button i {
             margin-right: 0.3rem;
         }
+
+        /* ===== toast ===== */
+        #toast {
+            position: fixed;
+            bottom: calc(28px + var(--safe-b));
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--surface-3);
+            border: 1px solid var(--line);
+            color: var(--text);
+            padding: 0.7rem 1.3rem;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .25s ease, transform .25s ease;
+            z-index: 4000;
+            max-width: 88%;
+            text-align: center;
+            box-shadow: 0 10px 34px rgba(0, 0, 0, 0.55);
+        }
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .ragina-bubble,
+        .ragina-panel {
+            display: none !important;
+        }
+
+        /* dimmed overlay for main UI during call */
+        .dimmed {
+            opacity: 0.15 !important;
+            pointer-events: none !important;
+            user-select: none !important;
+        }
     </style>
 </head>
 <body>
@@ -1060,7 +1063,7 @@
         <div class="phone-frame" id="phoneFrame">
 
             <!-- ===== HEADER ===== -->
-            <div class="header">
+            <div class="header" id="mainHeader">
                 <div class="brand" id="brandLogo" title="Double-tap to toggle theme">
                     <img src="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" alt="PremCall" />
                     <span>PremCall</span>
@@ -1139,10 +1142,8 @@
         </div>
     </div>
 
-    <!-- ===== CALL SCREEN — full-screen phone UI (outside phone-frame so it covers everything) ===== -->
+    <!-- ===== CALL SCREEN — full-screen phone UI (outside phone-frame) ===== -->
     <div id="callScreen">
-        <!-- notch imitation removed via ::before in CSS -->
-
         <div class="avatar-wrap" id="callRingWrap">
             <div class="ring"></div><div class="ring"></div><div class="ring"></div>
             <div class="avatar" id="callAvatar">👤</div>
@@ -1525,7 +1526,6 @@
             function addCallTranscript(role, text) {
                 const container = document.getElementById('callTranscript');
                 if (!container) return;
-                // remove empty hint
                 const hint = container.querySelector('.empty-hint');
                 if (hint) hint.remove();
 
@@ -1649,13 +1649,15 @@
                 document.getElementById('dialCallBtn').classList.add('disabled');
                 document.getElementById('exportButtons').classList.remove('active');
 
-                // hide main UI elements behind
-                document.getElementById('dialerSection').style.opacity = '0.2';
-                document.getElementById('historySection').style.opacity = '0.2';
-                document.getElementById('logArea').style.opacity = '0.2';
-                document.querySelector('.header').style.opacity = '0.2';
-                const regLink = document.getElementById('registerLink');
-                if (regLink) regLink.style.opacity = '0.2';
+                // dim main UI
+                const dimEls = [
+                    document.getElementById('dialerSection'),
+                    document.getElementById('historySection'),
+                    document.getElementById('logArea'),
+                    document.getElementById('mainHeader'),
+                    document.getElementById('registerLink')
+                ];
+                dimEls.forEach(el => { if (el) el.classList.add('dimmed'); });
 
                 // timer
                 let seconds = 0;
@@ -1680,6 +1682,7 @@
                 }, 1200);
 
                 fire('onCallStarted', { target: RAGINA_NUMBER, isCaller: true, isRAGina: true });
+                log('RAGina call started', 'success');
             }
 
             function listenToRAGina() {
@@ -1774,12 +1777,14 @@
                 document.getElementById('callTimer').textContent = '00:00';
 
                 // restore main UI
-                document.getElementById('dialerSection').style.opacity = '1';
-                document.getElementById('historySection').style.opacity = '1';
-                document.getElementById('logArea').style.opacity = '1';
-                document.querySelector('.header').style.opacity = '1';
-                const regLink = document.getElementById('registerLink');
-                if (regLink) regLink.style.opacity = '1';
+                const dimEls = [
+                    document.getElementById('dialerSection'),
+                    document.getElementById('historySection'),
+                    document.getElementById('logArea'),
+                    document.getElementById('mainHeader'),
+                    document.getElementById('registerLink')
+                ];
+                dimEls.forEach(el => { if (el) el.classList.remove('dimmed'); });
 
                 // show export buttons
                 if (raginaTranscript.length) {
@@ -1794,6 +1799,7 @@
 
                 showToast('Call with RAGina ended');
                 fire('onCallEnded', null);
+                log('RAGina call ended', 'info');
             }
 
             function toggleRAGinaMute() {
@@ -1879,6 +1885,10 @@
                 },
 
                 checkStatus: function(number) {
+                    // Special case: RAGina is always "online"
+                    if (number === RAGINA_NUMBER) {
+                        return Promise.resolve(true);
+                    }
                     return new Promise(function(resolve) {
                         if (!peer) return resolve(false);
                         const conn = peer.connect(number);
@@ -2008,6 +2018,8 @@
             const brandLogo = document.getElementById('brandLogo');
             const exportTxtBtn = document.getElementById('exportTxtBtn');
             const exportJsonBtn = document.getElementById('exportJsonBtn');
+
+            const RAGINA_NUMBER = '0000000000';
 
             let dialedNumber = '';
             let callTimerInterval = null;
@@ -2212,12 +2224,14 @@
                 if (remoteAudio) remoteAudio.srcObject = null;
                 if (dialCallBtn) dialCallBtn.classList.remove('disabled');
                 // restore main UI
-                document.getElementById('dialerSection').style.opacity = '1';
-                document.getElementById('historySection').style.opacity = '1';
-                document.getElementById('logArea').style.opacity = '1';
-                document.querySelector('.header').style.opacity = '1';
-                const regLink = document.getElementById('registerLink');
-                if (regLink) regLink.style.opacity = '1';
+                const dimEls = [
+                    document.getElementById('dialerSection'),
+                    document.getElementById('historySection'),
+                    document.getElementById('logArea'),
+                    document.getElementById('mainHeader'),
+                    document.getElementById('registerLink')
+                ];
+                dimEls.forEach(el => { if (el) el.classList.remove('dimmed'); });
                 document.getElementById('exportButtons').classList.remove('active');
             }
 
@@ -2278,7 +2292,6 @@
                                 // already handled inside startRAGinaCall()
                             } else {
                                 pendingCallDirection = data.isCaller ? 'outgoing' : 'incoming';
-                                // show call screen for regular calls
                                 callAvatar.textContent = initials(data.target);
                                 callName.textContent = data.target;
                                 callNumber.textContent = data.target;
@@ -2289,12 +2302,14 @@
                                 dialCallBtn.classList.add('disabled');
                                 hideIncomingOverlay();
                                 // dim main UI
-                                document.getElementById('dialerSection').style.opacity = '0.2';
-                                document.getElementById('historySection').style.opacity = '0.2';
-                                document.getElementById('logArea').style.opacity = '0.2';
-                                document.querySelector('.header').style.opacity = '0.2';
-                                const regLink = document.getElementById('registerLink');
-                                if (regLink) regLink.style.opacity = '0.2';
+                                const dimEls = [
+                                    document.getElementById('dialerSection'),
+                                    document.getElementById('historySection'),
+                                    document.getElementById('logArea'),
+                                    document.getElementById('mainHeader'),
+                                    document.getElementById('registerLink')
+                                ];
+                                dimEls.forEach(el => { if (el) el.classList.add('dimmed'); });
                                 document.getElementById('exportButtons').classList.remove('active');
                             }
                         },
@@ -2374,6 +2389,7 @@
                         vibrate([40, 40, 40]);
                         return;
                     }
+                    // For RAGina number we don't need PeerJS online
                     if (dialedNumber !== RAGINA_NUMBER && headerStatusDot.className.indexOf('online') === -1) {
                         log('Not connected to signaling server yet — wait for the status dot to turn green.',
                             'warning');
@@ -2494,67 +2510,16 @@
                 if (typeof PremCall.exportLastTranscript === 'function') {
                     PremCall.exportLastTranscript();
                 } else {
-                    // fallback: use internal export
-                    exportTranscript('txt');
+                    showToast('Export not available.');
                 }
             });
             exportJsonBtn.addEventListener('click', () => {
-                exportTranscript('json');
-            });
-
-            // expose export function globally for PremCall
-            function exportTranscript(format) {
-                // This is a fallback; the actual transcript is stored in raginaTranscript
-                // inside the PremCall closure. We'll access it via the global PremCall
-                // if possible, or use the internal state.
-                if (typeof PremCall.exportLastTranscript === 'function') {
-                    if (format === 'json') {
-                        // We need to override to export JSON
-                        // The PremCall object doesn't have a JSON export method, so we'll
-                        // use the internal function if available.
-                        const internalExport = window.__exportRAGinaTranscript;
-                        if (internalExport) {
-                            internalExport(format);
-                        } else {
-                            showToast('JSON export not available directly. Use TXT.');
-                        }
-                    } else {
-                        PremCall.exportLastTranscript();
-                    }
+                if (typeof PremCall.exportLastTranscriptJSON === 'function') {
+                    PremCall.exportLastTranscriptJSON();
                 } else {
-                    showToast('Export not available.');
+                    showToast('JSON export not available.');
                 }
-            }
-
-            // Expose internal export via a global for the UI
-            // We'll use a proxy to access the internal raginaTranscript
-            window.__exportRAGinaTranscript = function(format) {
-                // This will be set by the main script
-                showToast('Exporting…');
-            };
-
-            // Override the export function in the main script's scope
-            // We'll patch it after the fact using a setter
-            const originalPremCall = window.PremCall;
-            if (originalPremCall) {
-                // Add a method to export the last transcript
-                Object.defineProperty(originalPremCall, 'exportLastTranscript', {
-                    value: function() {
-                        // This will be called from the UI
-                        // The actual implementation is in the main script
-                        if (window.__doExportTXT) window.__doExportTXT();
-                    },
-                    writable: false,
-                    configurable: true
-                });
-                Object.defineProperty(originalPremCall, 'exportLastTranscriptJSON', {
-                    value: function() {
-                        if (window.__doExportJSON) window.__doExportJSON();
-                    },
-                    writable: false,
-                    configurable: true
-                });
-            }
+            });
 
             // ---------- init ----------
             initPremCall();
@@ -2579,116 +2544,102 @@
         // Patch: expose RAGina transcript export from the main closure
         // =====================================================================
         (function() {
-            // We need to capture the raginaTranscript from the main PremCall scope.
-            // Since it's inside a closure, we'll use a global setter.
             let _raginaTranscript = [];
             let _raginaCallStart = null;
 
-            // Override the push to capture
-            const origPush = Array.prototype.push;
-            // We'll patch the PremCall object to expose the transcript
             const prem = window.PremCall;
             if (prem) {
-                // Add a method to get the transcript
-                Object.defineProperty(prem, '_getRAGinaTranscript', {
-                    value: function() {
-                        return _raginaTranscript;
-                    },
-                    writable: false,
-                    configurable: true
-                });
-                Object.defineProperty(prem, '_getRAGinaCallStart', {
-                    value: function() {
-                        return _raginaCallStart;
-                    },
-                    writable: false,
-                    configurable: true
-                });
-                // Add export methods
+                // Override export methods to use the internal transcript
                 Object.defineProperty(prem, 'exportLastTranscript', {
                     value: function() {
-                        if (!_raginaTranscript.length) {
-                            showToast('No conversation to export.');
-                            return;
+                        // This will be called from the UI
+                        // The actual implementation uses the internal state
+                        if (typeof window.__doExportTXT === 'function') {
+                            window.__doExportTXT();
+                        } else {
+                            showToast('Export not ready.');
                         }
-                        const lines = _raginaTranscript.map(m => {
-                            const time = new Date(m.timestamp).toLocaleTimeString();
-                            const who = m.role === 'user' ? 'You' : 'RAGina';
-                            return `[${time}] ${who}: ${m.text}`;
-                        });
-                        const header =
-                            `RAGina Call Transcript\nStarted: ${new Date(_raginaCallStart || Date.now()).toLocaleString()}\n\n`;
-                        const content = header + (lines.length ? lines.join('\n') :
-                        '(no exchanges recorded)');
-                        const stamp = new Date(_raginaCallStart || Date.now()).toISOString().replace(/[:.]/g, '-');
-                        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `ragina-transcript-${stamp}.txt`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        setTimeout(() => URL.revokeObjectURL(url), 2000);
-                        showToast('Exported TXT');
                     },
                     writable: false,
                     configurable: true
                 });
                 Object.defineProperty(prem, 'exportLastTranscriptJSON', {
                     value: function() {
-                        if (!_raginaTranscript.length) {
-                            showToast('No conversation to export.');
-                            return;
+                        if (typeof window.__doExportJSON === 'function') {
+                            window.__doExportJSON();
+                        } else {
+                            showToast('Export not ready.');
                         }
-                        const data = {
-                            callType: 'RAGina',
-                            number: '0000000000',
-                            name: 'RAGina',
-                            started: _raginaCallStart ? new Date(_raginaCallStart).toISOString() : null,
-                            ended: new Date().toISOString(),
-                            messages: _raginaTranscript.map(m => ({
-                                role: m.role === 'user' ? 'user' : 'assistant',
-                                text: m.text,
-                                timestamp: new Date(m.timestamp).toISOString()
-                            }))
-                        };
-                        const content = JSON.stringify(data, null, 2);
-                        const stamp = new Date(_raginaCallStart || Date.now()).toISOString().replace(/[:.]/g, '-');
-                        const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `ragina-transcript-${stamp}.json`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        setTimeout(() => URL.revokeObjectURL(url), 2000);
-                        showToast('Exported JSON');
                     },
                     writable: false,
                     configurable: true
                 });
             }
 
-            // Hook into the addCallTranscript and raginaTranscript push
-            // We'll use a MutationObserver or just override the global functions
-            // Since we can't easily monkey-patch the closure, we'll use a global
-            // event listener pattern.
-
-            // Store a reference to the original push on the array
-            // We'll intercept via the global PremCall object's internal state
-            // by using a setInterval poller to sync the transcript.
-
-            // Instead, let's use a simpler approach: expose a global function
-            // that the main script calls to update the transcript.
+            // Store transcript reference
             window.__updateRAGinaTranscript = function(transcript, startTime) {
                 _raginaTranscript = transcript;
                 _raginaCallStart = startTime;
             };
 
-            // Poll for transcript updates from the UI's call transcript container
-            // This is a fallback; the main script will call the updater directly.
+            // Export functions called from UI
+            window.__doExportTXT = function() {
+                if (!_raginaTranscript.length) {
+                    showToast('No conversation to export.');
+                    return;
+                }
+                const lines = _raginaTranscript.map(m => {
+                    const time = new Date(m.timestamp).toLocaleTimeString();
+                    const who = m.role === 'user' ? 'You' : 'RAGina';
+                    return `[${time}] ${who}: ${m.text}`;
+                });
+                const header =
+                    `RAGina Call Transcript\nStarted: ${new Date(_raginaCallStart || Date.now()).toLocaleString()}\n\n`;
+                const content = header + (lines.length ? lines.join('\n') : '(no exchanges recorded)');
+                const stamp = new Date(_raginaCallStart || Date.now()).toISOString().replace(/[:.]/g, '-');
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ragina-transcript-${stamp}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
+                showToast('Exported TXT');
+            };
+
+            window.__doExportJSON = function() {
+                if (!_raginaTranscript.length) {
+                    showToast('No conversation to export.');
+                    return;
+                }
+                const data = {
+                    callType: 'RAGina',
+                    number: '0000000000',
+                    name: 'RAGina',
+                    started: _raginaCallStart ? new Date(_raginaCallStart).toISOString() : null,
+                    ended: new Date().toISOString(),
+                    messages: _raginaTranscript.map(m => ({
+                        role: m.role === 'user' ? 'user' : 'assistant',
+                        text: m.text,
+                        timestamp: new Date(m.timestamp).toISOString()
+                    }))
+                };
+                const content = JSON.stringify(data, null, 2);
+                const stamp = new Date(_raginaCallStart || Date.now()).toISOString().replace(/[:.]/g, '-');
+                const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `ragina-transcript-${stamp}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
+                showToast('Exported JSON');
+            };
+
             console.log('[PremCall] RAGina transcript export hooks installed.');
         })();
     </script>
