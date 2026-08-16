@@ -71,7 +71,10 @@
             width: 48px; height: 48px; border-radius: 50%; background: var(--surface-3);
             display: flex; align-items: center; justify-content: center;
             font-family: var(--font-display); font-weight: 700; font-size: 1.5rem;
-            color: var(--text); flex-shrink: 0;
+            color: var(--text); flex-shrink: 0; overflow: hidden;
+        }
+        .conversation-item .avatar img {
+            width: 100%; height: 100%; object-fit: cover;
         }
         .conversation-item .info { flex: 1; min-width: 0; }
         .conversation-item .name { font-weight: 600; font-size: 0.95rem; }
@@ -95,7 +98,10 @@
         .chat-header .avatar {
             width: 36px; height: 36px; border-radius: 50%; background: var(--surface-3);
             display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
-            color: var(--text); flex-shrink: 0;
+            color: var(--text); flex-shrink: 0; overflow: hidden;
+        }
+        .chat-header .avatar img {
+            width: 100%; height: 100%; object-fit: cover;
         }
         .chat-header .peer-info { flex: 1; }
         .chat-header .peer-name { font-family: var(--font-display); font-weight: 600; font-size: 0.95rem; }
@@ -308,7 +314,9 @@
     <div class="chat-view" id="chatView">
         <div class="chat-header">
             <button class="back-btn" id="chatBackBtn"><i class="fas fa-arrow-left"></i></button>
-            <div class="avatar" id="chatPeerAvatar"><i class="fas fa-robot"></i></div>
+            <div class="avatar" id="chatPeerAvatar">
+                <img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" alt="RAGina" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-robot\'></i>';">
+            </div>
             <div class="peer-info">
                 <span class="peer-name" id="chatPeerName">RAGina</span>
                 <span class="peer-status" id="chatPeerStatus">Online</span>
@@ -348,6 +356,8 @@
 <div id="toast"></div>
 
 <script>
+    const RAGINA_LOGO = 'https://ragina-crawler-ragina.vercel.app/ragina-logo.png';
+
     // =====================================================================
     // 0. LOAD KNOWLEDGE from premCall.html
     // =====================================================================
@@ -468,6 +478,14 @@
             try { localStorage.setItem('raginaChats', JSON.stringify(conversations)); } catch (e) {}
         }
 
+        function getRaginaAvatarHTML() {
+            return `<img src="${RAGINA_LOGO}" alt="RAGina" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fas fa-robot\'></i>';">`;
+        }
+
+        function getUserAvatarHTML() {
+            return '<i class="fas fa-user"></i>';
+        }
+
         // --- Render functions ---
         function renderMessages() {
             if (!activePeer) return;
@@ -515,7 +533,7 @@
                 item.className = 'conversation-item';
                 const avatar = document.createElement('div');
                 avatar.className = 'avatar';
-                avatar.innerHTML = peer === BOT_NUMBER ? '<i class="fas fa-robot"></i>' : '<i class="fas fa-user"></i>';
+                avatar.innerHTML = peer === BOT_NUMBER ? getRaginaAvatarHTML() : getUserAvatarHTML();
                 item.appendChild(avatar);
                 const info = document.createElement('div');
                 info.className = 'info';
@@ -542,7 +560,7 @@
             listHeader.classList.add('hidden');
             conversationList.classList.add('hidden');
             chatView.classList.add('active');
-            chatPeerAvatar.innerHTML = peer === BOT_NUMBER ? '<i class="fas fa-robot"></i>' : '<i class="fas fa-user"></i>';
+            chatPeerAvatar.innerHTML = peer === BOT_NUMBER ? getRaginaAvatarHTML() : getUserAvatarHTML();
             chatPeerName.textContent = peer === BOT_NUMBER ? BOT_NAME : peer;
             chatPeerStatus.textContent = 'Online';
             if (isVoiceActive) stopVoiceChat();
@@ -655,7 +673,6 @@ Answer (as RAGina, with sass):`;
                         direction: 'incoming',
                         from: BOT_NUMBER
                     });
-                    // If voice chat is active, speak the response
                     if (isVoiceActive) {
                         speakText(answer);
                     }
@@ -745,7 +762,6 @@ Answer (as RAGina, with sass):`;
                 renderMessages();
                 renderConversationList();
 
-                // Show thinking while processing voice input
                 isSending = true;
                 sendBtn.disabled = true;
                 const thinkingId = 'thinking-' + Date.now();
@@ -790,7 +806,6 @@ Answer (as RAGina, with sass):`;
                     sendBtn.disabled = false;
                 }
 
-                // Restart listening after response (with delay for TTS)
                 if (isVoiceActive) {
                     setTimeout(listenForSpeech, 1200);
                 }
