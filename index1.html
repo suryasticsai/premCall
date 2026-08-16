@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   <style>
-    /* ===== All existing styles (same as before) ===== */
+    /* ===== All styles (unchanged) ===== */
     :root{
       --bg-0:#05070d; --bg-1:#0a0e18; --surface:#0e1424; --surface-2:#141c30; --surface-3:#1b2540;
       --line:#1e2a42; --text:#eef2fb; --text-dim:#8891ab; --text-faint:#525d78;
@@ -259,11 +259,11 @@
     }
     .account-card .close-btn:hover{ background:var(--surface-2); color:var(--text); }
 
-    /* Transcript after call (new) */
+    /* Transcript container – visible during RAGina call */
     #transcriptContainer {
       display: none;
       margin-top: 0.8rem;
-      max-height: 100px;
+      max-height: 120px;
       overflow-y: auto;
       background: rgba(14, 20, 36, 0.6);
       border-radius: 10px;
@@ -275,8 +275,8 @@
       flex-shrink: 0;
     }
     #transcriptContainer.active { display: block; }
-    #transcriptContainer .msg { display: flex; gap: 0.5rem; margin-bottom: 0.2rem; }
-    #transcriptContainer .msg .who { font-weight: 600; color: var(--text); min-width: 2.4rem; }
+    #transcriptContainer .msg { display: flex; gap: 0.5rem; margin-bottom: 0.2rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.2rem; }
+    #transcriptContainer .msg .who { font-weight: 600; color: var(--text); min-width: 2.6rem; }
     #transcriptContainer .msg .who.user { color: var(--signal); }
     #transcriptContainer .msg .who.ragina { color: var(--go); }
   </style>
@@ -376,7 +376,7 @@
       </div>
     </div>
 
-    <!-- Transcript (appears after RAGina call ends) -->
+    <!-- Transcript Container – shows real‑time during RAGina call -->
     <div id="transcriptContainer"></div>
 
   </div>
@@ -403,7 +403,7 @@
 <!-- ===== PREMCALL + RAGina Call Integration ===== -->
 <script>
 /* ============================================================
-   PremCall v2.1 (merged - call + chat) + RAGina Voice Call
+   PremCall v2.1 (merged) + RAGina Voice Call – FIXED
    ============================================================ */
 (function (global) {
   'use strict';
@@ -455,6 +455,29 @@
   let raginaTimerInterval = null;
   let raginaCallStart = null;
   let raginaIsMuted = false;
+  let raginaEngineReady = false;
+
+  // Check RAGina engine readiness
+  function checkRAGinaEngine() {
+    try {
+      const engine = window.RAGina?.getEngine?.();
+      if (engine && engine.isReady) {
+        raginaEngineReady = true;
+        return true;
+      }
+      // If engine exists but not ready, we might need to load data
+      if (window.RAGina && typeof window.RAGina.loadData === 'function') {
+        // Load empty data to initialise
+        window.RAGina.loadData({});
+        raginaEngineReady = true;
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.warn('RAGina engine check failed:', e);
+      return false;
+    }
+  }
 
   function log(message, level) {
     console.log('[PremCall]', message);
@@ -593,16 +616,21 @@
 
   // ---------- RAGina call logic ----------
   async function askRAGina(query) {
-    const engine = window.RAGina?.getEngine?.();
-    if (!engine || !engine.isReady) {
-      throw new Error('RAGina engine is not ready.');
+    // Ensure engine is ready
+    if (!raginaEngineReady) {
+      checkRAGinaEngine();
     }
-    const chunks = engine.retrieve(query, 3);
-    const contextText = chunks.length > 0
-      ? chunks.map((c, i) => `[${i+1}] ${c.source || 'doc'}\n${c.text}`).join('\n\n')
-      : 'No relevant documents found.';
+    try {
+      const engine = window.RAGina?.getEngine?.();
+      if (!engine || !engine.isReady) {
+        throw new Error('RAGina engine not ready. Please wait.');
+      }
+      const chunks = engine.retrieve(query, 3);
+      const contextText = chunks.length > 0
+        ? chunks.map((c, i) => `[${i+1}] ${c.source || 'doc'}\n${c.text}`).join('\n\n')
+        : 'No relevant documents found.';
 
-    const prompt = `You are RAGina, a sassy mentalist who can read any document. Answer using ONLY the context below. If the answer isn't there, respond with attitude that the info isn't in the files.
+      const prompt = `You are RAGina, a sassy mentalist who can read any document. Answer using ONLY the context below. If the answer isn't there, respond with attitude that the info isn't in the files.
 
 Context:
 ${contextText}
@@ -610,19 +638,27 @@ ${contextText}
 Question: ${query}
 Answer (as RAGina, with sass):`;
 
-    const resp = await fetch('https://ragina-crawler-ragina.vercel.app/api/ask', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt })
-    });
-    if (!resp.ok) throw new Error(`LLM error: ${resp.status}`);
-    const data = await resp.json();
-    if (data.error) throw new Error(data.error);
-    return data.text || 'No response from RAGina.';
+      const resp = await fetch('https://ragina-crawler-ragina.vercel.app/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+      if (!resp.ok) throw new Error(`LLM error: ${resp.status}`);
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+      return data.text || 'No response from RAGina.';
+    } catch (err) {
+      console.error('askRAGina error:', err);
+      // Fallback response
+      return "I'm sorry, I'm having trouble answering right now. Please try again in a moment.";
+    }
   }
 
   function speakText(text) {
-    if (!window.speechSynthesis) return;
+    if (!window.speechSynthesis) {
+      console.warn('Speech synthesis not available');
+      return;
+    }
     const clean = text.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
     if (!clean) return;
     window.speechSynthesis.cancel();
@@ -631,12 +667,41 @@ Answer (as RAGina, with sass):`;
     utterance.rate = 1;
     utterance.pitch = 1;
     utterance.volume = 1;
+    utterance.onerror = (e) => console.warn('Speech synthesis error:', e);
+    utterance.onend = () => console.log('Speech finished');
     window.speechSynthesis.speak(utterance);
+    console.log('Speaking:', clean);
+  }
+
+  // Add a message to the transcript container (real-time)
+  function addTranscriptMessage(role, text) {
+    const container = document.getElementById('transcriptContainer');
+    if (!container) return;
+    // Ensure container is visible
+    container.classList.add('active');
+    const div = document.createElement('div');
+    div.className = 'msg';
+    const who = document.createElement('span');
+    who.className = 'who ' + (role === 'user' ? 'user' : 'ragina');
+    who.textContent = role === 'user' ? 'You' : 'RAGina';
+    const txt = document.createElement('span');
+    txt.textContent = text;
+    div.appendChild(who);
+    div.appendChild(txt);
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
   }
 
   function startRAGinaCall() {
     if (raginaCallActive || inCall) {
       showToast('Already in a call.');
+      return;
+    }
+
+    // Check if RAGina engine is ready
+    if (!checkRAGinaEngine()) {
+      showToast('RAGina engine is loading. Please try again in a moment.');
+      log('RAGina engine not ready', 'warning');
       return;
     }
 
@@ -649,6 +714,12 @@ Answer (as RAGina, with sass):`;
     raginaCallActive = true;
     raginaTranscript = [];
     raginaCallStart = Date.now();
+
+    // Clear previous transcript
+    const container = document.getElementById('transcriptContainer');
+    container.innerHTML = '';
+    container.classList.add('active');
+
     fire('onCallStarted', { target: RAGINA_NUMBER, isCaller: true, isRAGina: true });
 
     // Show call UI with RAGina info
@@ -679,6 +750,9 @@ Answer (as RAGina, with sass):`;
       showToast('Connected to RAGina');
       // Start listening
       listenToRAGina();
+      // Add welcome message to transcript
+      addTranscriptMessage('ragina', 'Hello! I\'m RAGina. Ask me anything.');
+      speakText('Hello! I\'m RAGina. Ask me anything.');
     }, 1200);
   }
 
@@ -697,10 +771,13 @@ Answer (as RAGina, with sass):`;
     raginaRecognition.continuous = false;
     raginaRecognition.interimResults = false;
     raginaRecognition.lang = 'en-US';
+    raginaRecognition.maxAlternatives = 1;
 
     raginaRecognition.onresult = async (event) => {
       const transcript = event.results[0][0].transcript;
+      console.log('User said:', transcript);
       // Add user message to transcript
+      addTranscriptMessage('user', transcript);
       raginaTranscript.push({ role: 'user', text: transcript, timestamp: Date.now() });
 
       // Show thinking
@@ -708,14 +785,18 @@ Answer (as RAGina, with sass):`;
 
       try {
         const answer = await askRAGina(transcript);
+        console.log('RAGina answer:', answer);
         raginaTranscript.push({ role: 'assistant', text: answer, timestamp: Date.now() });
         document.getElementById('callSubstatus').textContent = 'Connected';
+        // Add to transcript
+        addTranscriptMessage('ragina', answer);
+        // Speak
         speakText(answer);
-        // Append to transcript container (will show after call ends)
-        updateTranscriptDisplay();
       } catch (err) {
-        console.error(err);
+        console.error('RAGina error:', err);
         document.getElementById('callSubstatus').textContent = 'Error: ' + err.message;
+        addTranscriptMessage('ragina', 'Sorry, I encountered an error.');
+        speakText('Sorry, I encountered an error.');
       }
 
       if (raginaCallActive) {
@@ -770,26 +851,8 @@ Answer (as RAGina, with sass):`;
       raginaTimerInterval = null;
     }
 
-    // Show transcript
-    const container = document.getElementById('transcriptContainer');
-    if (raginaTranscript.length > 0) {
-      container.innerHTML = '';
-      raginaTranscript.forEach(entry => {
-        const div = document.createElement('div');
-        div.className = 'msg';
-        const who = document.createElement('span');
-        who.className = 'who ' + (entry.role === 'user' ? 'user' : 'ragina');
-        who.textContent = entry.role === 'user' ? 'You' : 'RAGina';
-        const txt = document.createElement('span');
-        txt.textContent = entry.text;
-        div.appendChild(who);
-        div.appendChild(txt);
-        container.appendChild(div);
-      });
-      container.classList.add('active');
-    } else {
-      container.classList.remove('active');
-    }
+    // Keep transcript visible after call ends
+    // We'll keep the container active
 
     // Reset UI
     document.getElementById('callScreen').classList.remove('active');
@@ -833,6 +896,8 @@ Answer (as RAGina, with sass):`;
       callbacks = opts || {};
       peer = new global.Peer(number, { debug: 2, config: CONFIG });
       attachPeerHandlers();
+      // Check RAGina engine after a short delay
+      setTimeout(checkRAGinaEngine, 1000);
     },
 
     call: async function (target) {
@@ -1028,6 +1093,7 @@ Answer (as RAGina, with sass):`;
   const registerLink    = document.getElementById('registerLink');
   const accountModal    = document.getElementById('accountModal');
   const brandLogo       = document.getElementById('brandLogo');
+  const transcriptContainer = document.getElementById('transcriptContainer');
 
   let dialedNumber = '';
   let callTimerInterval = null;
@@ -1186,7 +1252,8 @@ Answer (as RAGina, with sass):`;
     if (callTimerInterval) clearInterval(callTimerInterval);
     callTimerInterval = null; getCallDuration = null;
     // Hide transcript if visible
-    document.getElementById('transcriptContainer').classList.remove('active');
+    transcriptContainer.classList.remove('active');
+    transcriptContainer.innerHTML = '';
   }
   function hideCallScreen() {
     if (!callScreen) return;
@@ -1306,7 +1373,8 @@ Answer (as RAGina, with sass):`;
         const reason = !dialedNumber ? 'No number entered' : 'Number is ' + dialedNumber.length + ' characters, need exactly 10 digits (no * or #)';
         log(reason, 'error'); showToast('Enter exactly 10 digits'); vibrate([40,40,40]); return;
       }
-      if (headerStatusDot.className.indexOf('online') === -1 && dialedNumber !== '0000000000') {
+      // For RAGina number, we don't need PeerJS to be online
+      if (dialedNumber !== '0000000000' && headerStatusDot.className.indexOf('online') === -1) {
         log('Not connected to signaling server yet — wait for the status dot to turn green.', 'warning');
         showToast('Still connecting, try again in a moment'); vibrate([40,40,40]); return;
       }
