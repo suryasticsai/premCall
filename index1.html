@@ -400,10 +400,44 @@
 <div id="toast"></div>
 <audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
 
-<!-- ===== RAGina Core ===== -->
-<script src="https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-pro.min.js"></script>
+<!-- ===== RAGina Core — self-hosted so it never depends on a third-party CDN
+     that ad-blockers/privacy extensions may silently block. Upload
+     ragina-pro.min.js next to this index.html in your repo. ===== -->
+<script src="ragina-pro.min.js" onerror="window.__raginaLocalFailed = true;"></script>
 <!-- ===== PeerJS ===== -->
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<!-- ===== RAGina load watchdog: falls back to CDN and reports status right
+     in the on-screen log panel, so a load failure is never silent again ===== -->
+<script>
+(function () {
+  function reportToLogPanel(msg, cls) {
+    var el = document.getElementById('logArea');
+    if (!el) return;
+    var now = new Date().toLocaleTimeString();
+    var div = document.createElement('div');
+    div.className = 'log-entry' + (cls ? ' ' + cls : '');
+    div.textContent = now + ' ' + msg;
+    el.prepend(div);
+  }
+  function tryInit() {
+    if (typeof window.__initRAGinaOnce === 'function') window.__initRAGinaOnce();
+  }
+  window.addEventListener('load', function () {
+    if (typeof window.RAGina !== 'undefined') return; // local file loaded fine
+    reportToLogPanel('RAGina script (local) failed to load — trying CDN fallback…', 'warning');
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-pro.min.js';
+    s.onload = function () {
+      reportToLogPanel('RAGina loaded via CDN fallback.', 'success');
+      tryInit();
+    };
+    s.onerror = function () {
+      reportToLogPanel('RAGina failed to load from local file AND CDN. RAGina calls will report "not ready" — check your network or disable ad-blocker for this page.', 'error');
+    };
+    document.head.appendChild(s);
+  });
+})();
+</script>
 
 <!-- ===== PREMCALL + RAGina Call Integration ===== -->
 <script>
@@ -425,9 +459,14 @@
   // engine is ready before any call is placed — no more per-call hacks —
   // and its widget is hidden in CSS since PremCall's call screen is the
   // only interface here.
-  // If you have real documents for RAGina to answer from, set
-  // window.__RAGINA_INDEX__ (or pass indexUrl below) before this script runs.
-  if (global.RAGina && typeof global.RAGina.init === 'function') {
+  // Exposed on window so the load-watchdog script (in <head>/<body> above)
+  // can trigger this once RAGina finishes loading — whether that's from the
+  // local file immediately, or from the CDN fallback a moment later.
+  let raginaInitAttempted = false;
+  function initRAGinaOnce() {
+    if (raginaInitAttempted) return;
+    if (!global.RAGina || typeof global.RAGina.init !== 'function') return;
+    raginaInitAttempted = true;
     try {
       global.RAGina.init({
         title: 'RAGina',
@@ -437,9 +476,9 @@
     } catch (e) {
       console.warn('[PremCall] RAGina.init() failed:', e);
     }
-  } else {
-    console.warn('[PremCall] ragina-pro.js was not found on window — RAGina calls will report "not ready".');
   }
+  global.__initRAGinaOnce = initRAGinaOnce;
+  initRAGinaOnce(); // no-op if RAGina isn't on window yet — watchdog retries it
 
   // ---------- PeerJS setup ----------
   if (typeof global.Peer === 'undefined') {
@@ -555,7 +594,9 @@
 
   function checkRAGinaEngine() {
     // Read-only check now — the engine is stood up once at load via the real
-    // RAGina.init() call above, not faked per-call.
+    // RAGina.init() call above, not faked per-call. If it somehow hasn't run
+    // yet but RAGina is now on window, catch it up here.
+    if (!raginaInitAttempted) initRAGinaOnce();
     try {
       const engine = global.RAGina?.getEngine?.();
       raginaEngineReady = !!(engine && engine.isReady);
@@ -795,8 +836,13 @@ Answer (as RAGina, with sass):`;
     }
 
     if (!checkRAGinaEngine()) {
-      showToast('RAGina engine is loading. Please try again in a moment.');
-      log('RAGina engine not ready', 'warning');
+      if (!global.RAGina) {
+        showToast('RAGina script never loaded — check the log below.');
+        log('Cannot start RAGina call: RAGina script is not on the page (local file + CDN fallback both failed).', 'error');
+      } else {
+        showToast('RAGina engine is loading. Please try again in a moment.');
+        log('RAGina engine not ready', 'warning');
+      }
       return;
     }
 
