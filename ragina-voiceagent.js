@@ -1,13 +1,11 @@
 // =====================================================================
-// RAGina Integration for premCall index.html
+// RAGina Integration – Dialer‑friendly version
 // =====================================================================
 
-// --- Configuration ---
 const RAGINA_NUMBER = '0000000000';
 const RAGINA_NAME = 'RAGina';
 const CALL_HISTORY_KEY = 'raginaCallHistory';
 
-// --- State ---
 let isCallActive = false;
 let isMuted = false;
 let isSpeakerOn = false;
@@ -15,44 +13,41 @@ let callStartTime = null;
 let callTimerInterval = null;
 let callTranscript = [];
 let recognition = null;
-
-// --- DOM refs (these will be set when the call UI is ready) ---
 let callTimerEl = null;
 let muteBtn = null;
 let speakerBtn = null;
 let endCallBtn = null;
 let callStatusEl = null;
 
-// --- Init function to be called from index.html ---
+// --- Called from your index.html after DOM is ready ---
 function initRAGinaIntegration() {
-    // Find call UI elements (adjust selectors to match your HTML)
+    // Locate your call control elements (adjust selectors to match your HTML)
     callTimerEl = document.getElementById('callTimer') || document.querySelector('.call-timer');
     muteBtn = document.getElementById('muteBtn') || document.querySelector('.call-btn.mute');
     speakerBtn = document.getElementById('speakerBtn') || document.querySelector('.call-btn.speaker');
     endCallBtn = document.getElementById('endCallBtn') || document.querySelector('.call-btn.hangup');
-    callStatusEl = document.getElementById('callStatus') || document.querySelector('.call-status');
 
-    // Add RAGina as a contact if it doesn't exist already
-    addRAGinaContact();
-
-    // Bind call control buttons if they exist
     if (muteBtn) muteBtn.addEventListener('click', toggleMute);
     if (speakerBtn) speakerBtn.addEventListener('click', toggleSpeaker);
-    if (endCallBtn) endCallBtn.addEventListener('click', endCall);
+    if (endCallBtn) endCallBtn.addEventListener('click', endRAGinaCall);
+
+    // Add RAGina as a contact (optional: if your app doesn't auto‑create it)
+    ensureRAGinaContact();
+
+    // Expose the dial function globally
+    window.startRAGinaCall = startRAGinaCall;
+    window.endRAGinaCall = endRAGinaCall;
 }
 
-// --- Add RAGina to the conversation list ---
-function addRAGinaContact() {
-    // This function should add RAGina to your conversations object and refresh the list.
-    // If you store conversations in localStorage, do it here.
-    // For simplicity, we'll assume you have a function `addConversation(peer, messages)`.
-    // If not, adapt to your data model.
-
-    // Example: if you have a global `conversations` object:
-    if (window.conversations && !conversations[RAGINA_NUMBER]) {
-        conversations[RAGINA_NUMBER] = [
+// --- Make sure RAGina appears in your conversation list ---
+function ensureRAGinaContact() {
+    // If your app has a `conversations` object and `addConversation` function, use them.
+    // Otherwise, you can handle this in your app's own initialisation.
+    // This function is a placeholder – you can adapt it to your data model.
+    if (window.conversations && !window.conversations[RAGINA_NUMBER]) {
+        window.conversations[RAGINA_NUMBER] = [
             {
-                text: '🤖 Hello! I\'m RAGina. Call me or chat with me.',
+                text: '🤖 Hello! I\'m RAGina. Dial my number to call me.',
                 timestamp: Date.now(),
                 direction: 'incoming',
                 from: RAGINA_NUMBER,
@@ -60,25 +55,22 @@ function addRAGinaContact() {
                 error: false
             }
         ];
-        // Save to localStorage if needed
-        if (typeof saveConversations === 'function') {
-            saveConversations();
+        if (typeof window.saveConversations === 'function') {
+            window.saveConversations();
         }
-        // Refresh the conversation list if you have a render function
-        if (typeof renderConversationList === 'function') {
-            renderConversationList();
+        if (typeof window.renderConversationList === 'function') {
+            window.renderConversationList();
         }
     }
 }
 
-// =====================================================================
-// Core Call Functions
-// =====================================================================
+// --- Start a call to RAGina (called when user dials RAGINA_NUMBER) ---
+function startRAGinaCall() {
+    if (isCallActive) {
+        showToast('Call already in progress.');
+        return;
+    }
 
-function startCall() {
-    if (isCallActive) return;
-
-    // Check for speech recognition support
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
         showToast('Your browser does not support voice calls.');
@@ -90,39 +82,37 @@ function startCall() {
     callStartTime = Date.now();
     isCallActive = true;
 
-    // Update UI (show call screen, start timer, etc.)
+    // Show call UI (activate your call overlay)
     showCallUI(true);
-    updateCallStatus('Connecting...');
-    showToast('📞 Calling RAGina...');
+    updateCallStatus('Connected');
+    showToast('📞 Connected to RAGina');
 
-    // Start the call timer
+    // Start timer
     if (callTimerEl) {
         callTimerInterval = setInterval(() => {
             if (callStartTime) {
-                const duration = Date.now() - callStartTime;
-                callTimerEl.textContent = formatDuration(duration);
+                callTimerEl.textContent = formatDuration(Date.now() - callStartTime);
             }
         }, 1000);
     }
 
-    // Add a system message
+    // Add a system message (optional)
     addMessageToChat('🔊 Call connected. You can speak or type.', 'incoming');
 
     // Start listening
-    listenForCallSpeech();
-
-    // Optionally: play a dial tone or ringback (not implemented)
+    listenForRAGinaSpeech();
 }
 
-function listenForCallSpeech() {
+// --- Listen for user speech ---
+function listenForRAGinaSpeech() {
     if (!isCallActive) return;
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
-    // If muted, don't start recognition
+    // If muted, poll again later
     if (isMuted) {
-        setTimeout(listenForCallSpeech, 500);
+        setTimeout(listenForRAGinaSpeech, 500);
         return;
     }
 
@@ -134,29 +124,26 @@ function listenForCallSpeech() {
     recognition.onresult = async (event) => {
         const transcript = event.results[0][0].transcript;
 
-        // Add user's spoken text as outgoing message
+        // Add user's spoken text to chat
         addMessageToChat(transcript, 'outgoing');
         callTranscript.push({ role: 'user', text: transcript, timestamp: Date.now() });
 
-        // Show thinking indicator
-        showThinking();
+        // Show thinking indicator (optional)
+        showThinkingIndicator(true);
 
         try {
             const answer = await askRAGina(transcript);
-            hideThinking();
-            // Add RAGina's reply as incoming message
+            showThinkingIndicator(false);
             addMessageToChat(answer, 'incoming');
             callTranscript.push({ role: 'assistant', text: answer, timestamp: Date.now() });
-            // Speak the answer
             speakText(answer);
         } catch (err) {
-            hideThinking();
+            showThinkingIndicator(false);
             addMessageToChat('Error: ' + err.message, 'incoming', true);
         }
 
-        // Continue listening if call is still active
         if (isCallActive) {
-            setTimeout(listenForCallSpeech, 800);
+            setTimeout(listenForRAGinaSpeech, 800);
         }
     };
 
@@ -164,19 +151,18 @@ function listenForCallSpeech() {
         console.error('Speech error:', event.error);
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
             showToast('Microphone access denied. Ending call.');
-            endCall();
+            endRAGinaCall();
             return;
         }
-        // Retry after a delay
         if (isCallActive) {
-            setTimeout(listenForCallSpeech, 600);
+            recognition = null;
+            setTimeout(listenForRAGinaSpeech, 600);
         }
     };
 
     recognition.onend = () => {
         if (isCallActive && !isMuted) {
-            // The recognition might have ended due to silence; restart
-            setTimeout(listenForCallSpeech, 400);
+            setTimeout(listenForRAGinaSpeech, 400);
         }
     };
 
@@ -185,12 +171,13 @@ function listenForCallSpeech() {
     } catch (e) {
         console.warn('Recognition start failed:', e);
         if (isCallActive) {
-            setTimeout(listenForCallSpeech, 600);
+            setTimeout(listenForRAGinaSpeech, 600);
         }
     }
 }
 
-function endCall() {
+// --- End the call ---
+function endRAGinaCall() {
     if (!isCallActive) return;
 
     const duration = callStartTime ? Date.now() - callStartTime : 0;
@@ -202,7 +189,7 @@ function endCall() {
         recognition = null;
     }
 
-    // Cancel any ongoing speech
+    // Cancel speech synthesis
     if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
     }
@@ -235,22 +222,16 @@ function endCall() {
     updateCallStatus('Idle');
     if (callTimerEl) callTimerEl.textContent = '00:00';
 
-    // Add system message
     addMessageToChat('📞 Call ended. Duration: ' + formatDuration(duration), 'incoming');
 }
 
-// =====================================================================
-// AI & Speech Helpers
-// =====================================================================
-
+// --- AI call (same as before) ---
 async function askRAGina(query) {
-    // Use the RAGina engine if available
     const engine = window.RAGina?.getEngine?.();
     if (!engine || !engine.isReady) {
         throw new Error('RAGina engine is not ready.');
     }
 
-    // Retrieve relevant chunks
     const chunks = engine.retrieve(query, 3);
     const contextText = chunks.length > 0
         ? chunks.map((c, i) => `[${i+1}] ${c.source || 'doc'}\n${c.text}`).join('\n\n')
@@ -264,7 +245,6 @@ ${contextText}
 Question: ${query}
 Answer (as RAGina, with sass):`;
 
-    // Call your LLM endpoint (same as in raginagent.html)
     const resp = await fetch('https://ragina-crawler-ragina.vercel.app/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -276,9 +256,9 @@ Answer (as RAGina, with sass):`;
     return data.text || 'No response from RAGina.';
 }
 
+// --- Speech synthesis ---
 function speakText(text) {
     if (!window.speechSynthesis) return;
-    // Clean text of emojis (optional)
     const cleanText = text.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').replace(/[\u{2600}-\u{26FF}]/gu, '').trim();
     if (!cleanText) return;
     window.speechSynthesis.cancel();
@@ -290,10 +270,7 @@ function speakText(text) {
     window.speechSynthesis.speak(utterance);
 }
 
-// =====================================================================
-// UI Controls
-// =====================================================================
-
+// --- UI controls ---
 function toggleMute() {
     isMuted = !isMuted;
     if (muteBtn) {
@@ -301,9 +278,8 @@ function toggleMute() {
         muteBtn.innerHTML = isMuted ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>';
     }
     showToast(isMuted ? '🔇 Muted' : '🎤 Unmuted');
-    // If unmuted and call is active, restart recognition
     if (!isMuted && isCallActive) {
-        listenForCallSpeech();
+        listenForRAGinaSpeech();
     }
 }
 
@@ -317,43 +293,19 @@ function toggleSpeaker() {
 }
 
 function showCallUI(show) {
-    // Show/hide the call overlay or call controls
     const callControls = document.querySelector('.call-controls');
-    if (callControls) {
-        callControls.classList.toggle('active', show);
-    }
-    // Also update the main call button icon if you have one
+    if (callControls) callControls.classList.toggle('active', show);
     const callBtn = document.querySelector('.call-btn.main-call');
-    if (callBtn) {
-        callBtn.innerHTML = show ? '<i class="fas fa-phone-slash"></i>' : '<i class="fas fa-phone"></i>';
-    }
+    if (callBtn) callBtn.innerHTML = show ? '<i class="fas fa-phone-slash"></i>' : '<i class="fas fa-phone"></i>';
 }
 
 function updateCallStatus(status) {
-    if (callStatusEl) {
-        callStatusEl.textContent = status;
-    }
+    if (callStatusEl) callStatusEl.textContent = status;
 }
 
-function showThinking() {
-    // You can add a "thinking" indicator in the chat
-    // For simplicity, we'll just use a system message or a dot animation
-    // You might want to adapt this to your UI
-}
-
-function hideThinking() {
-    // Remove the thinking indicator
-}
-
-// =====================================================================
-// Message Helpers (adapt to your app's addMessage function)
-// =====================================================================
-
+// --- Message helper ---
 function addMessageToChat(text, direction, isError = false) {
-    // This should call your existing addMessage function with the correct peer
     if (window.addMessage && typeof window.addMessage === 'function') {
-        // If you have a global addMessage function that takes peer, msg object
-        // For example: addMessage(peer, { text, direction, ... })
         window.addMessage(RAGINA_NUMBER, {
             text: text,
             timestamp: Date.now(),
@@ -363,20 +315,19 @@ function addMessageToChat(text, direction, isError = false) {
             error: isError
         });
     } else {
-        // Fallback: log to console
         console.log(direction + ':', text);
     }
 }
 
-// =====================================================================
-// Call Log Storage & Download
-// =====================================================================
+// --- Thinking indicator (stub – you can implement it) ---
+function showThinkingIndicator(show) {
+    // Implement if you want a "thinking..." animation in the chat
+}
 
+// --- Call log storage ---
 function saveCallLog(log) {
     let logs = [];
-    try {
-        logs = JSON.parse(localStorage.getItem(CALL_HISTORY_KEY) || '[]');
-    } catch (e) {}
+    try { logs = JSON.parse(localStorage.getItem(CALL_HISTORY_KEY) || '[]'); } catch (e) {}
     logs.push(log);
     localStorage.setItem(CALL_HISTORY_KEY, JSON.stringify(logs));
 }
@@ -395,10 +346,7 @@ function downloadCallLog(callLog) {
     URL.revokeObjectURL(url);
 }
 
-// =====================================================================
-// Utility
-// =====================================================================
-
+// --- Utilities ---
 function formatDuration(ms) {
     const totalSec = Math.floor(ms / 1000);
     const mins = String(Math.floor(totalSec / 60)).padStart(2, '0');
@@ -407,21 +355,16 @@ function formatDuration(ms) {
 }
 
 function showToast(msg) {
-    // Use your existing toast function if available
     if (window.showToast && typeof window.showToast === 'function') {
         window.showToast(msg);
     } else {
-        alert(msg); // fallback
+        alert(msg);
     }
 }
 
-// =====================================================================
-// Export / Expose
-// =====================================================================
-
-// Make functions available globally
+// --- Expose to window ---
 window.initRAGinaIntegration = initRAGinaIntegration;
-window.startCall = startCall;
-window.endCall = endCall;
+window.startRAGinaCall = startRAGinaCall;
+window.endRAGinaCall = endRAGinaCall;
 window.toggleMute = toggleMute;
 window.toggleSpeaker = toggleSpeaker;
