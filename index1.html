@@ -279,12 +279,11 @@
     #transcriptContainer .msg .who { font-weight: 600; color: var(--text); min-width: 2.6rem; }
     #transcriptContainer .msg .who.user { color: var(--signal); }
     #transcriptContainer .msg .who.ragina { color: var(--go); }
-    #transcriptContainer .dl-row { text-align: right; margin-bottom: 0.4rem; }
-    #transcriptContainer .dl-btn{
-      background: var(--surface-3); border: 1px solid var(--line); color: var(--text-dim);
-      border-radius: 20px; padding: 3px 10px; font-size: 0.65rem; cursor: pointer; font-weight: 600;
-    }
-    #transcriptContainer .dl-btn:hover{ color: var(--text); border-color: var(--signal-soft); }
+
+    /* RAGina's own script auto-injects a floating chat bubble + panel as a
+       side effect of init()/loadData(). PremCall has its own call UI, so
+       that widget is suppressed everywhere — this is the only interface. */
+    .ragina-bubble, .ragina-panel { display: none !important; }
   </style>
 </head>
 <body>
@@ -409,7 +408,8 @@
 <!-- ===== PREMCALL + RAGina Call Integration ===== -->
 <script>
 /* ============================================================
-   PremCall v2.2 (merged) + RAGina Voice Call – TTS FIX + TRANSCRIPT EXPORT
+   PremCall v2.3 (merged) + RAGina Voice Call – REAL ragina-pro.js init,
+   no injected widget, TTS fix, transcript auto-export
    ============================================================ */
 (function (global) {
   'use strict';
@@ -417,6 +417,29 @@
   // ---------- RAGina specific ----------
   const RAGINA_NUMBER = '0000000000';
   const RAGINA_NAME = 'RAGina';
+
+  // ---------- Initialize the REAL RAGina engine, once, at load ----------
+  // ragina-pro.js's public API (init/loadData) is the only supported way to
+  // stand up its TF-IDF engine, and it always builds its own floating chat
+  // widget as a side effect. We call it exactly once, up front, so the
+  // engine is ready before any call is placed — no more per-call hacks —
+  // and its widget is hidden in CSS since PremCall's call screen is the
+  // only interface here.
+  // If you have real documents for RAGina to answer from, set
+  // window.__RAGINA_INDEX__ (or pass indexUrl below) before this script runs.
+  if (global.RAGina && typeof global.RAGina.init === 'function') {
+    try {
+      global.RAGina.init({
+        title: 'RAGina',
+        personality: 'sassy',
+        voiceEnabled: false // PremCall speaks replies itself via speakText()
+      });
+    } catch (e) {
+      console.warn('[PremCall] RAGina.init() failed:', e);
+    }
+  } else {
+    console.warn('[PremCall] ragina-pro.js was not found on window — RAGina calls will report "not ready".');
+  }
 
   // ---------- PeerJS setup ----------
   if (typeof global.Peer === 'undefined') {
@@ -531,18 +554,12 @@
   }
 
   function checkRAGinaEngine() {
+    // Read-only check now — the engine is stood up once at load via the real
+    // RAGina.init() call above, not faked per-call.
     try {
-      const engine = window.RAGina?.getEngine?.();
-      if (engine && engine.isReady) {
-        raginaEngineReady = true;
-        return true;
-      }
-      if (window.RAGina && typeof window.RAGina.loadData === 'function') {
-        window.RAGina.loadData({});
-        raginaEngineReady = true;
-        return true;
-      }
-      return false;
+      const engine = global.RAGina?.getEngine?.();
+      raginaEngineReady = !!(engine && engine.isReady);
+      return raginaEngineReady;
     } catch (e) {
       console.warn('RAGina engine check failed:', e);
       return false;
@@ -771,23 +788,6 @@ Answer (as RAGina, with sass):`;
     }
   }
 
-  function addDownloadButton() {
-    const container = document.getElementById('transcriptContainer');
-    if (!container || !raginaTranscript.length) return;
-    // Avoid stacking duplicate buttons if this ever runs twice.
-    const existing = container.querySelector('.dl-row');
-    if (existing) existing.remove();
-    const row = document.createElement('div');
-    row.className = 'dl-row';
-    const btn = document.createElement('button');
-    btn.className = 'dl-btn';
-    btn.type = 'button';
-    btn.innerHTML = '<i class="fas fa-download"></i> Download transcript';
-    btn.addEventListener('click', exportTranscript);
-    row.appendChild(btn);
-    container.insertBefore(row, container.firstChild);
-  }
-
   function startRAGinaCall() {
     if (raginaCallActive || inCall) {
       showToast('Already in a call.');
@@ -951,8 +951,7 @@ Answer (as RAGina, with sass):`;
     const durStr = String(Math.floor(duration / 60)).padStart(2, '0') + ':' + String(duration % 60).padStart(2, '0');
     addHistoryEntry(RAGINA_NUMBER, 'outgoing', durStr);
 
-    // Keep transcript visible, add a manual download fallback, and auto-export.
-    addDownloadButton();
+    // Transcript stays visible in the panel, and auto-exports as a .txt file.
     exportTranscript();
 
     showToast('Call with RAGina ended — transcript saved');
