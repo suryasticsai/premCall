@@ -149,7 +149,6 @@
     #callTranscript .who.ragina { color:var(--go); }
     #callTranscript .empty-hint { text-align:center; color:rgba(255,255,255,.2); font-size:.7rem; }
 
-    /* ===== CALL DETAILS MODAL ===== */
     #callDetailsModal { display:none; position:fixed; inset:0; z-index:5200; background:rgba(0,0,0,.6); backdrop-filter:blur(8px); align-items:center; justify-content:center; }
     #callDetailsModal.active { display:flex; }
     .details-card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); width:92%; max-width:400px; max-height:82vh; display:flex; flex-direction:column; padding:1.1rem 1.2rem; }
@@ -184,6 +183,45 @@
     .account-card h2 { font-family:var(--font-display); margin-bottom:1rem; }
     .account-card .info-row { display:flex; justify-content:space-between; padding:.5rem 0; border-bottom:1px solid var(--surface-2); font-size:.85rem; }
     .account-card .close-btn { margin-top:1.2rem; width:100%; padding:.6rem; border-radius:40px; border:1px solid var(--line); background:transparent; color:var(--text-dim); cursor:pointer; }
+    .dialer-pad { 
+        display:grid; 
+        grid-template-columns:repeat(3,1fr); 
+        gap:.55rem; 
+        width:100%; 
+        max-width:min(250px, 28vh); /* Reduced from 32vh */
+        margin:0 auto .55rem; 
+        flex:0 0 auto; 
+    }
+    
+    /* ... (keep your .dialer-pad .key styles the same) ... */
+
+    /* Tablet / Large Phone */
+    @media (max-height: 780px) {
+        .dialer-pad { gap:.45rem; max-width:min(230px, 26vh); }
+        .dialer-pad .key { font-size:1.15rem; }
+        .dialer-pad .key .sub { font-size:.4rem; }
+        .dialer-display { min-height:3rem; font-size:1.4rem; }
+    }
+
+    /* Standard Phone (iPhone SE / smaller Androids) */
+    @media (max-height: 680px) {
+        .dialer-pad { gap:.3rem; max-width:min(200px, 23vh); }
+        .dialer-pad .key { font-size:1rem; }
+        .dialer-pad .key .sub { font-size:.35rem; }
+        .dialer-display { min-height:2.8rem; font-size:1.25rem; margin-bottom:.4rem; }
+        .header { padding-bottom:.4rem; }
+        .settings-link { margin:.3rem 0 .2rem; font-size:.7rem; padding:.25rem .6rem; }
+    }
+
+    /* Very Small Screens */
+    @media (max-height: 580px) {
+        .dialer-pad { gap:.2rem; max-width:min(170px, 20vh); }
+        .dialer-pad .key { font-size:.85rem; }
+        .dialer-pad .key .sub { display: none; } /* Hide ABC/DEF on tiny screens */
+        .dialer-display { min-height:2.4rem; font-size:1.1rem; margin-bottom:.3rem; }
+        .action-row { gap:.4rem; margin-bottom:.2rem; }
+        #historySection h3 { font-size:.7rem; margin-bottom:.15rem; }
+    }
 </style>
 </head>
 <body>
@@ -374,6 +412,7 @@
     function saveLogs(l) { try { localStorage.setItem('premCallLogs', JSON.stringify(l)); } catch(e) {} }
     function startLog(number, type, direction) {
         currentLog = { id: Date.now(), number, type, direction, started: Date.now(), ended: null, duration: '', summary: '', messages: [] };
+        persistActiveLog();
     }
     function persistActiveLog() { try { localStorage.setItem('premCallActiveLog', JSON.stringify(currentLog)); } catch(e) {} }
     function clearActiveLog() { try { localStorage.removeItem('premCallActiveLog'); } catch(e) {} }
@@ -545,36 +584,96 @@
             document.getElementById('callSubstatus').textContent = 'Connected';
             document.getElementById('callRingWrap').classList.remove('ring-anim');
             const g = "Hello! I'm RAGina. What is your name?";
-            logMsg('ragina', g); raginaSay(g); listenToRAGina();
-        }, 1000);
+            logMsg('ragina', g); raginaSay(g);
+            // start listening after TTS ends (or immediately)
+            setTimeout(listenToRAGina, 800);
+        }, 1200);
     }
 
+    /* Improved listening with robust restart and error handling */
     function listenToRAGina() {
-        if (!raginaCallActive || raginaIsMuted || isSpeaking || raginaRecognition) return;
+        if (!raginaCallActive || raginaIsMuted || isSpeaking || raginaRecognition) {
+            // if not ready, schedule another attempt
+            if (raginaCallActive && !raginaIsMuted && !raginaRecognition) {
+                setTimeout(listenToRAGina, 600);
+            }
+            return;
+        }
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SR) return;
-        raginaRecognition = new SR();
-        raginaRecognition.continuous = false; raginaRecognition.interimResults = false; raginaRecognition.lang = 'en-US';
-        raginaRecognition.onresult = async (e) => {
+
+        const rec = new SR();
+        rec.continuous = false;
+        rec.interimResults = false;
+        rec.lang = 'en-US';
+        rec.maxAlternatives = 1;
+
+        rec.onresult = async (e) => {
             if (isSpeaking) return;
             const text = e.results[0][0].transcript;
-            logMsg('user', text);
+            if (!text.trim()) return;
+            logMsg('user', text.trim());
+
             if (conversationState === 0) {
-                userName = text.replace(/^(um|uh|my name is|i am|i'm)\s*/i, '').trim() || 'Friend';
+                // name capture
+                let name = text.trim();
+                const stopWords = ['um','uh','my name is','i am',"i'm"];
+                for (let sw of stopWords) {
+                    if (name.toLowerCase().startsWith(sw)) {
+                        name = name.slice(sw.length).trim();
+                        break;
+                    }
+                }
+                userName = name || 'Friend';
                 conversationState = 1;
                 const r = 'Nice to meet you, ' + userName + '. What can I help you with today?';
-                logMsg('ragina', r); raginaSay(r);
+                logMsg('ragina', r);
+                raginaSay(r);
+                // after TTS, restart listening
+                setTimeout(listenToRAGina, 800);
             } else {
                 document.getElementById('callSubstatus').textContent = 'RAGina is thinking…';
                 const ans = await askRAGina(text);
                 if (!raginaCallActive) return;
                 document.getElementById('callSubstatus').textContent = 'Connected';
-                logMsg('ragina', ans); raginaSay(ans);
+                logMsg('ragina', ans);
+                raginaSay(ans);
+                // wait for TTS to finish then listen again
+                setTimeout(listenToRAGina, 800);
             }
         };
-        raginaRecognition.onerror = (e) => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { window.showToast('Microphone denied.'); endRAGinaCall(); } };
-        raginaRecognition.onend = () => { raginaRecognition = null; if (raginaCallActive && !isSpeaking && !raginaIsMuted) setTimeout(listenToRAGina, 600); };
-        try { raginaRecognition.start(); } catch(e) { raginaRecognition = null; setTimeout(listenToRAGina, 600); }
+
+        rec.onerror = (e) => {
+            console.warn('RAGina recognition error:', e.error);
+            if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+                window.showToast('Microphone denied. Ending call.');
+                endRAGinaCall();
+                return;
+            }
+            // for other errors, just restart after a short delay
+            raginaRecognition = null;
+            if (raginaCallActive && !raginaIsMuted && !isSpeaking) {
+                setTimeout(listenToRAGina, 600);
+            }
+        };
+
+        rec.onend = () => {
+            raginaRecognition = null;
+            if (raginaCallActive && !raginaIsMuted && !isSpeaking) {
+                setTimeout(listenToRAGina, 500);
+            }
+        };
+
+        raginaRecognition = rec;
+        try {
+            rec.start();
+        } catch (e) {
+            raginaRecognition = null;
+            console.warn('recognition start failed:', e);
+            if (raginaCallActive && !raginaIsMuted) {
+                setTimeout(listenToRAGina, 600);
+            }
+        }
     }
 
     function endRAGinaCall() {
