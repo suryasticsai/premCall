@@ -1266,7 +1266,6 @@
                 if (index >= sources.length) {
                     setStatus('Fallback mode (no engine)', 'fallback');
                     log('RAGina engine not available — using direct API fallback', 'warning');
-                    // Notify app that we are in fallback mode
                     if (window.__onRAGinaFallback) window.__onRAGinaFallback();
                     return;
                 }
@@ -1291,7 +1290,6 @@
                             if (window.__onRAGinaReady) window.__onRAGinaReady();
                         } catch (e) {
                             log('RAGina init error: ' + e.message, 'error');
-                            // Fallback
                             setStatus('Fallback mode (init failed)', 'fallback');
                             if (window.__onRAGinaFallback) window.__onRAGinaFallback();
                         }
@@ -1361,7 +1359,7 @@
             };
             window.__onRAGinaFallback = function() {
                 if (window.PremCall && typeof window.PremCall._setRAGinaReady === 'function') {
-                    window.PremCall._setRAGinaReady(false); // fallback mode
+                    window.PremCall._setRAGinaReady(false);
                 }
             };
             window.__isRAGinaReady = function() {
@@ -1387,7 +1385,7 @@
 
             // ---------- RAGina engine state ----------
             let raginaEngineReady = false;
-            let raginaFallbackMode = false; // true if engine failed and we use direct API
+            let raginaFallbackMode = false;
 
             function checkRAGinaEngine() {
                 try {
@@ -1399,14 +1397,12 @@
                 }
             }
 
-            // Called when RAGina loads successfully
             global.__onRAGinaReady = function() {
                 raginaEngineReady = checkRAGinaEngine();
                 raginaFallbackMode = false;
                 log('RAGina engine ready: ' + raginaEngineReady, 'info');
             };
 
-            // Called when RAGina fails to load
             global.__onRAGinaFallback = function() {
                 raginaEngineReady = false;
                 raginaFallbackMode = true;
@@ -1416,7 +1412,6 @@
             // ---------- PeerJS setup ----------
             if (typeof global.Peer === 'undefined') {
                 console.error('[PremCall] PeerJS library not found.');
-                // Continue without PeerJS — RAGina will still work
             }
 
             const CONFIG = {
@@ -1457,56 +1452,132 @@
             let raginaCallStart = null;
             let raginaIsMuted = false;
 
-            // ---------- TTS ----------
+            // ---------- TTS (Enhanced) ----------
             let ttsVoices = [];
             let speechUnlocked = false;
+            let ttsReady = false;
 
             function refreshVoices() {
-                if (window.speechSynthesis) ttsVoices = window.speechSynthesis.getVoices();
+                if (window.speechSynthesis) {
+                    ttsVoices = window.speechSynthesis.getVoices();
+                    if (ttsVoices.length > 0) ttsReady = true;
+                    log('TTS voices loaded: ' + ttsVoices.length, 'info');
+                }
             }
             if (window.speechSynthesis) {
                 refreshVoices();
                 window.speechSynthesis.onvoiceschanged = refreshVoices;
+                // Also set a timeout to retry
+                setTimeout(refreshVoices, 1000);
+            } else {
+                log('Speech synthesis not available', 'error');
             }
 
             function unlockSpeech() {
                 if (!window.speechSynthesis || speechUnlocked) return;
                 try {
+                    // Prime with a silent utterance
                     const primer = new SpeechSynthesisUtterance(' ');
                     primer.volume = 0;
+                    primer.onend = function() {
+                        speechUnlocked = true;
+                        log('Speech synthesis unlocked', 'success');
+                    };
                     window.speechSynthesis.speak(primer);
-                    speechUnlocked = true;
+                    // If onend doesn't fire, still mark as unlocked after a short delay
+                    setTimeout(function() {
+                        if (!speechUnlocked) {
+                            speechUnlocked = true;
+                            log('Speech synthesis unlocked by timeout', 'info');
+                        }
+                    }, 500);
                 } catch (e) {
                     console.warn('[PremCall] speech unlock failed:', e);
+                    // Still mark as unlocked to try anyway
+                    speechUnlocked = true;
                 }
             }
 
             let speechQueue = Promise.resolve();
 
             function speakText(text) {
-                if (!window.speechSynthesis) return;
+                if (!window.speechSynthesis) {
+                    log('speakText: speechSynthesis not available', 'error');
+                    return;
+                }
                 const clean = text.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
-                if (!clean) return;
+                if (!clean) {
+                    log('speakText: empty text', 'warning');
+                    return;
+                }
+                log('speakText: "' + clean.substring(0, 50) + '"', 'info');
+
+                // Ensure speech is unlocked
+                if (!speechUnlocked) {
+                    unlockSpeech();
+                    // Wait a bit for unlock to take effect
+                    setTimeout(() => speakText(clean), 300);
+                    return;
+                }
+
                 speechQueue = speechQueue.then(() => new Promise((resolve) => {
+                    // Cancel any ongoing speech
                     window.speechSynthesis.cancel();
+
+                    // Wait a beat after cancel to avoid race
                     setTimeout(() => {
                         const utterance = new SpeechSynthesisUtterance(clean);
                         utterance.lang = 'en-US';
-                        utterance.rate = 1;
-                        utterance.pitch = 1;
-                        utterance.volume = 1;
-                        const preferred = ttsVoices.find(v => v.lang === 'en-US') || ttsVoices[0];
-                        if (preferred) utterance.voice = preferred;
-                        utterance.onerror = () => resolve();
-                        utterance.onend = () => resolve();
+                        utterance.rate = 1.0;
+                        utterance.pitch = 1.0;
+                        utterance.volume = 1.0;
+
+                        // Try to pick a good voice
+                        let voice = null;
+                        // Prefer female English voice if available
+                        const preferred = ttsVoices.find(v =>
+                            v.lang.startsWith('en') && v.name.toLowerCase().includes('female')
+                        ) || ttsVoices.find(v => v.lang.startsWith('en')) || ttsVoices[0];
+                        if (preferred) {
+                            voice = preferred;
+                            utterance.voice = voice;
+                            log('Using voice: ' + voice.name, 'info');
+                        } else {
+                            log('No suitable voice found, using default', 'warning');
+                        }
+
+                        let resolved = false;
+
+                        utterance.onstart = function() {
+                            log('Speech started', 'success');
+                        };
+                        utterance.onend = function() {
+                            if (!resolved) { resolved = true;
+                                resolve(); }
+                        };
+                        utterance.onerror = function(e) {
+                            log('Speech error: ' + (e.error || e.message), 'error');
+                            if (!resolved) { resolved = true;
+                                resolve(); }
+                        };
+                        // Safety timeout
+                        const timeout = setTimeout(function() {
+                            if (!resolved) { resolved = true;
+                                resolve(); }
+                        }, 12000);
+
                         try {
                             window.speechSynthesis.speak(utterance);
-                            if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+                            // If the browser is paused, resume
+                            if (window.speechSynthesis.paused) {
+                                window.speechSynthesis.resume();
+                            }
                         } catch (e) {
-                            resolve();
+                            log('speak() threw: ' + e.message, 'error');
+                            if (!resolved) { resolved = true;
+                                resolve(); }
                         }
-                        setTimeout(resolve, 12000);
-                    }, 60);
+                    }, 80);
                 }));
             }
 
@@ -1647,9 +1718,8 @@
                 });
             }
 
-            // ---------- RAGina call logic (fallback-friendly) ----------
+            // ---------- RAGina call logic ----------
             async function askRAGina(query) {
-                // Try to use engine if ready, else fallback to direct API
                 if (!raginaFallbackMode && raginaEngineReady) {
                     try {
                         const engine = global.RAGina?.getEngine?.();
@@ -1671,12 +1741,11 @@
                             return data.text || 'No response from RAGina.';
                         }
                     } catch (e) {
-                        console.warn('Engine retrieval failed, falling back to direct API', e);
-                        // fall through to fallback
+                        console.warn('Engine retrieval failed, falling back', e);
                     }
                 }
 
-                // FALLBACK: direct API without context
+                // FALLBACK
                 try {
                     const prompt =
                         `You are RAGina, a helpful assistant. Answer the following question concisely and clearly:\n\nQuestion: ${query}\nAnswer:`;
@@ -1695,7 +1764,6 @@
                 }
             }
 
-            // ---------- Transcript UI ----------
             function addCallTranscript(role, text) {
                 const container = document.getElementById('callTranscript');
                 if (!container) return;
@@ -1790,14 +1858,14 @@
                     return;
                 }
 
-                // Check if we have any working mode (engine or fallback)
-                // We don't require engine to be ready; we'll use fallback if needed
-                // But we need speech recognition
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (!SpeechRecognition) {
                     showToast('Your browser does not support voice calls.');
                     return;
                 }
+
+                // Unlock speech synthesis immediately (user gesture)
+                unlockSpeech();
 
                 raginaCallActive = true;
                 raginaTranscript = [];
@@ -1845,7 +1913,17 @@
                     const greeting = 'Hello! I\'m RAGina. Ask me anything.' + mode;
                     addCallTranscript('ragina', greeting);
                     raginaTranscript.push({ role: 'assistant', text: greeting, timestamp: Date.now() });
+
+                    // Speak the greeting
+                    log('Attempting to speak greeting: ' + greeting, 'info');
                     speakText(greeting);
+
+                    // Also speak a test phrase after a delay to ensure audio works
+                    setTimeout(() => {
+                        log('Speaking test phrase', 'info');
+                        speakText('I am ready to talk.');
+                    }, 1500);
+
                     listenToRAGina();
                 }, 1200);
 
@@ -1870,14 +1948,14 @@
 
                 raginaRecognition.onresult = async (event) => {
                     const transcript = event.results[0][0].transcript;
-                    console.log('User said:', transcript);
+                    log('User said: ' + transcript, 'info');
                     addCallTranscript('user', transcript);
                     raginaTranscript.push({ role: 'user', text: transcript, timestamp: Date.now() });
                     document.getElementById('callSubstatus').textContent = 'RAGina is thinking…';
 
                     try {
                         const answer = await askRAGina(transcript);
-                        console.log('RAGina answer:', answer);
+                        log('RAGina answer: ' + answer.substring(0, 50), 'info');
                         raginaTranscript.push({ role: 'assistant', text: answer, timestamp: Date.now() });
                         document.getElementById('callSubstatus').textContent = 'Connected';
                         addCallTranscript('ragina', answer);
@@ -1954,12 +2032,10 @@
                 ];
                 dimEls.forEach(el => { if (el) el.classList.remove('dimmed'); });
 
-                // show export buttons
                 if (raginaTranscript.length) {
                     document.getElementById('exportButtons').classList.add('active');
                 }
 
-                // add to history
                 const duration = Math.floor((Date.now() - (raginaCallStart || Date.now())) / 1000);
                 const durStr = String(Math.floor(duration / 60)).padStart(2, '0') + ':' + String(duration % 60)
                 .padStart(2, '0');
@@ -2007,13 +2083,11 @@
                     } else {
                         log('PeerJS not available — only RAGina calls work', 'warning');
                     }
-                    // Check RAGina status after a moment
                     setTimeout(function() {
                         raginaEngineReady = checkRAGinaEngine();
                         if (raginaEngineReady) {
                             log('RAGina engine ready', 'success');
                         } else {
-                            // If not ready, set fallback
                             if (!raginaFallbackMode) {
                                 raginaFallbackMode = true;
                                 log('RAGina not ready, using fallback mode', 'warning');
@@ -2165,7 +2239,7 @@
             };
 
             global.PremCall = PremCall;
-            console.log('[PremCall] Library loaded with robust RAGina fallback.');
+            console.log('[PremCall] Library loaded with enhanced TTS and fallback.');
         })(window);
 
         // =====================================================================
@@ -2584,7 +2658,6 @@
                         vibrate([40, 40, 40]);
                         return;
                     }
-                    // For RAGina number, skip online check entirely
                     if (dialedNumber !== RAGINA_NUMBER) {
                         const dotState = headerStatusDot.className;
                         if (dotState.indexOf('online') === -1 && dotState.indexOf('connecting') === -1) {
@@ -2734,7 +2807,7 @@
                 }
             })();
 
-            log('UI ready. Dial 0000000000 to talk to RAGina (fallback enabled).', 'success');
+            log('UI ready. Dial 0000000000 to talk to RAGina (enhanced TTS).', 'success');
         })();
     </script>
 
