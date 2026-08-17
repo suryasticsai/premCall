@@ -1052,7 +1052,7 @@
             user-select: none !important;
         }
 
-        /* RAGina engine loading indicator */
+        /* RAGina status indicator */
         #raginaStatus {
             font-size: 0.7rem;
             color: var(--text-faint);
@@ -1085,6 +1085,12 @@
             color: var(--stop);
         }
         #raginaStatus.error .spinner {
+            display: none;
+        }
+        #raginaStatus.fallback {
+            color: var(--warn);
+        }
+        #raginaStatus.fallback .spinner {
             display: none;
         }
     </style>
@@ -1217,7 +1223,7 @@
 
     <!-- ===== RAGina Core — load from CDN with fallback ===== -->
     <script>
-        // RAGina engine loader with multiple fallback sources
+        // RAGina engine loader with fallback and status updates
         (function loadRAGina() {
             const statusEl = document.getElementById('raginaStatus');
             const logArea = document.getElementById('logArea');
@@ -1230,6 +1236,8 @@
                     statusEl.innerHTML = '<i class="fas fa-check-circle" style="color:var(--go);"></i> RAGina ready';
                 } else if (type === 'error') {
                     statusEl.innerHTML = '<i class="fas fa-exclamation-circle" style="color:var(--stop);"></i> ' + text;
+                } else if (type === 'fallback') {
+                    statusEl.innerHTML = '<i class="fas fa-triangle-exclamation" style="color:var(--warn);"></i> ' + text;
                 } else {
                     statusEl.innerHTML = '<span class="spinner"></span> ' + text;
                 }
@@ -1256,8 +1264,10 @@
             function tryLoad(index) {
                 if (loaded) return;
                 if (index >= sources.length) {
-                    setStatus('Failed to load RAGina', 'error');
-                    log('RAGina: all load sources failed', 'error');
+                    setStatus('Fallback mode (no engine)', 'fallback');
+                    log('RAGina engine not available — using direct API fallback', 'warning');
+                    // Notify app that we are in fallback mode
+                    if (window.__onRAGinaFallback) window.__onRAGinaFallback();
                     return;
                 }
                 const src = sources[index];
@@ -1267,12 +1277,10 @@
                 const script = document.createElement('script');
                 script.src = src;
                 script.onload = function() {
-                    // Check if RAGina is now available
                     if (typeof window.RAGina !== 'undefined' && typeof window.RAGina.init === 'function') {
                         loaded = true;
                         setStatus('RAGina ready', 'ready');
                         log('RAGina loaded from ' + src, 'success');
-                        // Initialize the engine
                         try {
                             window.RAGina.init({
                                 title: 'RAGina',
@@ -1280,13 +1288,14 @@
                                 voiceEnabled: false
                             });
                             log('RAGina engine initialized', 'success');
-                            // Notify app
                             if (window.__onRAGinaReady) window.__onRAGinaReady();
                         } catch (e) {
                             log('RAGina init error: ' + e.message, 'error');
+                            // Fallback
+                            setStatus('Fallback mode (init failed)', 'fallback');
+                            if (window.__onRAGinaFallback) window.__onRAGinaFallback();
                         }
                     } else {
-                        // Loaded but not available — try next
                         log('RAGina: script loaded but API not found, trying next', 'warning');
                         tryLoad(index + 1);
                     }
@@ -1295,14 +1304,12 @@
                     log('RAGina: failed to load from ' + src, 'warning');
                     tryLoad(index + 1);
                 };
-                // Add a timeout for each source
                 const timeout = setTimeout(function() {
                     if (!loaded) {
                         log('RAGina: timeout loading ' + src, 'warning');
                         tryLoad(index + 1);
                     }
                 }, 8000);
-                // Clear timeout if script loads
                 script.onload = (function(prev) {
                     return function() {
                         clearTimeout(timeout);
@@ -1321,7 +1328,7 @@
             // Start loading
             tryLoad(0);
 
-            // Also check if RAGina is already present (e.g. from a previous load)
+            // Also check if RAGina is already present
             if (typeof window.RAGina !== 'undefined' && typeof window.RAGina.init === 'function') {
                 loaded = true;
                 setStatus('RAGina ready', 'ready');
@@ -1332,18 +1339,31 @@
                     if (window.__onRAGinaReady) window.__onRAGinaReady();
                 } catch (e) {
                     log('RAGina init error: ' + e.message, 'error');
+                    setStatus('Fallback mode (init failed)', 'fallback');
+                    if (window.__onRAGinaFallback) window.__onRAGinaFallback();
                 }
+            } else {
+                // If not present after a delay, fallback
+                setTimeout(function() {
+                    if (!loaded) {
+                        setStatus('Fallback mode (no engine)', 'fallback');
+                        log('RAGina engine not available — using direct API fallback', 'warning');
+                        if (window.__onRAGinaFallback) window.__onRAGinaFallback();
+                    }
+                }, 10000);
             }
 
-            // Expose ready callback
+            // Expose callbacks
             window.__onRAGinaReady = function() {
-                // Notify PremCall that RAGina is ready
                 if (window.PremCall && typeof window.PremCall._setRAGinaReady === 'function') {
                     window.PremCall._setRAGinaReady(true);
                 }
             };
-
-            // Also expose a check function
+            window.__onRAGinaFallback = function() {
+                if (window.PremCall && typeof window.PremCall._setRAGinaReady === 'function') {
+                    window.PremCall._setRAGinaReady(false); // fallback mode
+                }
+            };
             window.__isRAGinaReady = function() {
                 return typeof window.RAGina !== 'undefined' &&
                     typeof window.RAGina.getEngine === 'function' &&
@@ -1367,7 +1387,7 @@
 
             // ---------- RAGina engine state ----------
             let raginaEngineReady = false;
-            let raginaInitAttempted = false;
+            let raginaFallbackMode = false; // true if engine failed and we use direct API
 
             function checkRAGinaEngine() {
                 try {
@@ -1379,10 +1399,18 @@
                 }
             }
 
-            // Called when RAGina loads
+            // Called when RAGina loads successfully
             global.__onRAGinaReady = function() {
                 raginaEngineReady = checkRAGinaEngine();
+                raginaFallbackMode = false;
                 log('RAGina engine ready: ' + raginaEngineReady, 'info');
+            };
+
+            // Called when RAGina fails to load
+            global.__onRAGinaFallback = function() {
+                raginaEngineReady = false;
+                raginaFallbackMode = true;
+                log('Using fallback mode (direct API calls)', 'warning');
             };
 
             // ---------- PeerJS setup ----------
@@ -1619,23 +1647,39 @@
                 });
             }
 
-            // ---------- RAGina call logic ----------
+            // ---------- RAGina call logic (fallback-friendly) ----------
             async function askRAGina(query) {
-                if (!raginaEngineReady) {
-                    raginaEngineReady = checkRAGinaEngine();
-                    if (!raginaEngineReady) {
-                        throw new Error('RAGina engine not ready. Please wait.');
+                // Try to use engine if ready, else fallback to direct API
+                if (!raginaFallbackMode && raginaEngineReady) {
+                    try {
+                        const engine = global.RAGina?.getEngine?.();
+                        if (engine && engine.isReady) {
+                            const chunks = engine.retrieve(query, 3);
+                            const contextText = chunks.length > 0 ?
+                                chunks.map((c, i) => `[${i+1}] ${c.source || 'doc'}\n${c.text}`).join('\n\n') :
+                                'No relevant documents found.';
+                            const prompt =
+                                `You are RAGina, a sassy mentalist who can read any document. Answer using ONLY the context below. If the answer isn't there, respond with attitude that the info isn't in the files.\n\nContext:\n${contextText}\n\nQuestion: ${query}\nAnswer (as RAGina, with sass):`;
+                            const resp = await fetch('https://ragina-crawler-ragina.vercel.app/api/ask', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ prompt })
+                            });
+                            if (!resp.ok) throw new Error(`LLM error: ${resp.status}`);
+                            const data = await resp.json();
+                            if (data.error) throw new Error(data.error);
+                            return data.text || 'No response from RAGina.';
+                        }
+                    } catch (e) {
+                        console.warn('Engine retrieval failed, falling back to direct API', e);
+                        // fall through to fallback
                     }
                 }
+
+                // FALLBACK: direct API without context
                 try {
-                    const engine = global.RAGina?.getEngine?.();
-                    if (!engine || !engine.isReady) throw new Error('RAGina engine not ready.');
-                    const chunks = engine.retrieve(query, 3);
-                    const contextText = chunks.length > 0 ?
-                        chunks.map((c, i) => `[${i+1}] ${c.source || 'doc'}\n${c.text}`).join('\n\n') :
-                        'No relevant documents found.';
                     const prompt =
-                        `You are RAGina, a sassy mentalist who can read any document. Answer using ONLY the context below. If the answer isn't there, respond with attitude that the info isn't in the files.\n\nContext:\n${contextText}\n\nQuestion: ${query}\nAnswer (as RAGina, with sass):`;
+                        `You are RAGina, a helpful assistant. Answer the following question concisely and clearly:\n\nQuestion: ${query}\nAnswer:`;
                     const resp = await fetch('https://ragina-crawler-ragina.vercel.app/api/ask', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1646,7 +1690,7 @@
                     if (data.error) throw new Error(data.error);
                     return data.text || 'No response from RAGina.';
                 } catch (err) {
-                    console.error('askRAGina error:', err);
+                    console.error('Direct API error:', err);
                     return "I'm sorry, I'm having trouble answering right now. Please try again in a moment.";
                 }
             }
@@ -1746,26 +1790,9 @@
                     return;
                 }
 
-                // Check RAGina engine
-                raginaEngineReady = checkRAGinaEngine();
-                if (!raginaEngineReady) {
-                    // Try to init if not ready
-                    if (global.RAGina && typeof global.RAGina.init === 'function') {
-                        try {
-                            global.RAGina.init({ title: 'RAGina', personality: 'sassy', voiceEnabled: false });
-                            raginaEngineReady = checkRAGinaEngine();
-                        } catch (e) {
-                            log('RAGina init error: ' + e.message, 'error');
-                        }
-                    }
-                }
-
-                if (!raginaEngineReady) {
-                    showToast('RAGina engine not ready. Please wait a moment.');
-                    log('RAGina engine not ready for call', 'warning');
-                    return;
-                }
-
+                // Check if we have any working mode (engine or fallback)
+                // We don't require engine to be ready; we'll use fallback if needed
+                // But we need speech recognition
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (!SpeechRecognition) {
                     showToast('Your browser does not support voice calls.');
@@ -1813,8 +1840,9 @@
                 setTimeout(() => {
                     document.getElementById('callSubstatus').textContent = 'Connected';
                     document.getElementById('callRingWrap').classList.remove('ring-anim');
-                    showToast('Connected to RAGina');
-                    const greeting = 'Hello! I\'m RAGina. Ask me anything.';
+                    const mode = raginaFallbackMode ? ' (fallback)' : '';
+                    showToast('Connected to RAGina' + mode);
+                    const greeting = 'Hello! I\'m RAGina. Ask me anything.' + mode;
                     addCallTranscript('ragina', greeting);
                     raginaTranscript.push({ role: 'assistant', text: greeting, timestamp: Date.now() });
                     speakText(greeting);
@@ -1822,7 +1850,7 @@
                 }, 1200);
 
                 fire('onCallStarted', { target: RAGINA_NUMBER, isCaller: true, isRAGina: true });
-                log('RAGina call started', 'success');
+                log('RAGina call started (fallback: ' + raginaFallbackMode + ')', 'success');
             }
 
             function listenToRAGina() {
@@ -1958,7 +1986,8 @@
             const PremCall = {
                 _setRAGinaReady: function(ready) {
                     raginaEngineReady = ready;
-                    log('RAGina engine set to ready: ' + ready, 'info');
+                    raginaFallbackMode = !ready;
+                    log('RAGina engine set to ready: ' + ready + ', fallback: ' + raginaFallbackMode, 'info');
                 },
 
                 init: function(number, opts) {
@@ -1967,7 +1996,6 @@
                         peer = null; }
                     myNumber = number;
                     callbacks = opts || {};
-                    // Only initialize PeerJS if it's available
                     if (typeof global.Peer !== 'undefined') {
                         try {
                             peer = new global.Peer(number, { debug: 0, config: CONFIG });
@@ -1979,15 +2007,19 @@
                     } else {
                         log('PeerJS not available — only RAGina calls work', 'warning');
                     }
-                    // Check RAGina status
+                    // Check RAGina status after a moment
                     setTimeout(function() {
                         raginaEngineReady = checkRAGinaEngine();
                         if (raginaEngineReady) {
                             log('RAGina engine ready', 'success');
                         } else {
-                            log('RAGina engine not ready — will retry', 'warning');
+                            // If not ready, set fallback
+                            if (!raginaFallbackMode) {
+                                raginaFallbackMode = true;
+                                log('RAGina not ready, using fallback mode', 'warning');
+                            }
                         }
-                    }, 500);
+                    }, 1000);
                 },
 
                 call: async function(target) {
@@ -2128,13 +2160,12 @@
                 onMessage: function(cb) { if (typeof cb === 'function') messageListeners.add(cb); },
                 offMessage: function(cb) { messageListeners.delete(cb); },
 
-                // Export methods for UI
                 exportLastTranscript: function() { exportTranscript('txt'); },
                 exportLastTranscriptJSON: function() { exportTranscript('json'); }
             };
 
             global.PremCall = PremCall;
-            console.log('[PremCall] Library loaded with RAGina support.');
+            console.log('[PremCall] Library loaded with robust RAGina fallback.');
         })(window);
 
         // =====================================================================
@@ -2555,7 +2586,6 @@
                     }
                     // For RAGina number, skip online check entirely
                     if (dialedNumber !== RAGINA_NUMBER) {
-                        // Only check PeerJS status for non-RAGina calls
                         const dotState = headerStatusDot.className;
                         if (dotState.indexOf('online') === -1 && dotState.indexOf('connecting') === -1) {
                             log('PeerJS not connected — only RAGina calls work right now.', 'warning');
@@ -2704,7 +2734,7 @@
                 }
             })();
 
-            log('UI ready. Dial 0000000000 to talk to RAGina.', 'success');
+            log('UI ready. Dial 0000000000 to talk to RAGina (fallback enabled).', 'success');
         })();
     </script>
 
