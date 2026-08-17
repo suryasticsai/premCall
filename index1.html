@@ -7,8 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="PremCall" />
-    <meta name="description" content="PremCall — voice dialer with RAGina AI" />
-    <title>PremCall</title>
+    <title>PremCall — RAGina AI Call</title>
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" />
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -143,7 +142,7 @@
             }
         }
 
-        /* ===== main UI (visible when NOT in RAGina call) ===== */
+        /* ===== main UI ===== */
         .header {
             display: flex;
             justify-content: space-between;
@@ -929,7 +928,7 @@
             box-shadow: 0 0 20px rgba(79, 140, 247, 0.15);
         }
 
-        /* ===== TRANSCRIPT CHAT LOG (inside call screen) ===== */
+        /* ===== TRANSCRIPT CHAT LOG ===== */
         #callTranscript {
             width: 100%;
             max-width: 400px;
@@ -982,7 +981,7 @@
             padding: 0.5rem 0;
         }
 
-        /* ===== export buttons inside call screen ===== */
+        /* ===== export buttons ===== */
         #exportButtons {
             display: none;
             gap: 0.6rem;
@@ -1043,17 +1042,50 @@
         .hidden {
             display: none !important;
         }
-
         .ragina-bubble,
         .ragina-panel {
             display: none !important;
         }
-
-        /* dimmed overlay for main UI during call */
         .dimmed {
             opacity: 0.15 !important;
             pointer-events: none !important;
             user-select: none !important;
+        }
+
+        /* RAGina engine loading indicator */
+        #raginaStatus {
+            font-size: 0.7rem;
+            color: var(--text-faint);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            margin-left: 0.5rem;
+        }
+        #raginaStatus .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--text-faint);
+            border-top-color: var(--go);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        #raginaStatus.ready {
+            color: var(--go);
+        }
+        #raginaStatus.ready .spinner {
+            display: none;
+        }
+        #raginaStatus.error {
+            color: var(--stop);
+        }
+        #raginaStatus.error .spinner {
+            display: none;
         }
     </style>
 </head>
@@ -1071,6 +1103,7 @@
                 <div class="header-right">
                     <span id="myNumberDisplay" style="cursor:pointer;">—</span>
                     <span class="status-dot offline" id="headerStatusDot"></span>
+                    <span id="raginaStatus"><span class="spinner"></span> loading…</span>
                 </div>
             </div>
 
@@ -1142,7 +1175,7 @@
         </div>
     </div>
 
-    <!-- ===== CALL SCREEN — full-screen phone UI (outside phone-frame) ===== -->
+    <!-- ===== CALL SCREEN ===== -->
     <div id="callScreen">
         <div class="avatar-wrap" id="callRingWrap">
             <div class="ring"></div><div class="ring"></div><div class="ring"></div>
@@ -1168,12 +1201,10 @@
             </div>
         </div>
 
-        <!-- transcript chat log -->
         <div id="callTranscript">
             <div class="empty-hint">Conversation will appear here…</div>
         </div>
 
-        <!-- export buttons (shown after call ends) -->
         <div id="exportButtons">
             <button id="exportTxtBtn"><i class="fas fa-file-lines"></i> TXT</button>
             <button id="exportJsonBtn"><i class="fas fa-file-code"></i> JSON</button>
@@ -1184,44 +1215,146 @@
     <div id="toast"></div>
     <audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
 
-    <!-- ===== RAGina Core ===== -->
-    <script src="ragina-pro.min.js" onerror="window.__raginaLocalFailed = true;"></script>
-    <!-- ===== PeerJS ===== -->
-    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js">
-    </script>
-
-    <!-- ===== RAGina load watchdog ===== -->
+    <!-- ===== RAGina Core — load from CDN with fallback ===== -->
     <script>
-        (function() {
-            function reportToLogPanel(msg, cls) {
-                var el = document.getElementById('logArea');
-                if (!el) return;
-                var now = new Date().toLocaleTimeString();
-                var div = document.createElement('div');
+        // RAGina engine loader with multiple fallback sources
+        (function loadRAGina() {
+            const statusEl = document.getElementById('raginaStatus');
+            const logArea = document.getElementById('logArea');
+
+            function setStatus(text, type) {
+                if (!statusEl) return;
+                statusEl.textContent = text;
+                statusEl.className = type || '';
+                if (type === 'ready') {
+                    statusEl.innerHTML = '<i class="fas fa-check-circle" style="color:var(--go);"></i> RAGina ready';
+                } else if (type === 'error') {
+                    statusEl.innerHTML = '<i class="fas fa-exclamation-circle" style="color:var(--stop);"></i> ' + text;
+                } else {
+                    statusEl.innerHTML = '<span class="spinner"></span> ' + text;
+                }
+            }
+
+            function log(msg, cls) {
+                if (!logArea) return;
+                const now = new Date().toLocaleTimeString();
+                const div = document.createElement('div');
                 div.className = 'log-entry' + (cls ? ' ' + cls : '');
                 div.textContent = now + ' ' + msg;
-                el.prepend(div);
+                logArea.prepend(div);
             }
 
-            function tryInit() {
-                if (typeof window.__initRAGinaOnce === 'function') window.__initRAGinaOnce();
+            // Try loading RAGina from multiple sources
+            const sources = [
+                'ragina-pro.min.js',
+                'https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-pro.min.js',
+                'https://raw.githubusercontent.com/suryasticsai/RAGina/main/ragina-pro.min.js'
+            ];
+
+            let loaded = false;
+
+            function tryLoad(index) {
+                if (loaded) return;
+                if (index >= sources.length) {
+                    setStatus('Failed to load RAGina', 'error');
+                    log('RAGina: all load sources failed', 'error');
+                    return;
+                }
+                const src = sources[index];
+                setStatus('Loading RAGina (' + (index + 1) + '/' + sources.length + ')…', '');
+                log('RAGina: trying ' + src, 'info');
+
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = function() {
+                    // Check if RAGina is now available
+                    if (typeof window.RAGina !== 'undefined' && typeof window.RAGina.init === 'function') {
+                        loaded = true;
+                        setStatus('RAGina ready', 'ready');
+                        log('RAGina loaded from ' + src, 'success');
+                        // Initialize the engine
+                        try {
+                            window.RAGina.init({
+                                title: 'RAGina',
+                                personality: 'sassy',
+                                voiceEnabled: false
+                            });
+                            log('RAGina engine initialized', 'success');
+                            // Notify app
+                            if (window.__onRAGinaReady) window.__onRAGinaReady();
+                        } catch (e) {
+                            log('RAGina init error: ' + e.message, 'error');
+                        }
+                    } else {
+                        // Loaded but not available — try next
+                        log('RAGina: script loaded but API not found, trying next', 'warning');
+                        tryLoad(index + 1);
+                    }
+                };
+                script.onerror = function() {
+                    log('RAGina: failed to load from ' + src, 'warning');
+                    tryLoad(index + 1);
+                };
+                // Add a timeout for each source
+                const timeout = setTimeout(function() {
+                    if (!loaded) {
+                        log('RAGina: timeout loading ' + src, 'warning');
+                        tryLoad(index + 1);
+                    }
+                }, 8000);
+                // Clear timeout if script loads
+                script.onload = (function(prev) {
+                    return function() {
+                        clearTimeout(timeout);
+                        if (prev) prev.call(this);
+                    };
+                })(script.onload);
+                script.onerror = (function(prev) {
+                    return function() {
+                        clearTimeout(timeout);
+                        if (prev) prev.call(this);
+                    };
+                })(script.onerror);
+                document.head.appendChild(script);
             }
-            window.addEventListener('load', function() {
-                if (typeof window.RAGina !== 'undefined') return;
-                reportToLogPanel('RAGina script (local) failed to load — trying CDN fallback…', 'warning');
-                var s = document.createElement('script');
-                s.src = 'https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/ragina-pro.min.js';
-                s.onload = function() {
-                    reportToLogPanel('RAGina loaded via CDN fallback.', 'success');
-                    tryInit();
-                };
-                s.onerror = function() {
-                    reportToLogPanel('RAGina failed to load from local file AND CDN. RAGina calls will report "not ready" — check your network or disable ad-blocker for this page.',
-                        'error');
-                };
-                document.head.appendChild(s);
-            });
+
+            // Start loading
+            tryLoad(0);
+
+            // Also check if RAGina is already present (e.g. from a previous load)
+            if (typeof window.RAGina !== 'undefined' && typeof window.RAGina.init === 'function') {
+                loaded = true;
+                setStatus('RAGina ready', 'ready');
+                log('RAGina already present', 'success');
+                try {
+                    window.RAGina.init({ title: 'RAGina', personality: 'sassy', voiceEnabled: false });
+                    log('RAGina engine initialized', 'success');
+                    if (window.__onRAGinaReady) window.__onRAGinaReady();
+                } catch (e) {
+                    log('RAGina init error: ' + e.message, 'error');
+                }
+            }
+
+            // Expose ready callback
+            window.__onRAGinaReady = function() {
+                // Notify PremCall that RAGina is ready
+                if (window.PremCall && typeof window.PremCall._setRAGinaReady === 'function') {
+                    window.PremCall._setRAGinaReady(true);
+                }
+            };
+
+            // Also expose a check function
+            window.__isRAGinaReady = function() {
+                return typeof window.RAGina !== 'undefined' &&
+                    typeof window.RAGina.getEngine === 'function' &&
+                    window.RAGina.getEngine() &&
+                    window.RAGina.getEngine().isReady;
+            };
         })();
+    </script>
+
+    <!-- ===== PeerJS ===== -->
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js">
     </script>
 
     <!-- ===== MAIN APPLICATION ===== -->
@@ -1229,34 +1362,33 @@
         (function(global) {
             'use strict';
 
-            // ---------- RAGina constants ----------
             const RAGINA_NUMBER = '0000000000';
             const RAGINA_NAME = 'RAGina';
 
-            // ---------- Init RAGina engine once ----------
+            // ---------- RAGina engine state ----------
+            let raginaEngineReady = false;
             let raginaInitAttempted = false;
 
-            function initRAGinaOnce() {
-                if (raginaInitAttempted) return;
-                if (!global.RAGina || typeof global.RAGina.init !== 'function') return;
-                raginaInitAttempted = true;
+            function checkRAGinaEngine() {
                 try {
-                    global.RAGina.init({
-                        title: 'RAGina',
-                        personality: 'sassy',
-                        voiceEnabled: false // PremCall handles TTS
-                    });
+                    const engine = global.RAGina?.getEngine?.();
+                    raginaEngineReady = !!(engine && engine.isReady);
+                    return raginaEngineReady;
                 } catch (e) {
-                    console.warn('[PremCall] RAGina.init() failed:', e);
+                    return false;
                 }
             }
-            global.__initRAGinaOnce = initRAGinaOnce;
-            initRAGinaOnce();
 
-            // ---------- PeerJS ----------
+            // Called when RAGina loads
+            global.__onRAGinaReady = function() {
+                raginaEngineReady = checkRAGinaEngine();
+                log('RAGina engine ready: ' + raginaEngineReady, 'info');
+            };
+
+            // ---------- PeerJS setup ----------
             if (typeof global.Peer === 'undefined') {
                 console.error('[PremCall] PeerJS library not found.');
-                return;
+                // Continue without PeerJS — RAGina will still work
             }
 
             const CONFIG = {
@@ -1296,7 +1428,6 @@
             let raginaTimerInterval = null;
             let raginaCallStart = null;
             let raginaIsMuted = false;
-            let raginaEngineReady = false;
 
             // ---------- TTS ----------
             let ttsVoices = [];
@@ -1351,17 +1482,7 @@
                 }));
             }
 
-            function checkRAGinaEngine() {
-                if (!raginaInitAttempted) initRAGinaOnce();
-                try {
-                    const engine = global.RAGina?.getEngine?.();
-                    raginaEngineReady = !!(engine && engine.isReady);
-                    return raginaEngineReady;
-                } catch (e) {
-                    return false;
-                }
-            }
-
+            // ---------- Logging ----------
             function log(msg, level) {
                 console.log('[PremCall]', msg);
                 if (callbacks.onLog) callbacks.onLog(msg, level);
@@ -1371,6 +1492,7 @@
                 if (callbacks[name]) callbacks[name](data);
             }
 
+            // ---------- PeerJS handlers ----------
             function resetCallState() {
                 if (activeCall) {
                     try { activeCall.close(); } catch (e) {}
@@ -1435,6 +1557,8 @@
             }
 
             function attachPeerHandlers() {
+                if (!peer) return;
+
                 peer.on('open', function(id) {
                     log('Connected with ID: ' + id, 'info');
                     fire('online', id);
@@ -1451,14 +1575,14 @@
                 });
 
                 peer.on('close', function() {
-                    log('Connection closed', 'warn');
+                    log('Peer connection closed', 'warn');
                     fire('offline', null);
                     fire('onDisconnected', null);
                     if (inCall && !raginaCallActive) resetCallState();
                 });
 
                 peer.on('disconnected', function() {
-                    log('Disconnected - reconnecting...', 'warn');
+                    log('Peer disconnected - reconnecting...', 'warn');
                     fire('offline', null);
                     fire('onDisconnected', null);
                     setTimeout(function() {
@@ -1497,7 +1621,12 @@
 
             // ---------- RAGina call logic ----------
             async function askRAGina(query) {
-                if (!raginaEngineReady) checkRAGinaEngine();
+                if (!raginaEngineReady) {
+                    raginaEngineReady = checkRAGinaEngine();
+                    if (!raginaEngineReady) {
+                        throw new Error('RAGina engine not ready. Please wait.');
+                    }
+                }
                 try {
                     const engine = global.RAGina?.getEngine?.();
                     if (!engine || !engine.isReady) throw new Error('RAGina engine not ready.');
@@ -1616,16 +1745,27 @@
                     showToast('Already in a call.');
                     return;
                 }
-                if (!checkRAGinaEngine()) {
-                    if (!global.RAGina) {
-                        showToast('RAGina script never loaded — check the log.');
-                        log('Cannot start RAGina call: RAGina script not on page.', 'error');
-                    } else {
-                        showToast('RAGina engine is loading. Please try again.');
-                        log('RAGina engine not ready', 'warning');
+
+                // Check RAGina engine
+                raginaEngineReady = checkRAGinaEngine();
+                if (!raginaEngineReady) {
+                    // Try to init if not ready
+                    if (global.RAGina && typeof global.RAGina.init === 'function') {
+                        try {
+                            global.RAGina.init({ title: 'RAGina', personality: 'sassy', voiceEnabled: false });
+                            raginaEngineReady = checkRAGinaEngine();
+                        } catch (e) {
+                            log('RAGina init error: ' + e.message, 'error');
+                        }
                     }
+                }
+
+                if (!raginaEngineReady) {
+                    showToast('RAGina engine not ready. Please wait a moment.');
+                    log('RAGina engine not ready for call', 'warning');
                     return;
                 }
+
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (!SpeechRecognition) {
                     showToast('Your browser does not support voice calls.');
@@ -1816,15 +1956,38 @@
 
             // ---------- PremCall public API ----------
             const PremCall = {
+                _setRAGinaReady: function(ready) {
+                    raginaEngineReady = ready;
+                    log('RAGina engine set to ready: ' + ready, 'info');
+                },
+
                 init: function(number, opts) {
                     if (!/^\d{10}$/.test(number)) throw new Error('Number must be exactly 10 digits');
                     if (peer) { peer.destroy();
                         peer = null; }
                     myNumber = number;
                     callbacks = opts || {};
-                    peer = new global.Peer(number, { debug: 2, config: CONFIG });
-                    attachPeerHandlers();
-                    setTimeout(checkRAGinaEngine, 1000);
+                    // Only initialize PeerJS if it's available
+                    if (typeof global.Peer !== 'undefined') {
+                        try {
+                            peer = new global.Peer(number, { debug: 0, config: CONFIG });
+                            attachPeerHandlers();
+                        } catch (e) {
+                            log('PeerJS init failed: ' + e.message, 'warning');
+                            peer = null;
+                        }
+                    } else {
+                        log('PeerJS not available — only RAGina calls work', 'warning');
+                    }
+                    // Check RAGina status
+                    setTimeout(function() {
+                        raginaEngineReady = checkRAGinaEngine();
+                        if (raginaEngineReady) {
+                            log('RAGina engine ready', 'success');
+                        } else {
+                            log('RAGina engine not ready — will retry', 'warning');
+                        }
+                    }, 500);
                 },
 
                 call: async function(target) {
@@ -1833,7 +1996,7 @@
                         return;
                     }
                     if (inCall || raginaCallActive) throw new Error('Already in a call');
-                    if (!peer) throw new Error('Not initialized. Call init() first.');
+                    if (!peer) throw new Error('PeerJS not available. Only RAGina calls work.');
                     if (!/^\d{10}$/.test(target)) throw new Error('Target must be exactly 10 digits');
                     if (target === myNumber) throw new Error('Cannot call yourself');
                     log('Calling ' + target + '...', 'info');
@@ -1885,7 +2048,6 @@
                 },
 
                 checkStatus: function(number) {
-                    // Special case: RAGina is always "online"
                     if (number === RAGINA_NUMBER) {
                         return Promise.resolve(true);
                     }
@@ -1934,7 +2096,7 @@
 
                 sendMessage: function(target, text) {
                     return new Promise(function(resolve, reject) {
-                        if (!peer) return reject(new Error('PremCall not initialized.'));
+                        if (!peer) return reject(new Error('PeerJS not available.'));
                         if (!/^\d{10}$/.test(target)) return reject(new Error('Target must be 10 digits.'));
                         if (!text || typeof text !== 'string' || text.trim().length === 0) {
                             return reject(new Error('Message cannot be empty.'));
@@ -1964,11 +2126,15 @@
                 },
 
                 onMessage: function(cb) { if (typeof cb === 'function') messageListeners.add(cb); },
-                offMessage: function(cb) { messageListeners.delete(cb); }
+                offMessage: function(cb) { messageListeners.delete(cb); },
+
+                // Export methods for UI
+                exportLastTranscript: function() { exportTranscript('txt'); },
+                exportLastTranscriptJSON: function() { exportTranscript('json'); }
             };
 
             global.PremCall = PremCall;
-            console.log('[PremCall] Library loaded (v2.3 with full-screen RAGina call UI + JSON/TXT export).');
+            console.log('[PremCall] Library loaded with RAGina support.');
         })(window);
 
         // =====================================================================
@@ -1981,6 +2147,8 @@
                 document.getElementById('logArea').innerHTML = '<div class="log-entry error">PremCall not loaded.</div>';
                 return;
             }
+
+            const RAGINA_NUMBER = '0000000000';
 
             const dialDisplay = document.getElementById('dialDisplay');
             const dialText = document.getElementById('dialText');
@@ -2018,8 +2186,6 @@
             const brandLogo = document.getElementById('brandLogo');
             const exportTxtBtn = document.getElementById('exportTxtBtn');
             const exportJsonBtn = document.getElementById('exportJsonBtn');
-
-            const RAGINA_NUMBER = '0000000000';
 
             let dialedNumber = '';
             let callTimerInterval = null;
@@ -2223,7 +2389,6 @@
                 callTimer.textContent = '00:00';
                 if (remoteAudio) remoteAudio.srcObject = null;
                 if (dialCallBtn) dialCallBtn.classList.remove('disabled');
-                // restore main UI
                 const dimEls = [
                     document.getElementById('dialerSection'),
                     document.getElementById('historySection'),
@@ -2289,7 +2454,7 @@
                         },
                         onCallStarted: (data) => {
                             if (data.isRAGina) {
-                                // already handled inside startRAGinaCall()
+                                // already handled
                             } else {
                                 pendingCallDirection = data.isCaller ? 'outgoing' : 'incoming';
                                 callAvatar.textContent = initials(data.target);
@@ -2301,7 +2466,6 @@
                                 callScreen.classList.add('active');
                                 dialCallBtn.classList.add('disabled');
                                 hideIncomingOverlay();
-                                // dim main UI
                                 const dimEls = [
                                     document.getElementById('dialerSection'),
                                     document.getElementById('historySection'),
@@ -2389,13 +2553,16 @@
                         vibrate([40, 40, 40]);
                         return;
                     }
-                    // For RAGina number we don't need PeerJS online
-                    if (dialedNumber !== RAGINA_NUMBER && headerStatusDot.className.indexOf('online') === -1) {
-                        log('Not connected to signaling server yet — wait for the status dot to turn green.',
-                            'warning');
-                        showToast('Still connecting, try again in a moment');
-                        vibrate([40, 40, 40]);
-                        return;
+                    // For RAGina number, skip online check entirely
+                    if (dialedNumber !== RAGINA_NUMBER) {
+                        // Only check PeerJS status for non-RAGina calls
+                        const dotState = headerStatusDot.className;
+                        if (dotState.indexOf('online') === -1 && dotState.indexOf('connecting') === -1) {
+                            log('PeerJS not connected — only RAGina calls work right now.', 'warning');
+                            showToast('PeerJS offline. Use RAGina (0000000000) or wait.');
+                            vibrate([40, 40, 40]);
+                            return;
+                        }
                     }
                     unlockSpeechSynthesis();
                     dialCallBtn.classList.add('disabled');
@@ -2537,110 +2704,7 @@
                 }
             })();
 
-            log('UI ready.', 'success');
-        })();
-
-        // =====================================================================
-        // Patch: expose RAGina transcript export from the main closure
-        // =====================================================================
-        (function() {
-            let _raginaTranscript = [];
-            let _raginaCallStart = null;
-
-            const prem = window.PremCall;
-            if (prem) {
-                // Override export methods to use the internal transcript
-                Object.defineProperty(prem, 'exportLastTranscript', {
-                    value: function() {
-                        // This will be called from the UI
-                        // The actual implementation uses the internal state
-                        if (typeof window.__doExportTXT === 'function') {
-                            window.__doExportTXT();
-                        } else {
-                            showToast('Export not ready.');
-                        }
-                    },
-                    writable: false,
-                    configurable: true
-                });
-                Object.defineProperty(prem, 'exportLastTranscriptJSON', {
-                    value: function() {
-                        if (typeof window.__doExportJSON === 'function') {
-                            window.__doExportJSON();
-                        } else {
-                            showToast('Export not ready.');
-                        }
-                    },
-                    writable: false,
-                    configurable: true
-                });
-            }
-
-            // Store transcript reference
-            window.__updateRAGinaTranscript = function(transcript, startTime) {
-                _raginaTranscript = transcript;
-                _raginaCallStart = startTime;
-            };
-
-            // Export functions called from UI
-            window.__doExportTXT = function() {
-                if (!_raginaTranscript.length) {
-                    showToast('No conversation to export.');
-                    return;
-                }
-                const lines = _raginaTranscript.map(m => {
-                    const time = new Date(m.timestamp).toLocaleTimeString();
-                    const who = m.role === 'user' ? 'You' : 'RAGina';
-                    return `[${time}] ${who}: ${m.text}`;
-                });
-                const header =
-                    `RAGina Call Transcript\nStarted: ${new Date(_raginaCallStart || Date.now()).toLocaleString()}\n\n`;
-                const content = header + (lines.length ? lines.join('\n') : '(no exchanges recorded)');
-                const stamp = new Date(_raginaCallStart || Date.now()).toISOString().replace(/[:.]/g, '-');
-                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `ragina-transcript-${stamp}.txt`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 2000);
-                showToast('Exported TXT');
-            };
-
-            window.__doExportJSON = function() {
-                if (!_raginaTranscript.length) {
-                    showToast('No conversation to export.');
-                    return;
-                }
-                const data = {
-                    callType: 'RAGina',
-                    number: '0000000000',
-                    name: 'RAGina',
-                    started: _raginaCallStart ? new Date(_raginaCallStart).toISOString() : null,
-                    ended: new Date().toISOString(),
-                    messages: _raginaTranscript.map(m => ({
-                        role: m.role === 'user' ? 'user' : 'assistant',
-                        text: m.text,
-                        timestamp: new Date(m.timestamp).toISOString()
-                    }))
-                };
-                const content = JSON.stringify(data, null, 2);
-                const stamp = new Date(_raginaCallStart || Date.now()).toISOString().replace(/[:.]/g, '-');
-                const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `ragina-transcript-${stamp}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 2000);
-                showToast('Exported JSON');
-            };
-
-            console.log('[PremCall] RAGina transcript export hooks installed.');
+            log('UI ready. Dial 0000000000 to talk to RAGina.', 'success');
         })();
     </script>
 
