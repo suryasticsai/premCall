@@ -103,8 +103,11 @@
 
     #postCallExport { flex:0 0 auto; display:none; margin-top:.5rem; }
     #postCallExport.active { display:block; }
-    .summary-card { background:linear-gradient(140deg, rgba(79,140,247,.12), rgba(47,217,146,.10)); border:1px solid var(--line); border-radius:14px; padding:.55rem .8rem; font-size:.72rem; color:var(--text-dim); margin-bottom:.5rem; line-height:1.5; }
-    .summary-card i { color:var(--warn); margin-right:.35rem; }
+    /* Collected info card - replaces old summary card */
+    .collected-card { background:linear-gradient(140deg, rgba(47,217,146,.14), rgba(79,140,247,.08)); border:1px solid var(--line); border-radius:14px; padding:.65rem .85rem; font-size:.74rem; color:var(--text-dim); margin-bottom:.5rem; line-height:1.6; }
+    .collected-card .label { font-weight:600; color:var(--text); font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; }
+    .collected-card .value { color:var(--text); }
+    .collected-card i { color:var(--go); margin-right:.35rem; }
     .export-row { display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; }
 
     .log-area { display:none !important; }
@@ -165,6 +168,9 @@
     .details-transcript::-webkit-scrollbar-thumb { background:var(--surface-3); border-radius:10px; }
     .details-transcript .recap { background:linear-gradient(140deg, rgba(79,140,247,.12), rgba(47,217,146,.10)); border:1px solid var(--line); border-radius:10px; padding:.45rem .6rem; font-size:.7rem; color:var(--text-dim); margin-bottom:.5rem; }
     .details-transcript .recap i { color:var(--warn); margin-right:.3rem; }
+    .details-transcript .collected { background:linear-gradient(140deg, rgba(47,217,146,.14), rgba(79,140,247,.08)); border:1px solid var(--line); border-radius:10px; padding:.5rem .65rem; font-size:.7rem; color:var(--text-dim); margin-bottom:.5rem; line-height:1.6; }
+    .details-transcript .collected strong { color:var(--text); font-size:.68rem; text-transform:uppercase; letter-spacing:.04em; }
+    .details-transcript .collected i { color:var(--go); margin-right:.3rem; }
     .details-transcript .msg { display:flex; gap:.5rem; padding:.28rem 0; border-bottom:1px solid rgba(128,128,128,.08); }
     .details-transcript .msg:last-child { border-bottom:none; }
     .details-transcript .who { font-weight:600; min-width:2.8rem; font-size:.66rem; text-transform:uppercase; color:var(--signal); flex-shrink:0; }
@@ -184,7 +190,6 @@
     .account-card .info-row { display:flex; justify-content:space-between; padding:.5rem 0; border-bottom:1px solid var(--surface-2); font-size:.85rem; }
     .account-card .close-btn { margin-top:1.2rem; width:100%; padding:.6rem; border-radius:40px; border:1px solid var(--line); background:transparent; color:var(--text-dim); cursor:pointer; }
 
-    /* ===== Responsive keypad (keeps history visible on all phones) ===== */
     @media (max-height: 780px) {
         .dialer-pad { gap:.45rem; max-width:min(230px, 26vh); }
         .dialer-pad .key { font-size:1.15rem; }
@@ -266,11 +271,13 @@
             <ul id="historyList"></ul>
         </div>
 
+        <!-- Post-call: Now shows collected info (no summary card here) -->
         <div id="postCallExport">
-            <div class="summary-card hidden" id="callSummary"></div>
+            <div class="collected-card hidden" id="collectedInfoCard"></div>
             <div class="export-row">
                 <button id="postSaveTxtBtn" class="btn"><i class="fas fa-file-lines"></i> TXT</button>
                 <button id="postSaveJsonBtn" class="btn"><i class="fas fa-file-code"></i> JSON</button>
+                <button id="postCopySummaryBtn" class="btn"><i class="fas fa-wand-magic-sparkles"></i> Copy AI Summary</button>
                 <button id="shareBtn" class="btn share"><i class="fas fa-share-nodes"></i> Share</button>
             </div>
         </div>
@@ -322,6 +329,7 @@
             <button id="detailsMsgBtn" class="btn"><i class="fas fa-comment"></i> Msg</button>
             <button id="detailsTxtBtn" class="btn"><i class="fas fa-file-lines"></i> TXT</button>
             <button id="detailsJsonBtn" class="btn"><i class="fas fa-file-code"></i> JSON</button>
+            <button id="detailsCopySummaryBtn" class="btn"><i class="fas fa-wand-magic-sparkles"></i> AI Summary</button>
             <button id="detailsShareBtn" class="btn share"><i class="fas fa-share-nodes"></i> Share</button>
         </div>
     </div>
@@ -351,11 +359,19 @@
     let inCall = false, muted = false, speakerOn = false;
     let raginaCallActive = false, raginaRecognition = null, raginaIsMuted = false, isSpeaking = false;
     let liveRecognition = null;
-    let conversationState = 0, userName = '';
+    let conversationState = 0; // 0=name, 1=contact, 2=purpose, 3=confirm, 4=open, 5=wrap
+    let collectedInfo = {}; // { name, contact, purpose }
     let currentLog = null, lastLog = null;
     let timerInterval = null, timerSeconds = 0, ringtoneTimer = null;
     let ttsVoices = [], speechUnlocked = false;
-    let memory = []; // Simple conversation memory
+
+    /* ===== INFO COLLECTION FLOW ===== */
+    const COLLECTION_FLOW = [
+        { key: 'name',    question: "Great to have you! First, what is your full name?",                                  confirm: "Thanks {value}!" },
+        { key: 'contact', question: "And what's the best email or phone number to reach you at?",                          confirm: "Got it, {value}." },
+        { key: 'purpose', question: "Perfect. What brings you here today? What can we help you with?",                     confirm: "I understand — {value}." },
+        { key: null,      question: "Let me confirm: your name is {name}, contact is {contact}, and you're here because {purpose}. Is that all correct?", confirm: null },
+    ];
 
     if (window.speechSynthesis) {
         ttsVoices = window.speechSynthesis.getVoices();
@@ -393,11 +409,11 @@
         return out;
     }
 
-    /* ---------- call logs (universal transcripts) ---------- */
+    /* ---------- call logs ---------- */
     function getLogs() { try { return JSON.parse(localStorage.getItem('premCallLogs')) || []; } catch(e) { return []; } }
     function saveLogs(l) { try { localStorage.setItem('premCallLogs', JSON.stringify(l)); } catch(e) {} }
     function startLog(number, type, direction) {
-        currentLog = { id: Date.now(), number, type, direction, started: Date.now(), ended: null, duration: '', summary: '', messages: [] };
+        currentLog = { id: Date.now(), number, type, direction, started: Date.now(), ended: null, duration: '', summary: '', collected: {}, messages: [] };
         persistActiveLog();
     }
     function persistActiveLog() { try { localStorage.setItem('premCallActiveLog', JSON.stringify(currentLog)); } catch(e) {} }
@@ -413,6 +429,7 @@
         if (!currentLog) return null;
         currentLog.ended = Date.now();
         currentLog.duration = duration;
+        currentLog.collected = { ...collectedInfo }; // Save collected info to log
         const logs = getLogs();
         logs.unshift(currentLog);
         if (logs.length > 20) logs.length = 20;
@@ -427,6 +444,11 @@
         const logs = getLogs();
         const l = logs.find(x => x.id === id);
         if (l) { l.summary = sum; saveLogs(logs); }
+    }
+    function updateLogCollected(id, info) {
+        const logs = getLogs();
+        const l = logs.find(x => x.id === id);
+        if (l) { l.collected = info; saveLogs(logs); }
     }
     function appendTranscriptUI(role, text) {
         const c = document.getElementById('callTranscript');
@@ -473,42 +495,28 @@
     }
     function raginaSay(text) { if (window.speechSynthesis) isSpeaking = true; speakText(text); }
 
-    /* ---------- Built-in voice commands ---------- */
-    function checkCommands(text) {
-        const t = text.toLowerCase().trim();
-        if (t.includes('what time') || t.includes('time is it')) {
-            return "It's " + new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) + ".";
-        }
-        if (t.includes('what day') || t.includes("today's date") || t.includes('what date')) {
-            return "Today is " + new Date().toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'}) + ".";
-        }
-        if (t.includes('flip a coin') || t.includes('coin flip')) {
-            return Math.random() > 0.5 ? "It's Heads!" : "It's Tails!";
-        }
-        if (t.includes('roll a dice') || t.includes('roll a die')) {
-            return "You rolled a " + (Math.floor(Math.random() * 6) + 1) + "!";
-        }
-        if (t.includes('tell me a joke') || t.includes('make me laugh')) {
-            const jokes = [
-                "Why do programmers prefer dark mode? Because light attracts bugs!",
-                "I told my computer I needed a break. It said no problem, I'll go to sleep.",
-                "Why did the AI cross the road? To optimize the other side!"
-            ];
-            return jokes[Math.floor(Math.random() * jokes.length)];
-        }
-        if (t.includes('clear memory') || t.includes('forget everything')) {
-            memory = [];
-            return "Done! I've cleared our conversation memory.";
-        }
-        return null;
-    }
+    /* ---------- Info Collection AI ---------- */
+    async function askRAGinaForCollection(userSaid, stateKey) {
+        const flow = COLLECTION_FLOW[conversationState];
+        const currentQuestion = flow ? flow.question : '';
+        
+        const prompt = `You are RAGina, an intake agent collecting information over a phone call.
+Your job: collect 3 things in order: NAME, then CONTACT (email/phone), then PURPOSE (reason for calling).
+You are currently at step: ${stateKey || 'confirm/wrap-up'}.
+Current question being asked: "${currentQuestion}"
+Collected so far: ${JSON.stringify(collectedInfo)}
 
-    /* ---------- AI ---------- */
-    async function askRAGina(query) {
-        const context = memory.slice(-6).map(m => m.who + ': ' + m.text).join('\n');
-        const prompt = `You are RAGina, a friendly voice assistant. Keep answers SHORT (1-2 sentences). Be conversational.
-${context ? '\nConversation so far:\n' + context + '\n' : ''}
-User: ${query}`;
+Rules:
+- Keep responses SHORT (1-2 sentences max). Spoken aloud, so no formatting.
+- If the user just answered the current question, confirm briefly and move to the NEXT question automatically.
+- At the CONFIRM step, read back all 3 pieces of info and ask if correct. If user says yes/correct, say "Thank you, we'll be in touch!" to wrap up.
+- If user says no/wrong at confirm, ask which field needs correction.
+- Be warm, patient, and conversational. Never repeat the same question twice.
+- Do NOT ask for info already collected.
+
+User just said: "${userSaid}"
+Your response:`;
+
         try {
             const resp = await fetch(API_URL, {
                 method: 'POST',
@@ -516,43 +524,111 @@ User: ${query}`;
                 body: JSON.stringify({ prompt })
             });
             if (!resp.ok) throw 0;
-            const answer = (await resp.json()).text || 'No response.';
-            memory.push({ who: 'User', text: query });
-            memory.push({ who: 'RAGina', text: answer });
-            if (memory.length > 12) memory = memory.slice(-12);
-            return answer;
+            return (await resp.json()).text || 'Could you repeat that?';
         } catch (e) {
-            return "I'm having trouble answering right now. Please try again.";
+            return "Sorry, I didn't catch that. Could you say it again?";
         }
+    }
+
+    /* Extract info from user's response using simple heuristics */
+    function extractField(stateKey, text) {
+        const t = text.trim();
+        if (!t) return null;
+        
+        if (stateKey === 'name') {
+            // Remove common prefixes
+            let name = t;
+            const prefixes = ['my name is', 'i am', "i'm", 'this is', 'it is', "it's", 'call me', 'name is'];
+            for (const p of prefixes) {
+                if (name.toLowerCase().startsWith(p)) {
+                    name = name.slice(p.length).trim();
+                    break;
+                }
+            }
+            return name || null;
+        }
+        if (stateKey === 'contact') {
+            // If it looks like email or phone, accept it
+            if (/^\S+@\S+\.\S+$/.test(t) || /^\+?[\d\s\-()]{7,}$/.test(t)) return t;
+            return t; // accept anything, user knows what they gave
+        }
+        if (stateKey === 'purpose') {
+            return t;
+        }
+        return null;
+    }
+
+    /* Detect if user confirmed/corrected at confirmation step */
+    function detectConfirmation(text) {
+        const t = text.toLowerCase();
+        const yesWords = ['yes','yeah','yep','correct','right','that is right','exactly','sure','ok','okay','perfect','absolutely'];
+        const noWords = ['no','nope','wrong','incorrect','not right','change','update','edit'];
+        
+        if (yesWords.some(w => t.includes(w))) return 'yes';
+        if (noWords.some(w => t.includes(w))) return 'no';
+        return 'unclear';
     }
 
     async function generateSummary(log) {
         if (!log || log.messages.length < 2) return;
         const convo = log.messages.map(m => (m.role === 'user' ? 'User: ' : 'RAGina: ') + m.text).join('\n');
+        const collected = log.collected && Object.keys(log.collected).length 
+            ? '\n\nCollected Info:\n' + Object.entries(log.collected).map(([k,v]) => `${k}: ${v}`).join('\n')
+            : '';
         try {
-            const resp = await fetch(API_URL, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ prompt: 'Summarize this phone conversation in exactly 2 short sentences:\n' + convo + '\nSummary:' }) });
+            const resp = await fetch(API_URL, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ prompt: 'Summarize this intake phone conversation in exactly 2 short sentences.' + collected + '\n\nConversation:\n' + convo + '\n\nSummary:' }) });
             const sum = ((await resp.json()).text || '').trim();
             if (sum) {
                 log.summary = sum;
                 updateLogSummary(log.id, sum);
-                const el = document.getElementById('callSummary');
-                el.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i><b>AI Recap:</b> ';
-                el.appendChild(document.createTextNode(sum));
-                el.classList.remove('hidden');
             }
         } catch(e) {}
     }
 
-    /* ---------- export builders ---------- */
-    function roleLabel(log, role) { return role === 'user' ? 'You' : (log.type === 'ragina' ? 'RAGina' : 'Live'); }
+    /* ---------- export builders (include collected + summary) ---------- */
+    function roleLabel(log, role) { return role === 'user' ? 'Caller' : (log.type === 'ragina' ? 'RAGina' : 'Live'); }
     function buildLogText(log) {
-        let out = 'PremCall Transcript\nNumber: ' + log.number + '\nType: ' + (log.type === 'ragina' ? 'RAGina AI Call' : 'Voice Call') + '\nDirection: ' + log.direction + '\nStarted: ' + new Date(log.started).toLocaleString() + '\nDuration: ' + (log.duration || '—') + '\n';
-        if (log.summary) out += 'AI Recap: ' + log.summary + '\n';
-        out += '\n' + (log.messages.length ? log.messages.map(m => '[' + new Date(m.timestamp).toLocaleTimeString() + '] ' + roleLabel(log, m.role) + ': ' + m.text).join('\n') : '(no transcript recorded)');
+        let out = '═══ PremCall Intake Transcript ═══\n';
+        out += 'Number: ' + log.number + '\n';
+        out += 'Type: ' + (log.type === 'ragina' ? 'RAGina AI Intake' : 'Voice Call') + '\n';
+        out += 'Direction: ' + log.direction + '\n';
+        out += 'Started: ' + new Date(log.started).toLocaleString() + '\n';
+        out += 'Duration: ' + (log.duration || '—') + '\n\n';
+        
+        // 📋 Collected Info Section
+        if (log.collected && Object.keys(log.collected).length) {
+            out += '═══ 📋 COLLECTED INFORMATION ═══\n';
+            Object.entries(log.collected).forEach(([k,v]) => {
+                out += k.toUpperCase() + ': ' + v + '\n';
+            });
+            out += '\n';
+        }
+        
+        // 🤖 AI Summary Section
+        if (log.summary) {
+            out += '═══ 🤖 AI SUMMARY ═══\n';
+            out += log.summary + '\n\n';
+        }
+        
+        // 📝 Full Transcript
+        out += '═══ 📝 FULL TRANSCRIPT ═══\n';
+        out += (log.messages.length 
+            ? log.messages.map(m => '[' + new Date(m.timestamp).toLocaleTimeString() + '] ' + roleLabel(log, m.role) + ': ' + m.text).join('\n')
+            : '(no transcript recorded)');
         return out;
     }
     function buildLogJSON(log) {
-        return { number: log.number, type: log.type, direction: log.direction, started: new Date(log.started).toISOString(), ended: log.ended ? new Date(log.ended).toISOString() : null, duration: log.duration || null, aiSummary: log.summary || null, messages: log.messages };
+        return { 
+            number: log.number, 
+            type: log.type, 
+            direction: log.direction, 
+            started: new Date(log.started).toISOString(), 
+            ended: log.ended ? new Date(log.ended).toISOString() : null, 
+            duration: log.duration || null, 
+            collected: log.collected || {},  // ← structured collected data
+            aiSummary: log.summary || null,  // ← AI summary included
+            messages: log.messages 
+        };
     }
     function exportLog(log, format) {
         if (!log) { window.showToast('No call selected.'); return; }
@@ -564,7 +640,16 @@ User: ${query}`;
         const a = document.createElement('a'); a.href = url; a.download = filename;
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 2000);
-        window.showToast('Saved ' + format.toUpperCase());
+        window.showToast('Saved ' + format.toUpperCase() + ' (with summary + collected info)');
+    }
+    function getSummaryText(log) {
+        if (!log) return '';
+        let out = '🤖 AI SUMMARY\n' + (log.summary || '(no summary available)') + '\n\n';
+        if (log.collected && Object.keys(log.collected).length) {
+            out += '📋 COLLECTED\n';
+            Object.entries(log.collected).forEach(([k,v]) => out += k + ': ' + v + '\n');
+        }
+        return out;
     }
 
     /* ---------- UI helpers ---------- */
@@ -594,7 +679,7 @@ User: ${query}`;
     }
     function stopLiveTranscription() { if (liveRecognition) { try { liveRecognition.stop(); } catch(e) {} liveRecognition = null; } }
 
-    /* ---------- RAGina call ---------- */
+    /* ---------- RAGina call (info collection mode) ---------- */
     function startRAGinaCall() {
         if (raginaCallActive || inCall) { window.showToast('Already in a call.'); return; }
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -602,8 +687,7 @@ User: ${query}`;
         unlockSpeech();
         raginaCallActive = true;
         conversationState = 0;
-        userName = '';
-        memory = []; // Reset memory for each new call
+        collectedInfo = {}; // Reset collected info
         startLog(RAGINA_NUMBER, 'ragina', 'outgoing');
         document.getElementById('callTranscript').innerHTML = '<div class="empty-hint">Live transcript will appear here…</div>';
         document.getElementById('callAvatar').innerHTML = '<img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" alt="RAGina" onerror="this.outerHTML=\'🤖\'">';
@@ -615,20 +699,28 @@ User: ${query}`;
         document.getElementById('callScreen').classList.add('active');
         document.getElementById('dialCallBtn').classList.add('disabled');
         document.getElementById('postCallExport').classList.remove('active');
-        document.getElementById('callSummary').classList.add('hidden');
+        document.getElementById('collectedInfoCard').classList.add('hidden');
         dimMain(true);
         startTimer();
         setTimeout(() => {
             if (!raginaCallActive) return;
-            document.getElementById('callSubstatus').textContent = 'Connected';
+            document.getElementById('callSubstatus').textContent = 'Connected — Intake Mode';
             document.getElementById('callRingWrap').classList.remove('ring-anim');
-            const g = "Hello! I'm RAGina. What is your name?";
-            logMsg('ragina', g); raginaSay(g);
-            setTimeout(listenToRAGina, 800);
+            const greeting = "Hello! Thanks for calling. I'm RAGina, and I'll be collecting some information from you today.";
+            logMsg('ragina', greeting);
+            raginaSay(greeting);
+            // After greeting, ask first question (name)
+            setTimeout(() => {
+                if (!raginaCallActive) return;
+                const firstQ = COLLECTION_FLOW[0].question;
+                logMsg('ragina', firstQ);
+                raginaSay(firstQ);
+                setTimeout(listenToRAGina, 800);
+            }, 2500);
         }, 1200);
     }
 
-    /* ========== FIXED: Single clean listener with barge-in + memory + commands ========== */
+    /* ========== Info Collection Listener ========== */
     function listenToRAGina() {
         if (!raginaCallActive || raginaIsMuted || raginaRecognition) {
             if (raginaCallActive && !raginaIsMuted && !raginaRecognition) {
@@ -641,7 +733,7 @@ User: ${query}`;
 
         const rec = new SR();
         rec.continuous = false;
-        rec.interimResults = true; // ← CRITICAL for barge-in
+        rec.interimResults = true; // barge-in support
         rec.lang = 'en-US';
         rec.maxAlternatives = 1;
 
@@ -658,54 +750,62 @@ User: ${query}`;
                 }
             }
 
-            // 🚨 BARGE-IN: If AI is talking and we hear user, shut AI up
+            // 🚨 BARGE-IN
             if (isSpeaking && interimText.trim().length > 2) {
                 stopAIVoice();
             }
 
-            // Process final transcript
             if (finalTranscript.trim() && !handled) {
                 handled = true;
                 const text = finalTranscript.trim();
                 try { rec.stop(); } catch(e) {}
                 logMsg('user', text);
 
-                if (conversationState === 0) {
-                    // Name capture
-                    let name = text;
-                    const stopWords = ['um', 'uh', 'my name is', 'i am', "i'm"];
-                    for (let sw of stopWords) {
-                        if (name.toLowerCase().startsWith(sw)) {
-                            name = name.slice(sw.length).trim();
-                            break;
-                        }
-                    }
-                    userName = name || 'Friend';
-                    conversationState = 1;
-                    memory.push({ who: 'User', text: 'My name is ' + userName });
-                    const r = 'Nice to meet you, ' + userName + '. What can I help you with today?';
-                    memory.push({ who: 'RAGina', text: r });
-                    logMsg('ragina', r);
-                    raginaSay(r);
-                    setTimeout(listenToRAGina, 800);
-                } else {
-                    // Check built-in commands FIRST (instant, no API)
-                    const command = checkCommands(text);
-                    if (command) {
-                        logMsg('ragina', command);
-                        raginaSay(command);
+                const flow = COLLECTION_FLOW[conversationState];
+                const stateKey = flow ? flow.key : 'wrap';
+
+                if (stateKey === null) {
+                    // Confirmation step
+                    const confirmCheck = detectConfirmation(text);
+                    if (confirmCheck === 'yes') {
+                        // Move to wrap-up
+                        conversationState = 5;
+                        const wrap = "Wonderful! Thank you for your time. We'll be in touch soon. Have a great day!";
+                        logMsg('ragina', wrap);
+                        raginaSay(wrap);
+                        // End call after wrap-up
+                        setTimeout(() => { if (raginaCallActive) endRAGinaCall(); }, 5000);
+                        return;
+                    } else if (confirmCheck === 'no') {
+                        const correction = "No problem. Which part needs to be changed — your name, contact, or the reason for calling?";
+                        logMsg('ragina', correction);
+                        raginaSay(correction);
                         setTimeout(listenToRAGina, 800);
                         return;
                     }
-                    // Fall back to AI with memory
-                    document.getElementById('callSubstatus').textContent = 'RAGina is thinking…';
-                    const ans = await askRAGina(text);
-                    if (!raginaCallActive) return;
-                    document.getElementById('callSubstatus').textContent = 'Connected';
-                    logMsg('ragina', ans);
-                    raginaSay(ans);
-                    setTimeout(listenToRAGina, 800);
+                    // unclear — ask AI to handle
+                } else if (stateKey && conversationState < 3) {
+                    // Collecting a specific field
+                    const value = extractField(stateKey, text);
+                    if (value) {
+                        collectedInfo[stateKey] = value;
+                        if (currentLog) currentLog.collected = { ...collectedInfo };
+                        updateLogCollected(currentLog ? currentLog.id : 0, collectedInfo);
+                    }
+                    // Advance to next state
+                    conversationState++;
+                } else {
+                    // stateKey = 'wrap' or state 5 — open conversation
                 }
+
+                // 🤖 Let AI decide the next response (handles transitions, confirmations, follow-ups)
+                document.getElementById('callSubstatus').textContent = 'RAGina is thinking…';
+                const ans = await askRAGinaForCollection(text, stateKey);
+                if (!raginaCallActive) return;
+                document.getElementById('callSubstatus').textContent = 'Connected — Intake Mode';
+                logMsg('ragina', ans);
+                raginaSay(ans);
+                setTimeout(listenToRAGina, 800);
             }
         };
 
@@ -724,7 +824,6 @@ User: ${query}`;
 
         rec.onend = () => {
             raginaRecognition = null;
-            // Restart if we didn't process any final speech (user was silent)
             if (!handled && raginaCallActive && !raginaIsMuted && !isSpeaking) {
                 setTimeout(listenToRAGina, 500);
             }
@@ -735,10 +834,7 @@ User: ${query}`;
             rec.start();
         } catch (e) {
             raginaRecognition = null;
-            console.warn('recognition start failed:', e);
-            if (raginaCallActive && !raginaIsMuted) {
-                setTimeout(listenToRAGina, 600);
-            }
+            if (raginaCallActive && !raginaIsMuted) setTimeout(listenToRAGina, 600);
         }
     }
 
@@ -758,10 +854,23 @@ User: ${query}`;
             window.addHistoryEntry(log.number, log.direction, dur, log.id);
             if (log.messages.length) {
                 document.getElementById('postCallExport').classList.add('active');
+                // Show collected info card instead of summary
+                const card = document.getElementById('collectedInfoCard');
+                if (log.collected && Object.keys(log.collected).length) {
+                    let html = '<i class="fas fa-clipboard-list"></i><b>Collected Info</b><br>';
+                    Object.entries(log.collected).forEach(([k,v]) => {
+                        html += '<span class="label">' + k + ':</span> <span class="value">' + v + '</span><br>';
+                    });
+                    card.innerHTML = html;
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+                // Generate summary in background (for export, not displayed)
                 generateSummary(log);
             }
         }
-        window.showToast('Call with RAGina ended');
+        window.showToast('Intake call ended');
     }
 
     /* ---------- PeerJS ---------- */
@@ -854,10 +963,14 @@ User: ${query}`;
         if (!lastLog) lastLog = getLogs().find(l => l.messages && l.messages.length) || null;
         if (lastLog && lastLog.messages.length) {
             document.getElementById('postCallExport').classList.add('active');
-            if (lastLog.summary) {
-                const el = document.getElementById('callSummary');
-                el.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i><b>AI Recap:</b> ' + lastLog.summary;
-                el.classList.remove('hidden');
+            const card = document.getElementById('collectedInfoCard');
+            if (lastLog.collected && Object.keys(lastLog.collected).length) {
+                let html = '<i class="fas fa-clipboard-list"></i><b>Collected Info</b><br>';
+                Object.entries(lastLog.collected).forEach(([k,v]) => {
+                    html += '<span class="label">' + k + ':</span> <span class="value">' + v + '</span><br>';
+                });
+                card.innerHTML = html;
+                card.classList.remove('hidden');
             }
         }
     })();
@@ -933,7 +1046,8 @@ User: ${query}`;
         getLogs,
         getLastLog: () => lastLog,
         exportLog,
-        logText: buildLogText
+        logText: buildLogText,
+        getSummaryText
     };
 })(window);
 
@@ -948,7 +1062,6 @@ User: ${query}`;
     let dialedNumber = '', toastTimeout = null;
     let openLog = null, openEntry = null;
 
-    /* theme */
     if (localStorage.getItem('premCallTheme') === 'light') { document.body.classList.add('light-mode'); themeIcon.classList.replace('fa-moon','fa-sun'); }
     themeToggle.addEventListener('click', () => {
         document.body.classList.toggle('light-mode');
@@ -964,7 +1077,6 @@ User: ${query}`;
     function showToast(msg) { toast.textContent = msg; toast.classList.add('show'); clearTimeout(toastTimeout); toastTimeout = setTimeout(() => toast.classList.remove('show'), 2200); }
     window.showToast = showToast;
 
-    /* history */
     const getHistory = () => { try { return JSON.parse(localStorage.getItem('premCallHistory')) || []; } catch(e) { return []; } };
     const saveHistory = h => localStorage.setItem('premCallHistory', JSON.stringify(h));
     function addHistoryEntry(number, direction, duration, logId) {
@@ -995,14 +1107,36 @@ User: ${query}`;
         });
     }
 
-    /* ===== CALL DETAILS MODAL ===== */
+    function renderCollectedInfo(log, container) {
+        if (!log.collected || !Object.keys(log.collected).length) return;
+        const div = document.createElement('div');
+        div.className = 'collected';
+        let html = '<i class="fas fa-clipboard-list"></i><strong>Collected Info</strong><br>';
+        Object.entries(log.collected).forEach(([k,v]) => {
+            html += '<strong>' + k + ':</strong> ' + v + '<br>';
+        });
+        div.innerHTML = html;
+        container.appendChild(div);
+    }
+
+    function renderSummary(log, container) {
+        if (!log.summary) return;
+        const div = document.createElement('div');
+        div.className = 'recap';
+        div.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i><strong>AI Recap:</strong> ';
+        const span = document.createElement('span');
+        span.textContent = log.summary;
+        div.appendChild(span);
+        container.appendChild(div);
+    }
+
     function openDetails(entry) {
         openEntry = entry;
         openLog = entry.logId ? (PremCall.getLogs().find(l => l.id === entry.logId) || null) : null;
         $('detailsNumber').textContent = entry.number;
         const st = $('detailsStatus');
         st.className = 'details-status';
-        if (entry.number === RAGINA_NUMBER) { st.textContent = '✅ Always online (AI assistant)'; st.classList.add('online'); }
+        if (entry.number === RAGINA_NUMBER) { st.textContent = '✅ Always online (AI intake agent)'; st.classList.add('online'); }
         else {
             st.textContent = 'Checking status…';
             PremCall.checkStatus(entry.number).then(on => {
@@ -1011,27 +1145,31 @@ User: ${query}`;
             });
         }
         const dirLabel = entry.direction === 'incoming' ? 'Incoming' : entry.direction === 'outgoing' ? 'Outgoing' : 'Missed';
-        const typeLabel = entry.number === RAGINA_NUMBER ? 'RAGina AI Call' : 'Voice Call';
+        const typeLabel = entry.number === RAGINA_NUMBER ? 'RAGina AI Intake' : 'Voice Call';
         $('detailsMeta').innerHTML =
             '<i class="fas fa-arrow-' + (entry.direction === 'incoming' ? 'down' : 'up') + '"></i> ' + dirLabel + ' &nbsp;•&nbsp; ' + typeLabel + '<br>' +
             '<i class="fas fa-calendar"></i> ' + new Date(entry.timestamp).toLocaleString() + ' &nbsp;•&nbsp; <i class="fas fa-stopwatch"></i> ' + entry.duration;
         const tr = $('detailsTranscript');
         tr.innerHTML = '';
-        if (openLog && openLog.messages.length) {
-            if (openLog.summary) {
-                const r = document.createElement('div'); r.className = 'recap';
-                r.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i><b>AI Recap:</b> ';
-                r.appendChild(document.createTextNode(openLog.summary));
-                tr.appendChild(r);
+        if (openLog) {
+            // Collected info (prominent at top)
+            renderCollectedInfo(openLog, tr);
+            // AI Summary (below collected info)
+            renderSummary(openLog, tr);
+            // Full transcript
+            if (openLog.messages.length) {
+                openLog.messages.forEach(m => {
+                    const d = document.createElement('div'); d.className = 'msg';
+                    const w = document.createElement('span'); w.className = 'who ' + m.role; w.textContent = m.role === 'user' ? 'Caller' : (openLog.type === 'ragina' ? 'RAGina' : 'Live');
+                    const t = document.createElement('span'); t.textContent = m.text;
+                    d.appendChild(w); d.appendChild(t); tr.appendChild(d);
+                });
             }
-            openLog.messages.forEach(m => {
-                const d = document.createElement('div'); d.className = 'msg';
-                const w = document.createElement('span'); w.className = 'who ' + m.role; w.textContent = m.role === 'user' ? 'You' : (openLog.type === 'ragina' ? 'RAGina' : 'Live');
-                const t = document.createElement('span'); t.textContent = m.text;
-                d.appendChild(w); d.appendChild(t); tr.appendChild(d);
-            });
+            if (!openLog.messages.length && !(openLog.collected && Object.keys(openLog.collected).length)) {
+                tr.innerHTML = '<div class="no-data">No data recorded for this call.</div>';
+            }
         } else {
-            tr.innerHTML = '<div class="no-data">No transcript recorded for this call.</div>';
+            tr.innerHTML = '<div class="no-data">No data recorded for this call.</div>';
         }
         detailsModal.classList.add('active');
     }
@@ -1042,15 +1180,20 @@ User: ${query}`;
     $('detailsMsgBtn').addEventListener('click', () => { if (openEntry) window.location.href = 'messages.html?to=' + openEntry.number; });
     $('detailsTxtBtn').addEventListener('click', () => PremCall.exportLog(openLog, 'txt'));
     $('detailsJsonBtn').addEventListener('click', () => PremCall.exportLog(openLog, 'json'));
+    $('detailsCopySummaryBtn').addEventListener('click', async () => {
+        if (!openLog) { showToast('No summary to copy.'); return; }
+        const text = PremCall.getSummaryText(openLog);
+        try { await navigator.clipboard.writeText(text); showToast('Summary + collected info copied!'); }
+        catch(e) { showToast('Copy failed — try TXT export'); }
+    });
     $('detailsShareBtn').addEventListener('click', async () => {
-        if (!openLog) { showToast('No transcript to share.'); return; }
+        if (!openLog) { showToast('No data to share.'); return; }
         const text = PremCall.logText(openLog);
-        if (navigator.share) { try { await navigator.share({ title: 'PremCall Transcript', text }); return; } catch(e) { if (e.name === 'AbortError') return; } }
+        if (navigator.share) { try { await navigator.share({ title: 'PremCall Intake Report', text }); return; } catch(e) { if (e.name === 'AbortError') return; } }
         try { await navigator.clipboard.writeText(text); showToast('Copied — paste anywhere!'); }
         catch(e) { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); }
     });
 
-    /* history delegation */
     historyList.addEventListener('click', e => {
         const c = e.target.closest('.hist-call'), m = e.target.closest('.hist-msg'), d = e.target.closest('.hist-delete'), num = e.target.closest('.num');
         if (c) { dialedNumber = c.dataset.num; updateDisplay(); PremCall.call(dialedNumber); return; }
@@ -1064,7 +1207,6 @@ User: ${query}`;
     });
     $('clearHistoryBtn').addEventListener('click', () => { saveHistory([]); renderHistory(); showToast('History cleared'); });
 
-    /* dialer */
     function updateDisplay() {
         if (dialedNumber) { dialText.innerHTML = dialedNumber + '<span class="cursor"></span>'; backspaceBtn.style.display = 'block'; }
         else { dialText.innerHTML = '<span class="hint"><i class="fas fa-phone"></i> Enter a 10-digit number</span>'; backspaceBtn.style.display = 'none'; }
@@ -1091,7 +1233,6 @@ User: ${query}`;
         else if (e.key === 'Enter' && /^\d{10}$/.test(dialedNumber)) PremCall.call(dialedNumber);
     });
 
-    /* call screen */
     $('hangupCallBtn').addEventListener('click', () => { PremCall.hangup(); PremCall.vibrate(15); });
     $('muteBtn').addEventListener('click', e => {
         const m = PremCall.mute();
@@ -1107,7 +1248,6 @@ User: ${query}`;
     $('answerBtn').addEventListener('click', () => PremCall.answer());
     $('rejectBtn').addEventListener('click', () => { PremCall.reject(); showToast('Call declined'); });
 
-    /* status check */
     $('checkStatusBtn').addEventListener('click', async () => {
         const num = dialedNumber || prompt('Enter 10-digit number to check:');
         if (!num || !/^\d{10}$/.test(num)) { $('statusResult').textContent = 'Invalid number'; return; }
@@ -1116,19 +1256,25 @@ User: ${query}`;
         $('statusResult').textContent = online ? '✅ Online' : '❌ Offline';
     });
 
-    /* post-call export */
+    /* Post-call export buttons */
     $('postSaveTxtBtn').addEventListener('click', () => PremCall.exportLog(PremCall.getLastLog(), 'txt'));
     $('postSaveJsonBtn').addEventListener('click', () => PremCall.exportLog(PremCall.getLastLog(), 'json'));
+    $('postCopySummaryBtn').addEventListener('click', async () => {
+        const log = PremCall.getLastLog();
+        if (!log) { showToast('No summary to copy.'); return; }
+        const text = PremCall.getSummaryText(log);
+        try { await navigator.clipboard.writeText(text); showToast('Summary + collected info copied!'); }
+        catch(e) { showToast('Copy failed'); }
+    });
     $('shareBtn').addEventListener('click', async () => {
         const log = PremCall.getLastLog();
-        if (!log) { showToast('No conversation to share.'); return; }
+        if (!log) { showToast('No data to share.'); return; }
         const text = PremCall.logText(log);
-        if (navigator.share) { try { await navigator.share({ title: 'PremCall Transcript', text }); return; } catch(e) { if (e.name === 'AbortError') return; } }
+        if (navigator.share) { try { await navigator.share({ title: 'PremCall Intake Report', text }); return; } catch(e) { if (e.name === 'AbortError') return; } }
         try { await navigator.clipboard.writeText(text); showToast('Copied — paste anywhere!'); }
         catch(e) { window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank'); }
     });
 
-    /* account modal */
     $('myNumberDisplay').addEventListener('click', () => {
         const num = localStorage.getItem('premCallNumber');
         if (num && localStorage.getItem('premCallVerified') === 'true') {
@@ -1140,7 +1286,6 @@ User: ${query}`;
     });
     $('closeAccountModalBtn').addEventListener('click', () => $('accountModal').classList.remove('active'));
 
-    /* init */
     const stored = localStorage.getItem('premCallNumber');
     if (stored && localStorage.getItem('premCallVerified') === 'true') {
         $('myNumberDisplay').textContent = stored;
@@ -1154,7 +1299,6 @@ User: ${query}`;
     renderHistory(); updateDisplay();
 })();
 
-/* Service Worker Registration */
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js')
