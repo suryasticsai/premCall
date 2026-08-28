@@ -128,6 +128,26 @@
             font-size: .72rem;
             color: var(--text-dim);
         }
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: .2rem;
+            transition: color .2s, transform .2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+        }
+        .icon-btn:hover {
+            color: var(--text);
+            transform: scale(1.1);
+            background: var(--surface-2);
+        }
         .theme-toggle {
             background: none;
             border: none;
@@ -775,7 +795,7 @@
             box-shadow: 0 0 4px var(--stop);
         }
 
-        /* === TOP-RIGHT CONTROLS (screen-share + record) === */
+        /* === TOP-RIGHT CONTROLS (screen-share + record + add participant) === */
         #callScreen .top-right-controls {
             position: absolute;
             top: 12px;
@@ -816,8 +836,16 @@
             background: rgba(79, 140, 247, .3);
             color: var(--signal);
         }
+        #callScreen .top-right-controls .plus-btn {
+            background: rgba(47, 217, 146, .2);
+            color: var(--go);
+            font-size: 1rem;
+        }
+        #callScreen .top-right-controls .plus-btn:hover {
+            background: rgba(47, 217, 146, .4);
+        }
 
-        /* DTLS badge moved to top-left alongside network */
+        /* DTLS badge */
         #callScreen .dtls-badge {
             position: absolute;
             top: 50px;
@@ -836,7 +864,7 @@
             margin-right: .2rem;
         }
 
-        /* Recording indicator (top-left, below net) */
+        /* Recording indicator */
         .rec-indicator {
             position: absolute;
             top: 50px;
@@ -944,7 +972,7 @@
             box-shadow: 0 8px 30px -6px rgba(255, 84, 112, .55);
         }
 
-        /* Transcript panel (minimal, no toggle) */
+        /* Transcript panel */
         #callTranscript {
             width: 100%;
             max-width: 380px;
@@ -989,7 +1017,7 @@
             pointer-events: none;
         }
 
-        /* ===== CHAT PANEL (fixed z-index & positioning) ===== */
+        /* ===== CHAT PANEL ===== */
         #chatPanel {
             position: absolute;
             top: 50px;
@@ -1161,7 +1189,7 @@
             cursor: pointer;
         }
 
-        /* Video mode overrides */
+        /* Video mode */
         #callScreen.video-mode .voice-ui {
             display: none;
         }
@@ -1389,10 +1417,18 @@
             font-size: .6rem;
             background: var(--surface-2);
             color: var(--text-dim);
+            transition: background .1s;
         }
         .contact-actions button:hover {
             background: var(--surface-3);
             color: var(--text);
+        }
+        .contact-actions .add-btn {
+            background: rgba(47, 217, 146, .15);
+            color: var(--go);
+        }
+        .contact-actions .add-btn:hover {
+            background: rgba(47, 217, 146, .3);
         }
         .add-contact-row {
             display: flex;
@@ -1668,6 +1704,8 @@
                     <span>PremCall</span>
                 </div>
                 <div class="header-right">
+                    <!-- Plus icon to add participant / open contacts -->
+                    <button class="icon-btn" id="addParticipantBtn" title="Add to call"><i class="fas fa-plus"></i></button>
                     <button class="theme-toggle" id="themeToggle" title="Toggle Theme"><i class="fas fa-moon"></i></button>
                     <span id="myNumberDisplay" style="cursor:pointer;">—</span>
                     <span class="status-dot offline" id="headerStatusDot"></span>
@@ -1764,26 +1802,27 @@
             <div class="call-timer" id="callTimer">00:00</div>
         </div>
 
-        <!-- Network quality badge (top-left) -->
+        <!-- Network quality badge -->
         <div class="net-badge good" id="netBadge">
             <div class="dot"></div><span id="netText">Excellent</span>
         </div>
 
-        <!-- DTLS badge (below net) -->
+        <!-- DTLS badge -->
         <div class="dtls-badge" id="dtlsBadge"><i class="fas fa-lock"></i> E2E Encrypted</div>
 
-        <!-- Recording indicator (below net) -->
+        <!-- Recording indicator -->
         <div class="rec-indicator" id="recIndicator">
             <div class="rec-dot"></div><span>REC</span><span id="recTimer">00:00</span>
         </div>
 
-        <!-- TOP-RIGHT CONTROLS: Screen Share + Record -->
+        <!-- TOP-RIGHT CONTROLS: Screen Share + Record + Add participant -->
         <div class="top-right-controls" id="topRightControls">
             <button id="screenShareBtn" title="Screen share"><i class="fas fa-desktop"></i></button>
             <button id="recordBtn" title="Record call"><i class="fas fa-circle"></i></button>
+            <button id="callAddParticipantBtn" class="plus-btn" title="Add participant"><i class="fas fa-plus"></i></button>
         </div>
 
-        <!-- Chat panel (z-index 35, above controls) -->
+        <!-- Chat panel -->
         <div id="chatPanel">
             <div class="chat-header">
                 <span><i class="fas fa-comment"></i> In-Call Chat</span>
@@ -1805,7 +1844,7 @@
             <button id="resumeBtn"><i class="fas fa-play"></i> Resume</button>
         </div>
 
-        <!-- Controls overlay (bottom) -->
+        <!-- Controls overlay -->
         <div class="controls-overlay" id="controlsOverlay">
             <div class="call-actions">
                 <div class="action-item"><button id="muteBtn"><i class="fas fa-microphone"></i></button><span class="label">Mute</span></div>
@@ -1814,7 +1853,7 @@
                 <div class="action-item"><button id="speakerBtn"><i class="fas fa-volume-high"></i></button><span class="label">Speaker</span></div>
                 <div class="action-item"><button id="chatToggleBtn"><i class="fas fa-comment"></i></button><span class="label">Chat</span></div>
             </div>
-            <!-- Transcript panel (always visible, no toggle) -->
+            <!-- Transcript panel -->
             <div id="callTranscript"><div class="empty-hint">Live transcript will appear here…</div></div>
         </div>
     </div>
@@ -1952,6 +1991,8 @@
             let statsInterval = null;
             let reconnectAttempts = 0;
             const MAX_RECONNECT = 5;
+            // For group call stub: we store a list of participant numbers
+            let participants = [];
 
             /* ---------- settings ---------- */
             function loadSettings() {
@@ -1990,12 +2031,9 @@
                 return audioCtx;
             }
 
-            /* no beep — smoothBeep removed */
-
             function startRingtone() {
                 stopRingtone();
                 if (!audioUnlocked) return;
-                // use a gentle vibrate pattern instead of beep
                 vibrate([200, 300, 200]);
                 ringtoneTimer = setInterval(() => vibrate([200, 300, 200]), 1800);
             }
@@ -2019,7 +2057,7 @@
                     if (el) el.textContent = mm + ':' + ss;
                     const recEl = document.getElementById('recTimer');
                     if (recEl && mediaRecorder && mediaRecorder.state === 'recording') recEl.textContent = mm + ':' +
-                    ss;
+                        ss;
                 }, 1000);
             }
 
@@ -2044,7 +2082,7 @@
             }
 
             function persistActiveLog() { try { localStorage.setItem('premCallActiveLog', JSON.stringify(currentLog)); } catch (
-                e) {} }
+                    e) {} }
 
             function clearActiveLog() { try { localStorage.removeItem('premCallActiveLog'); } catch (e) {} }
 
@@ -2673,6 +2711,10 @@
             function wireCallEvents(call, withVideo) {
                 activeCall = call;
                 inCall = true;
+                // Add to participants list (if not already)
+                if (call.peer && !participants.includes(call.peer)) {
+                    participants.push(call.peer);
+                }
                 call.on('stream', stream => {
                     const ra = document.getElementById('remoteAudio');
                     const rv = document.getElementById('remoteVideo');
@@ -2713,6 +2755,7 @@
                 if (!inCall) return;
                 activeCall = null;
                 inCall = false;
+                participants = [];
                 stopLiveTranscription();
                 stopStatsMonitoring();
                 if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
@@ -2857,6 +2900,28 @@
                 saveContacts(getContacts().filter(x => x.number !== number));
             }
 
+            /* ---------- Add participant (group call stub) ---------- */
+            function addParticipant(number) {
+                if (!inCall || !activeCall) {
+                    window.showToast('No active call to add to.');
+                    return;
+                }
+                if (participants.includes(number)) {
+                    window.showToast('Already in call.');
+                    return;
+                }
+                // In a real group call, you would need a server-side mixer.
+                // For this demo, we simulate by attempting to call the new number
+                // and adding its stream to the existing call (not possible with PeerJS).
+                window.showToast('Group calling is a premium feature. (stub)');
+                // For demonstration, we add to participants list and update UI
+                participants.push(number);
+                // Update the call display to show participant count
+                document.getElementById('callSubstatus').textContent = 'Participants: ' + participants.length;
+                // Also add a fake transcript message
+                logMsg('ragina', '👤 ' + resolveContactName(number) + ' joined the call.');
+            }
+
             /* ---------- public API ---------- */
             global.PremCall = {
                 RAGINA_NUMBER,
@@ -2971,7 +3036,9 @@
                     if (s.videoDefault !== undefined) videoDefault = s.videoDefault;
                     if (s.audioUnlock !== undefined) audioUnlocked = s.audioUnlock;
                     saveSettings();
-                }
+                },
+                addParticipant: addParticipant,
+                getParticipants: () => participants
             };
         })(window);
 
@@ -3239,7 +3306,6 @@
                 if (dialedNumber.length < 15) { dialedNumber += d;
                     updateDisplay(); }
                 PremCall.vibrate(10);
-                // no beep
             }
             dialPad.addEventListener('click', e => {
                 const key = e.target.closest('.key');
@@ -3287,7 +3353,6 @@
                 PremCall.toggleVideo().then(v => { showToast(v ? 'Video on' : 'Video off'); });
             });
 
-            /* screen share and record are now in top-right controls */
             $('screenShareBtn').addEventListener('click', () => {
                 PremCall.startScreenShare();
             });
@@ -3295,6 +3360,22 @@
             $('recordBtn').addEventListener('click', () => {
                 PremCall.toggleRecording();
             });
+
+            /* Add participant buttons */
+            const addParticipantHandler = () => {
+                // If in call, open contacts modal with "add" action
+                if (PremCall.isInCall()) {
+                    // Open contacts modal and set flag
+                    openContactsModal(true);
+                } else {
+                    // If not in call, just open contacts modal normally
+                    openContactsModal(false);
+                }
+            };
+            // Header plus button
+            $('addParticipantBtn').addEventListener('click', addParticipantHandler);
+            // Call screen plus button
+            $('callAddParticipantBtn').addEventListener('click', addParticipantHandler);
 
             $('chatToggleBtn').addEventListener('click', () => {
                 $('chatPanel').classList.toggle('active');
@@ -3375,12 +3456,15 @@
             });
             $('closeAccountModalBtn').addEventListener('click', () => $('accountModal').classList.remove('active'));
 
-            /* ===== CONTACTS MODAL ===== */
-            function openContactsModal() {
+            /* ===== CONTACTS MODAL (with "Add" mode) ===== */
+            let contactsAddMode = false;
+
+            function openContactsModal(addMode) {
+                contactsAddMode = addMode || false;
                 renderContacts();
                 contactsModal.classList.add('active');
             }
-            $('contactsBtn').addEventListener('click', openContactsModal);
+            $('contactsBtn').addEventListener('click', () => openContactsModal(false));
             $('contactsClose').addEventListener('click', () => contactsModal.classList.remove('active'));
             contactsModal.addEventListener('click', e => { if (e.target === contactsModal) contactsModal.classList.remove(
                     'active'); });
@@ -3389,7 +3473,7 @@
                 if (!/^\d{10}$/.test(dialedNumber)) { showToast('Enter a 10-digit number first'); return; }
                 $('contactNumberInput').value = dialedNumber;
                 $('contactNameInput').value = '';
-                openContactsModal();
+                openContactsModal(false);
                 $('contactNameInput').focus();
             });
 
@@ -3419,17 +3503,25 @@
                 contacts.forEach(c => {
                     const div = document.createElement('div');
                     div.className = 'contact-item';
+                    let actions = '';
+                    if (contactsAddMode && PremCall.isInCall()) {
+                        actions =
+                            '<button class="add-btn" data-num="' + c.number +
+                            '" data-add="1" title="Add to call"><i class="fas fa-plus"></i></button>';
+                    } else {
+                        actions =
+                            '<button title="Call" data-num="' + c.number +
+                            '"><i class="fas fa-phone"></i></button>' +
+                            '<button title="Video" data-num="' + c.number + '" data-video="1"><i class="fas fa-video"></i></button>';
+                    }
+                    actions +=
+                        '<button title="Delete" data-num="' + c.number +
+                        '" data-del="1"><i class="fas fa-trash"></i></button>';
                     div.innerHTML = '<div class="contact-avatar">' + c.name.slice(0, 2).toUpperCase() +
                         '</div>' +
                         '<div class="contact-info"><div class="contact-name">' + c.name +
                         '</div><div class="contact-number">' + c.number + '</div></div>' +
-                        '<div class="contact-actions">' +
-                        '<button title="Call" data-num="' + c.number +
-                        '"><i class="fas fa-phone"></i></button>' +
-                        '<button title="Video" data-num="' + c.number + '" data-video="1"><i class="fas fa-video"></i></button>' +
-                        '<button title="Delete" data-num="' + c.number +
-                        '" data-del="1"><i class="fas fa-trash"></i></button>' +
-                        '</div>';
+                        '<div class="contact-actions">' + actions + '</div>';
                     list.appendChild(div);
                 });
             }
@@ -3439,14 +3531,24 @@
                 const num = btn.dataset.num;
                 if (btn.dataset.del) { PremCall.deleteContact(num);
                     renderContacts($('contactsSearch').value.trim().toLowerCase());
-                    showToast('Contact deleted'); } else if (btn.dataset.video) { contactsModal.classList.remove(
-                        'active');
+                    showToast('Contact deleted'); return; }
+                if (btn.dataset.add) {
+                    // Add to call
+                    contactsModal.classList.remove('active');
+                    PremCall.addParticipant(num);
+                    return;
+                }
+                if (btn.dataset.video) {
+                    contactsModal.classList.remove('active');
                     dialedNumber = num;
                     updateDisplay();
-                    PremCall.call(num, true); } else { contactsModal.classList.remove('active');
+                    PremCall.call(num, true);
+                } else {
+                    contactsModal.classList.remove('active');
                     dialedNumber = num;
                     updateDisplay();
-                    PremCall.call(num); }
+                    PremCall.call(num);
+                }
             });
 
             /* ===== QR MODAL ===== */
@@ -3510,10 +3612,6 @@
                 $('myNumberDisplay').textContent = 'Not registered';
                 PremCall.init(RAGINA_NUMBER);
             }
-
-            const s = PremCall.getSettings();
-            // Transcript toggle removed from call screen, but we keep the setting.
-            // No UI toggle for transcript/summary on call screen anymore.
 
             renderHistory();
             updateDisplay();
