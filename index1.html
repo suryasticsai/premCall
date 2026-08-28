@@ -18,6 +18,9 @@
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js">
     </script>
+    <!-- QR Scanner library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
+    </script>
     <style>
         :root {
             --bg-0: #05070d;
@@ -140,8 +143,8 @@
             align-items: center;
             justify-content: center;
             border-radius: 50%;
-            width: 28px;
-            height: 28px;
+            width: 30px;
+            height: 30px;
         }
         .icon-btn:hover {
             color: var(--text);
@@ -357,6 +360,15 @@
         .btn.share {
             border-color: var(--signal-soft);
             color: var(--signal);
+        }
+        .btn-primary {
+            background: var(--go);
+            border-color: var(--go);
+            color: #04140c;
+        }
+        .btn-primary:hover {
+            background: #17a06a;
+            border-color: #17a06a;
         }
         .status-badge {
             font-size: .75rem;
@@ -628,7 +640,6 @@
             display: flex;
         }
 
-        /* Video layers */
         #callScreen .video-bg {
             position: absolute;
             inset: 0;
@@ -663,7 +674,6 @@
             pointer-events: none;
         }
 
-        /* Voice UI */
         #callScreen .voice-ui {
             position: relative;
             z-index: 5;
@@ -752,7 +762,6 @@
             margin: 1rem 0;
         }
 
-        /* Network quality badge */
         #callScreen .net-badge {
             position: absolute;
             top: 12px;
@@ -795,7 +804,6 @@
             box-shadow: 0 0 4px var(--stop);
         }
 
-        /* === TOP-RIGHT CONTROLS (screen-share + record + add participant) === */
         #callScreen .top-right-controls {
             position: absolute;
             top: 12px;
@@ -806,12 +814,12 @@
             align-items: center;
         }
         #callScreen .top-right-controls button {
-            width: 32px;
-            height: 32px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             border: none;
             cursor: pointer;
-            font-size: .8rem;
+            font-size: .85rem;
             background: rgba(0, 0, 0, .5);
             backdrop-filter: blur(4px);
             color: #fff;
@@ -833,8 +841,9 @@
             animation: pulse-rec 1.5s infinite;
         }
         #callScreen .top-right-controls button.screen-active {
-            background: rgba(79, 140, 247, .3);
+            background: rgba(79, 140, 247, .4);
             color: var(--signal);
+            box-shadow: 0 0 12px rgba(79, 140, 247, .3);
         }
         #callScreen .top-right-controls .plus-btn {
             background: rgba(47, 217, 146, .2);
@@ -845,7 +854,6 @@
             background: rgba(47, 217, 146, .4);
         }
 
-        /* DTLS badge */
         #callScreen .dtls-badge {
             position: absolute;
             top: 50px;
@@ -864,7 +872,6 @@
             margin-right: .2rem;
         }
 
-        /* Recording indicator */
         .rec-indicator {
             position: absolute;
             top: 50px;
@@ -901,7 +908,6 @@
             }
         }
 
-        /* Controls overlay */
         #callScreen .controls-overlay {
             position: absolute;
             bottom: 0;
@@ -972,7 +978,6 @@
             box-shadow: 0 8px 30px -6px rgba(255, 84, 112, .55);
         }
 
-        /* Transcript panel */
         #callTranscript {
             width: 100%;
             max-width: 380px;
@@ -1155,7 +1160,6 @@
             background: rgba(255, 255, 255, .12);
         }
 
-        /* Hold overlay */
         #holdOverlay {
             display: none;
             position: absolute;
@@ -1189,7 +1193,6 @@
             cursor: pointer;
         }
 
-        /* Video mode */
         #callScreen.video-mode .voice-ui {
             display: none;
         }
@@ -1434,9 +1437,11 @@
             display: flex;
             gap: .4rem;
             margin-bottom: .6rem;
+            flex-wrap: wrap;
         }
         .add-contact-row input {
             flex: 1;
+            min-width: 80px;
             padding: .4rem .7rem;
             border-radius: 40px;
             border: 1px solid var(--line);
@@ -1448,8 +1453,8 @@
         .add-contact-row input::placeholder {
             color: var(--text-faint);
         }
-        .add-contact-row button {
-            padding: .4rem 1rem;
+        .add-contact-row .btn-save {
+            padding: .4rem 1.2rem;
             border-radius: 40px;
             border: none;
             background: var(--go);
@@ -1457,6 +1462,39 @@
             font-weight: 600;
             font-size: .75rem;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+            white-space: nowrap;
+        }
+        .add-contact-row .btn-save:hover {
+            background: #17a06a;
+        }
+
+        .qr-scanner-container {
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            background: #000;
+        }
+        .qr-scanner-container video {
+            width: 100%;
+            display: block;
+        }
+        .qr-scanner-container .scanner-placeholder {
+            padding: 2rem 1rem;
+            text-align: center;
+            color: var(--text-faint);
+            font-size: .85rem;
+        }
+        .qr-scanner-container .scanner-placeholder i {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: .5rem;
+            color: var(--signal);
         }
 
         #qrContainer {
@@ -1704,7 +1742,6 @@
                     <span>PremCall</span>
                 </div>
                 <div class="header-right">
-                    <!-- Plus icon to add participant / open contacts -->
                     <button class="icon-btn" id="addParticipantBtn" title="Add to call"><i class="fas fa-plus"></i></button>
                     <button class="theme-toggle" id="themeToggle" title="Toggle Theme"><i class="fas fa-moon"></i></button>
                     <span id="myNumberDisplay" style="cursor:pointer;">—</span>
@@ -1715,6 +1752,7 @@
             <div class="top-actions">
                 <button class="btn" id="contactsBtn"><i class="fas fa-address-book"></i> Contacts</button>
                 <button class="btn" id="qrBtn"><i class="fas fa-qrcode"></i> My QR</button>
+                <button class="btn" id="qrScannerBtn"><i class="fas fa-camera"></i> Scan QR</button>
                 <button class="btn" id="settingsBtn"><i class="fas fa-gear"></i> Settings</button>
                 <a href="settings.html" class="btn" id="registerLink"><i class="fas fa-shield-halved"></i> Register</a>
             </div>
@@ -1802,27 +1840,22 @@
             <div class="call-timer" id="callTimer">00:00</div>
         </div>
 
-        <!-- Network quality badge -->
         <div class="net-badge good" id="netBadge">
             <div class="dot"></div><span id="netText">Excellent</span>
         </div>
 
-        <!-- DTLS badge -->
         <div class="dtls-badge" id="dtlsBadge"><i class="fas fa-lock"></i> E2E Encrypted</div>
 
-        <!-- Recording indicator -->
         <div class="rec-indicator" id="recIndicator">
             <div class="rec-dot"></div><span>REC</span><span id="recTimer">00:00</span>
         </div>
 
-        <!-- TOP-RIGHT CONTROLS: Screen Share + Record + Add participant -->
         <div class="top-right-controls" id="topRightControls">
             <button id="screenShareBtn" title="Screen share"><i class="fas fa-desktop"></i></button>
             <button id="recordBtn" title="Record call"><i class="fas fa-circle"></i></button>
             <button id="callAddParticipantBtn" class="plus-btn" title="Add participant"><i class="fas fa-plus"></i></button>
         </div>
 
-        <!-- Chat panel -->
         <div id="chatPanel">
             <div class="chat-header">
                 <span><i class="fas fa-comment"></i> In-Call Chat</span>
@@ -1837,14 +1870,12 @@
             </div>
         </div>
 
-        <!-- Hold overlay -->
         <div id="holdOverlay">
             <div class="hold-text"><i class="fas fa-pause"></i> On Hold</div>
             <div class="hold-number" id="holdNumber"></div>
             <button id="resumeBtn"><i class="fas fa-play"></i> Resume</button>
         </div>
 
-        <!-- Controls overlay -->
         <div class="controls-overlay" id="controlsOverlay">
             <div class="call-actions">
                 <div class="action-item"><button id="muteBtn"><i class="fas fa-microphone"></i></button><span class="label">Mute</span></div>
@@ -1853,7 +1884,6 @@
                 <div class="action-item"><button id="speakerBtn"><i class="fas fa-volume-high"></i></button><span class="label">Speaker</span></div>
                 <div class="action-item"><button id="chatToggleBtn"><i class="fas fa-comment"></i></button><span class="label">Chat</span></div>
             </div>
-            <!-- Transcript panel -->
             <div id="callTranscript"><div class="empty-hint">Live transcript will appear here…</div></div>
         </div>
     </div>
@@ -1882,7 +1912,7 @@
             <div class="add-contact-row">
                 <input type="text" id="contactNameInput" placeholder="Name" />
                 <input type="text" id="contactNumberInput" placeholder="10-digit number" />
-                <button id="saveContactBtn">Add</button>
+                <button class="btn-save" id="saveContactBtn"><i class="fas fa-plus"></i> Add</button>
             </div>
             <input type="text" class="contacts-search" id="contactsSearch" placeholder="Search contacts…" />
             <div class="contacts-list" id="contactsList"></div>
@@ -1894,6 +1924,25 @@
             <div class="modal-header"><span><i class="fas fa-qrcode"></i> My Contact QR</span><button class="modal-close" id="qrClose"><i class="fas fa-xmark"></i></button></div>
             <div id="qrContainer"></div>
             <div class="qr-hint">Scan to add my PremCall contact</div>
+        </div>
+    </div>
+
+    <!-- QR Scanner Modal -->
+    <div class="modal-overlay" id="qrScannerModal">
+        <div class="modal-card" style="max-width:360px;">
+            <div class="modal-header"><span><i class="fas fa-camera"></i> Scan QR</span><button class="modal-close" id="qrScannerClose"><i class="fas fa-xmark"></i></button></div>
+            <div style="font-size:.7rem;color:var(--text-dim);margin-bottom:.6rem;text-align:center;">Point your camera at a PremCall QR code to add the contact</div>
+            <div id="qrScannerContainer" class="qr-scanner-container">
+                <div class="scanner-placeholder" id="scannerPlaceholder">
+                    <i class="fas fa-qrcode"></i>
+                    <span>Camera not started</span>
+                </div>
+            </div>
+            <div style="display:flex;gap:.4rem;margin-top:.6rem;justify-content:center;">
+                <button id="startScannerBtn" class="btn btn-primary"><i class="fas fa-play"></i> Start</button>
+                <button id="stopScannerBtn" class="btn"><i class="fas fa-stop"></i> Stop</button>
+            </div>
+            <div id="scannedResult" style="margin-top:.5rem;font-size:.8rem;color:var(--text-dim);text-align:center;"></div>
         </div>
     </div>
 
@@ -1991,7 +2040,6 @@
             let statsInterval = null;
             let reconnectAttempts = 0;
             const MAX_RECONNECT = 5;
-            // For group call stub: we store a list of participant numbers
             let participants = [];
 
             /* ---------- settings ---------- */
@@ -2020,7 +2068,6 @@
                 window.speechSynthesis.onvoiceschanged = () => { ttsVoices = window.speechSynthesis.getVoices(); };
             }
 
-            /* ---------- audio (no beep) ---------- */
             let audioCtx = null;
 
             function getAudioCtx() {
@@ -2045,7 +2092,6 @@
 
             function vibrate(p) { if (navigator.vibrate) try { navigator.vibrate(p); } catch (e) {} }
 
-            /* ---------- timer ---------- */
             function startTimer() {
                 stopTimer();
                 timerSeconds = 0;
@@ -2070,7 +2116,6 @@
                 return out;
             }
 
-            /* ---------- call logs ---------- */
             function getLogs() { try { return JSON.parse(localStorage.getItem('premCallLogs')) || []; } catch (e) { return []; } }
 
             function saveLogs(l) { try { localStorage.setItem('premCallLogs', JSON.stringify(l)); } catch (e) {} }
@@ -2134,7 +2179,6 @@
                 c.scrollTop = c.scrollHeight;
             }
 
-            /* ---------- TTS ---------- */
             function unlockSpeech() {
                 if (!window.speechSynthesis || speechUnlocked) return;
                 const p = new SpeechSynthesisUtterance(' ');
@@ -2174,7 +2218,6 @@
             function raginaSay(text) { if (window.speechSynthesis) isSpeaking = true;
                 speakText(text); }
 
-            /* ---------- AI ---------- */
             async function askRAGina(query) {
                 try {
                     const resp = await fetch(API_URL, {
@@ -2212,7 +2255,6 @@
                 } catch (e) {}
             }
 
-            /* ---------- export ---------- */
             function roleLabel(log, role) { return role === 'user' ? 'You' : (log.type === 'ragina' ? 'RAGina' : 'Live'); }
 
             function buildLogText(log) {
@@ -2251,7 +2293,6 @@
                 window.showToast('Saved ' + format.toUpperCase());
             }
 
-            /* ---------- UI helpers ---------- */
             function dimMain(on) {
                 ['dialerSection', 'historySection', 'mainHeader', 'registerLink'].forEach(id => {
                     const el = document.getElementById(id);
@@ -2301,12 +2342,31 @@
             }
 
             async function startScreenShare() {
-                if (!inCall || !activeCall) return;
+                if (!inCall || !activeCall) {
+                    window.showToast('No active call to share screen.');
+                    return;
+                }
+                // Check if getDisplayMedia is supported
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                    window.showToast('Screen sharing not supported in this browser.');
+                    return;
+                }
                 try {
-                    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+                    // Request screen share with audio
+                    screenStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: { cursor: 'always' },
+                        audio: false
+                    });
                     const vTrack = screenStream.getVideoTracks()[0];
-                    if (!vTrack) { window.showToast('Screen share cancelled'); return; }
-                    vTrack.onended = () => { stopScreenShare(); };
+                    if (!vTrack) {
+                        window.showToast('Screen share cancelled');
+                        return;
+                    }
+                    // When user stops sharing via browser UI
+                    vTrack.onended = () => {
+                        stopScreenShare();
+                        window.showToast('Screen share stopped');
+                    };
                     const senders = activeCall.peerConnection.getSenders();
                     const videoSender = senders.find(s => s.track && s.track.kind === 'video');
                     if (videoSender) {
@@ -2317,9 +2377,16 @@
                     screenSharing = true;
                     updateVideoUI(true);
                     document.getElementById('screenShareBtn').classList.add('screen-active');
-                    window.showToast('Screen sharing');
+                    window.showToast('Screen sharing started');
                 } catch (e) {
-                    window.showToast('Screen share denied');
+                    if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+                        window.showToast('Screen share permission denied');
+                    } else if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') {
+                        window.showToast('No screen found to share');
+                    } else {
+                        window.showToast('Screen share: ' + (e.message || 'unknown error'));
+                    }
+                    console.warn('Screen share error:', e);
                 }
             }
 
@@ -2329,6 +2396,7 @@
                     screenStream = null; }
                 screenSharing = false;
                 document.getElementById('screenShareBtn').classList.remove('screen-active');
+                // Restore camera if video was enabled before
                 if (videoEnabled && inCall && activeCall) {
                     try {
                         const stream = await getLocalStream(true);
@@ -2345,6 +2413,7 @@
                     if (videoSender) { try { await videoSender.replaceTrack(null); } catch (e) {} }
                     updateVideoUI(false);
                 }
+                window.showToast('Screen share stopped');
             }
 
             function updateVideoUI(enabled) {
@@ -2500,7 +2569,7 @@
                 }
             }
 
-            /* ---------- DATA CHANNEL (Chat + Files) ---------- */
+            /* ---------- DATA CHANNEL ---------- */
             function setupDataChannel(conn) {
                 dataConn = conn;
                 conn.on('data', data => {
@@ -2711,7 +2780,6 @@
             function wireCallEvents(call, withVideo) {
                 activeCall = call;
                 inCall = true;
-                // Add to participants list (if not already)
                 if (call.peer && !participants.includes(call.peer)) {
                     participants.push(call.peer);
                 }
@@ -2850,7 +2918,7 @@
                 });
             }
 
-            /* ---------- recover interrupted log ---------- */
+            /* ---------- recover ---------- */
             (function recover() {
                 try {
                     const raw = localStorage.getItem('premCallActiveLog');
@@ -2900,7 +2968,7 @@
                 saveContacts(getContacts().filter(x => x.number !== number));
             }
 
-            /* ---------- Add participant (group call stub) ---------- */
+            /* ---------- Add participant ---------- */
             function addParticipant(number) {
                 if (!inCall || !activeCall) {
                     window.showToast('No active call to add to.');
@@ -2910,16 +2978,124 @@
                     window.showToast('Already in call.');
                     return;
                 }
-                // In a real group call, you would need a server-side mixer.
-                // For this demo, we simulate by attempting to call the new number
-                // and adding its stream to the existing call (not possible with PeerJS).
+                // Stub: in a real implementation, this would initiate a new peer connection
+                // and merge streams via a server-side mixer.
                 window.showToast('Group calling is a premium feature. (stub)');
-                // For demonstration, we add to participants list and update UI
                 participants.push(number);
-                // Update the call display to show participant count
                 document.getElementById('callSubstatus').textContent = 'Participants: ' + participants.length;
-                // Also add a fake transcript message
                 logMsg('ragina', '👤 ' + resolveContactName(number) + ' joined the call.');
+            }
+
+            /* ---------- QR Scanner integration ---------- */
+            let qrScannerInstance = null;
+            let scannerActive = false;
+
+            function startQRScanner(containerId) {
+                if (typeof Html5Qrcode === 'undefined') {
+                    window.showToast('QR Scanner library not loaded.');
+                    return;
+                }
+                if (scannerActive) {
+                    window.showToast('Scanner already running.');
+                    return;
+                }
+                const container = document.getElementById(containerId);
+                if (!container) return;
+
+                // Clear previous content and show placeholder
+                container.innerHTML = '<div class="scanner-placeholder"><i class="fas fa-spinner fa-spin"></i> Starting camera…</div>';
+
+                try {
+                    qrScannerInstance = new Html5Qrcode(containerId);
+                    const config = {
+                        fps: 20,
+                        qrbox: { width: 240, height: 240 },
+                        aspectRatio: 1.0
+                    };
+                    qrScannerInstance.start({ facingMode: 'environment' },
+                        config,
+                        (decodedText, decodedResult) => {
+                            // Success callback
+                            handleScannedQR(decodedText);
+                        },
+                        (errorMessage) => {
+                            // Error callback - ignore frequent errors
+                            // console.debug('QR scan error:', errorMessage);
+                        }
+                    ).then(() => {
+                        scannerActive = true;
+                        container.querySelector('.scanner-placeholder')?.remove();
+                        window.showToast('Scanner ready');
+                    }).catch(err => {
+                        scannerActive = false;
+                        container.innerHTML =
+                            '<div class="scanner-placeholder"><i class="fas fa-exclamation-triangle"></i> Camera access denied</div>';
+                        window.showToast('Camera access denied');
+                    });
+                } catch (e) {
+                    scannerActive = false;
+                    container.innerHTML =
+                        '<div class="scanner-placeholder"><i class="fas fa-exclamation-triangle"></i> Error: ' + (e
+                            .message || 'unknown') + '</div>';
+                    window.showToast('Scanner error');
+                }
+            }
+
+            function stopQRScanner() {
+                if (qrScannerInstance && scannerActive) {
+                    try {
+                        qrScannerInstance.stop().then(() => {
+                            scannerActive = false;
+                            document.getElementById('scannedResult').textContent = 'Scanner stopped.';
+                            document.getElementById('qrScannerContainer').innerHTML =
+                                '<div class="scanner-placeholder"><i class="fas fa-qrcode"></i> Camera stopped</div>';
+                            window.showToast('Scanner stopped');
+                        }).catch(() => {});
+                    } catch (e) {}
+                }
+                scannerActive = false;
+            }
+
+            function handleScannedQR(data) {
+                // Expected format: "premcall://1234567890" or just a number
+                let number = data;
+                if (data.startsWith('premcall://')) {
+                    number = data.replace('premcall://', '').trim();
+                } else if (data.startsWith('premcall:')) {
+                    number = data.replace('premcall:', '').trim();
+                }
+                // Extract 10-digit number
+                const match = number.match(/\d{10}/);
+                if (match) {
+                    const found = match[0];
+                    // Check if already a contact
+                    const existing = getContacts().find(c => c.number === found);
+                    if (existing) {
+                        document.getElementById('scannedResult').innerHTML =
+                            '✅ Already saved: <strong>' + existing.name + '</strong> (' + found + ')';
+                        window.showToast('Contact already exists: ' + existing.name);
+                        return;
+                    }
+                    // Prompt for name
+                    const name = prompt('Enter name for ' + found + ':', 'Contact');
+                    if (name && name.trim()) {
+                        addContact(name.trim(), found);
+                        document.getElementById('scannedResult').innerHTML =
+                            '✅ Saved: <strong>' + name.trim() + '</strong> (' + found + ')';
+                        window.showToast('Contact saved: ' + name.trim());
+                        // Refresh contacts list if modal is open
+                        if (document.getElementById('contactsModal').classList.contains('active')) {
+                            renderContacts();
+                        }
+                    } else {
+                        document.getElementById('scannedResult').innerHTML = '❌ Save cancelled.';
+                    }
+                    // Auto-stop after scan
+                    setTimeout(() => stopQRScanner(), 1500);
+                } else {
+                    document.getElementById('scannedResult').innerHTML = '❌ No valid number found in QR: ' + data;
+                    window.showToast('Invalid QR code');
+                }
             }
 
             /* ---------- public API ---------- */
@@ -3038,7 +3214,11 @@
                     saveSettings();
                 },
                 addParticipant: addParticipant,
-                getParticipants: () => participants
+                getParticipants: () => participants,
+                // QR Scanner
+                startQRScanner: startQRScanner,
+                stopQRScanner: stopQRScanner,
+                isScannerActive: () => scannerActive
             };
         })(window);
 
@@ -3060,6 +3240,7 @@
                 contactsModal = $('contactsModal');
             const qrModal = $('qrModal'),
                 settingsModal = $('settingsModal');
+            const qrScannerModal = $('qrScannerModal');
             let dialedNumber = '',
                 toastTimeout = null;
             let openLog = null,
@@ -3081,13 +3262,17 @@
             window.addEventListener('beforeunload', e => {
                 if (window.PremCall && PremCall.isInCall()) { e.preventDefault();
                     e.returnValue = ''; }
+                // Stop QR scanner if active
+                if (window.PremCall && PremCall.isScannerActive()) {
+                    PremCall.stopQRScanner();
+                }
             });
 
             document.addEventListener('keydown', e => {
                 if (e.key === 'Escape') {
                     if (PremCall.isInCall()) { PremCall.hangup(); return; }
-                    [detailsModal, contactsModal, qrModal, settingsModal, $('accountModal')].forEach(m => m.classList
-                        .remove('active'));
+                    [detailsModal, contactsModal, qrModal, qrScannerModal, settingsModal, $('accountModal')]
+                    .forEach(m => m.classList.remove('active'));
                 }
                 if (e.ctrlKey && e.key === 'k') { e.preventDefault(); }
                 if ((e.key === 'm' || e.key === 'M') && PremCall.isInCall()) {
@@ -3106,7 +3291,7 @@
                 }
                 if ((e.key === 'c' || e.key === 'C') && !PremCall.isInCall()) {
                     e.preventDefault();
-                    openContactsModal();
+                    openContactsModal(false);
                 }
                 if ((e.key === 't' || e.key === 'T') && PremCall.isInCall()) {
                     $('chatPanel').classList.toggle('active');
@@ -3361,20 +3546,14 @@
                 PremCall.toggleRecording();
             });
 
-            /* Add participant buttons */
             const addParticipantHandler = () => {
-                // If in call, open contacts modal with "add" action
                 if (PremCall.isInCall()) {
-                    // Open contacts modal and set flag
                     openContactsModal(true);
                 } else {
-                    // If not in call, just open contacts modal normally
                     openContactsModal(false);
                 }
             };
-            // Header plus button
             $('addParticipantBtn').addEventListener('click', addParticipantHandler);
-            // Call screen plus button
             $('callAddParticipantBtn').addEventListener('click', addParticipantHandler);
 
             $('chatToggleBtn').addEventListener('click', () => {
@@ -3456,7 +3635,7 @@
             });
             $('closeAccountModalBtn').addEventListener('click', () => $('accountModal').classList.remove('active'));
 
-            /* ===== CONTACTS MODAL (with "Add" mode) ===== */
+            /* ===== CONTACTS MODAL ===== */
             let contactsAddMode = false;
 
             function openContactsModal(addMode) {
@@ -3533,7 +3712,6 @@
                     renderContacts($('contactsSearch').value.trim().toLowerCase());
                     showToast('Contact deleted'); return; }
                 if (btn.dataset.add) {
-                    // Add to call
                     contactsModal.classList.remove('active');
                     PremCall.addParticipant(num);
                     return;
@@ -3551,7 +3729,7 @@
                 }
             });
 
-            /* ===== QR MODAL ===== */
+            /* ===== QR MODAL (My QR) ===== */
             $('qrBtn').addEventListener('click', () => {
                 const num = localStorage.getItem('premCallNumber') || 'Not registered';
                 const qrContainer = $('qrContainer');
@@ -3571,6 +3749,37 @@
             });
             $('qrClose').addEventListener('click', () => qrModal.classList.remove('active'));
             qrModal.addEventListener('click', e => { if (e.target === qrModal) qrModal.classList.remove('active'); });
+
+            /* ===== QR SCANNER MODAL ===== */
+            $('qrScannerBtn').addEventListener('click', () => {
+                // Reset scanner state
+                document.getElementById('scannedResult').textContent = '';
+                document.getElementById('qrScannerContainer').innerHTML =
+                    '<div class="scanner-placeholder"><i class="fas fa-qrcode"></i> Ready to scan</div>';
+                qrScannerModal.classList.add('active');
+            });
+            $('qrScannerClose').addEventListener('click', () => {
+                if (PremCall.isScannerActive()) PremCall.stopQRScanner();
+                qrScannerModal.classList.remove('active');
+            });
+            qrScannerModal.addEventListener('click', e => {
+                if (e.target === qrScannerModal) {
+                    if (PremCall.isScannerActive()) PremCall.stopQRScanner();
+                    qrScannerModal.classList.remove('active');
+                }
+            });
+
+            $('startScannerBtn').addEventListener('click', () => {
+                PremCall.startQRScanner('qrScannerContainer');
+            });
+
+            $('stopScannerBtn').addEventListener('click', () => {
+                if (PremCall.isScannerActive()) {
+                    PremCall.stopQRScanner();
+                } else {
+                    showToast('Scanner not running');
+                }
+            });
 
             /* ===== SETTINGS MODAL ===== */
             function syncSettingsUI() {
