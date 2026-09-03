@@ -16,8 +16,6 @@
   <img src="https://img.shields.io/badge/Lightweight-~200KB-important?style=for-the-badge" />
 </p>
 
-<br/>
-
 ## 🚀 The Problem
 
 We've all been there. 📴 Your prepaid recharge expires, or your SIM validity runs out, and you urgently need to make a call. WiFi is available, but WhatsApp, Telegram, and Signal require an active number for verification. You're stuck.
