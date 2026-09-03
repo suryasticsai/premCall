@@ -3,16 +3,24 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#070a12" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PremCall" />
     <title>PremCall — AI Chat & Voice</title>
+    <!-- Icons, Fonts, Libraries -->
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" />
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js">
     </script>
-    <!-- QR Scanner Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js">
+    </script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
     </script>
     <style>
+        /* ===== CSS Variables & Reset ===== */
         :root {
             --void: #030407;
             --void-2: #080b14;
@@ -136,17 +144,17 @@
         }
         .app-header .header-actions {
             display: flex;
-            gap: 0.5rem;
             align-items: center;
+            gap: 0.4rem;
         }
         .icon-btn-ghost {
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             border: none;
             background: var(--surface-2);
             color: var(--text-dim);
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -167,7 +175,7 @@
             display: flex;
             align-items: center;
             gap: 0.4rem;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             color: var(--text-faint);
         }
         .header-status .dot {
@@ -1554,8 +1562,6 @@
             color: #fff;
             animation: pulse 1.2s infinite;
         }
-
-        /* QR Scanner Modal */
         #qrScannerModal {
             display: none;
             position: fixed;
@@ -1634,7 +1640,8 @@
             <div class="header-actions">
                 <div class="header-status">
                     <span class="dot offline" id="headerStatusDot"></span>
-                    <span id="myNumberDisplay" style="cursor:pointer; font-size:0.75rem; color:var(--text-dim);">—</span>
+                    <button class="icon-btn-ghost" id="reconnectBtn" title="Reconnect"><i class="fas fa-sync"></i></button>
+                    <span id="myNumberDisplay" style="cursor:pointer; font-size:0.7rem; color:var(--text-dim);">—</span>
                 </div>
                 <button class="icon-btn-ghost" id="themeToggle" title="Toggle Theme"><i class="fas fa-moon"></i></button>
                 <button class="icon-btn-ghost" id="headerSearchBtn" title="Search"><i class="fas fa-magnifying-glass"></i></button>
@@ -1724,7 +1731,7 @@
                 <div class="divider"></div>
                 <div class="section-title">Preferences</div>
                 <div class="setting-row">
-                    <div><div style="font-weight:600; font-size:0.88rem;">Dark Mode</div><div style="font-size:0.72rem; color:var(--text-faint);">Toggle app appearance</div></div>
+                    <div><div style="font-weight:600; font-size:0.88rem;">Dark Mode</div><div style="font-size:0.72rem; color:var(--text-faint);">Toggle appearance</div></div>
                     <div class="toggle on" id="toggleTheme" data-key="theme"></div>
                 </div>
                 <div class="setting-row">
@@ -1745,7 +1752,7 @@
                 <button class="action-btn" id="scanQRBtn"><i class="fas fa-camera"></i> Scan QR Code</button>
                 <button class="action-btn" id="exportChatsBtn"><i class="fas fa-file-export"></i> Export Chats</button>
                 <button class="action-btn" id="clearDataBtn" style="color:var(--stop);"><i class="fas fa-trash"></i> Clear All Data</button>
-                <div style="text-align:center; padding:1.5rem 0; color:var(--text-faint); font-size:0.7rem;">PremCall v2.3 — Cognitive Messenger</div>
+                <div style="text-align:center; padding:1.5rem 0; color:var(--text-faint); font-size:0.7rem;">PremCall v2.4 — AI Messenger</div>
             </div>
         </div>
 
@@ -1890,14 +1897,6 @@
             // ============================================================
             const RAGINA_NUMBER = '0000000000';
             const API_URL = 'https://ragina-crawler-ragina.vercel.app/api/ask';
-            const ICE_CONFIG = {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay', credential: 'openrelay' },
-                    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay', credential: 'openrelay' }
-                ]
-            };
 
             // ============================================================
             //  STATE
@@ -2238,15 +2237,33 @@
             }
 
             // ============================================================
-            //  PEERJS / WEBRTC
+            //  ENHANCED PEERJS INIT (with auto‑reconnect)
             // ============================================================
             function initPeer(id) {
                 myId = id;
                 if (typeof global.Peer !== 'undefined' && id) {
                     try {
-                        peer = new global.Peer(id, { debug: 0, config: ICE_CONFIG });
+                        const config = {
+                            debug: 0,
+                            config: {
+                                iceServers: [
+                                    { urls: 'stun:stun.l.google.com:19302' },
+                                    { urls: 'stun:stun1.l.google.com:19302' },
+                                    { urls: 'turn:openrelay.metered.ca:80', username: 'openrelay',
+                                        credential: 'openrelay' },
+                                    { urls: 'turn:openrelay.metered.ca:443', username: 'openrelay',
+                                        credential: 'openrelay' },
+                                    { urls: 'turn:openrelay.metered.ca:3478', username: 'openrelay',
+                                        credential: 'openrelay' }
+                                ]
+                            }
+                        };
+                        peer = new global.Peer(id, config);
+                        let reconnectAttempts = 0;
+
                         peer.on('open', () => {
                             $('headerStatusDot').className = 'dot online';
+                            reconnectAttempts = 0;
                             const pending = localStorage.getItem('premCallPendingCall');
                             if (pending) {
                                 try {
@@ -2256,15 +2273,39 @@
                                 } catch (e) {}
                             }
                         });
+
                         peer.on('disconnected', () => {
                             $('headerStatusDot').className = 'dot offline';
+                            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+                            reconnectAttempts++;
                             setTimeout(() => {
-                                if (peer && !peer.destroyed) try { peer.reconnect(); } catch (e) {}
-                            }, 3000);
+                                if (peer && !peer.destroyed) {
+                                    try { peer.reconnect(); } catch (e) {}
+                                }
+                            }, delay);
                         });
+
+                        peer.on('close', () => {
+                            $('headerStatusDot').className = 'dot offline';
+                            setTimeout(() => {
+                                if (peer && !peer.destroyed) {
+                                    try { peer.destroy(); } catch (e) {}
+                                }
+                                initPeer(id);
+                            }, 5000);
+                        });
+
                         peer.on('error', err => {
                             showToast('Network: ' + err.type);
+                            if (err.type === 'unavailable-id' || err.type === 'invalid-id') {
+                                if (!localStorage.getItem('premCallNumber')) {
+                                    const newId = 'temp-' + Date.now();
+                                    localStorage.setItem('premCallId', newId);
+                                    initPeer(newId);
+                                }
+                            }
                         });
+
                         peer.on('call', call => {
                             if (raginaCallActive) { call.close(); return; }
                             const blocked = getBlocked();
@@ -2276,6 +2317,7 @@
                             incomingCall = call;
                             showIncomingOverlay(call.peer);
                         });
+
                         peer.on('connection', conn => {
                             conn.on('data', data => {
                                 if (data && data.type === 'msg') {
@@ -2287,12 +2329,17 @@
                                 }
                             });
                         });
+
                     } catch (e) {
                         showToast('Failed to initialize Peer');
+                        console.error(e);
                     }
                 }
             }
 
+            // ============================================================
+            //  WEBRTC HELPERS (calls)
+            // ============================================================
             async function getLocalStream(requestVideo) {
                 const constraints = {
                     audio: { echoCancellation: true, noiseSuppression: true },
@@ -2861,7 +2908,7 @@
             }
 
             // ============================================================
-            //  QR CODE GENERATION
+            //  QR CODE GENERATION & SCANNER
             // ============================================================
             function showQR() {
                 const num = localStorage.getItem('premCallNumber') || 'Not registered';
@@ -2881,22 +2928,17 @@
                 $('qrModal').classList.add('active');
             }
 
-            // ============================================================
-            //  QR SCANNER (FIXED)
-            // ============================================================
             function startQrScanner() {
                 const modal = $('qrScannerModal');
                 const reader = $('qr-reader');
                 modal.classList.add('active');
 
-                // Clean up any previous scanner
                 if (qrScanner) {
                     try { qrScanner.stop(); } catch (e) {}
                     qrScanner = null;
                 }
                 reader.innerHTML = '';
 
-                // Use Html5Qrcode library
                 try {
                     qrScanner = new Html5Qrcode("qr-reader");
                     const config = {
@@ -2915,25 +2957,21 @@
                 }
             }
 
-            function onScanSuccess(decodedText, decodedResult) {
-                // Stop scanner
+            function onScanSuccess(decodedText) {
                 if (qrScanner) {
                     try { qrScanner.stop(); } catch (e) {}
                     qrScanner = null;
                 }
                 $('qrScannerModal').classList.remove('active');
 
-                // Parse the QR data - expected format: premcall://<number>
                 let number = decodedText;
                 if (number.startsWith('premcall://')) {
                     number = number.replace('premcall://', '');
                 }
-                // Extract 10-digit number
                 const match = number.match(/\d{10}/);
                 if (match) {
                     const num = match[0];
                     showToast('Scanned: ' + num);
-                    // Ask user what to do
                     if (confirm('Do you want to call ' + num + '?')) {
                         PremCall.call(num);
                     } else if (confirm('Open chat with ' + num + '?')) {
@@ -2944,9 +2982,7 @@
                 }
             }
 
-            function onScanError(err) {
-                // Ignore errors (they are frequent due to scanning)
-            }
+            function onScanError(err) {}
 
             function stopQrScanner() {
                 if (qrScanner) {
@@ -3261,10 +3297,9 @@
                     if (e.target === $('qrModal')) $('qrModal').classList.remove('active');
                 });
 
-                // ---- QR Scanning (FIXED) ----
+                // ---- QR Scanning ----
                 $('scanQRBtn').addEventListener('click', startQrScanner);
                 $('qrScannerClose').addEventListener('click', stopQrScanner);
-                // Also close on background click
                 $('qrScannerModal').addEventListener('click', (e) => {
                     if (e.target === $('qrScannerModal')) stopQrScanner();
                 });
@@ -3409,6 +3444,17 @@
                     }
                 });
 
+                // ---- Reconnect button ----
+                $('reconnectBtn').addEventListener('click', () => {
+                    if (peer) {
+                        try { peer.destroy(); } catch (e) {}
+                        peer = null;
+                    }
+                    const id = localStorage.getItem('premCallId') || 'temp-' + Date.now();
+                    initPeer(id);
+                    showToast('Reconnecting…');
+                });
+
                 // ---- Keyboard shortcuts ----
                 document.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape') {
@@ -3540,7 +3586,7 @@
                 });
 
                 console.log('💡 Press Cmd/Ctrl + K to open RAGina AI chat');
-                console.log('📷 QR Scanner fixed — tap "Scan QR Code" to test');
+                console.log('📷 QR Scanner ready — tap "Scan QR Code"');
 
             });
 
