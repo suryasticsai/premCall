@@ -19,1555 +19,1648 @@
     </script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
     </script>
-    <!-- ===== RAGina Voice Widget dependencies ===== -->
-<script src="https://raw.githubusercontent.com/suryasticsai/premCall/main/vad-web.js"></script>
-<script src="https://raw.githubusercontent.com/suryasticsai/premCall/main/ragina-voice.js"></script>
-    <style>
-        /* ===== CSS Variables & Reset ===== */
-        :root {
-            --void: #030407;
-            --void-2: #080b14;
-            --surface: #0f111a;
-            --surface-2: #161926;
-            --surface-3: #1e2233;
-            --glass: rgba(15, 17, 26, 0.72);
-            --line: rgba(255, 255, 255, 0.06);
-            --line-2: rgba(255, 255, 255, 0.10);
-            --text: #f0f2f7;
-            --text-dim: #8b92a8;
-            --text-faint: #4a5068;
-            --primary: #8b5cf6;
-            --primary-glow: rgba(139, 92, 246, 0.35);
-            --accent: #06b6d4;
-            --accent-glow: rgba(6, 182, 212, 0.30);
-            --go: #10b981;
-            --go-glow: rgba(16, 185, 129, 0.30);
-            --stop: #f43f5e;
-            --stop-glow: rgba(244, 63, 94, 0.30);
-            --warn: #f59e0b;
-            --radius-xl: 24px;
-            --radius-lg: 18px;
-            --radius-md: 14px;
-            --radius-sm: 10px;
-            --font-display: 'Space Grotesk', sans-serif;
-            --font-body: 'Inter', sans-serif;
-            --safe-t: env(safe-area-inset-top, 0px);
-            --safe-b: env(safe-area-inset-bottom, 0px);
-        }
-        body.light-mode {
-            --void: #f5f7fa;
-            --void-2: #ffffff;
-            --surface: #ffffff;
-            --surface-2: #f1f5f9;
-            --surface-3: #e2e8f0;
-            --glass: rgba(255, 255, 255, 0.82);
-            --line: rgba(0, 0, 0, 0.06);
-            --line-2: rgba(0, 0, 0, 0.10);
-            --text: #0f172a;
-            --text-dim: #475569;
-            --text-faint: #94a3b8;
-            --primary: #7c3aed;
-            --primary-glow: rgba(124, 58, 237, 0.20);
-            --accent: #0891b2;
-            --accent-glow: rgba(8, 145, 178, 0.20);
-        }
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            -webkit-tap-highlight-color: transparent;
-        }
-        html,
-        body {
-            height: 100%;
-            overflow: hidden;
-            font-family: var(--font-body);
-            color: var(--text);
-            background: var(--void);
-        }
-        .mesh-bg {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            pointer-events: none;
-            background: radial-gradient(ellipse 80% 50% at 20% 40%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-                radial-gradient(ellipse 60% 40% at 80% 60%, rgba(6, 182, 212, 0.06) 0%, transparent 50%),
-                var(--void);
-        }
-        body.light-mode .mesh-bg {
-            background: radial-gradient(ellipse 80% 50% at 20% 40%, rgba(124, 58, 237, 0.05) 0%, transparent 50%),
-                radial-gradient(ellipse 60% 40% at 80% 60%, rgba(8, 145, 178, 0.04) 0%, transparent 50%),
-                var(--void);
-        }
-        .app-shell {
-            position: relative;
-            z-index: 1;
-            height: 100%;
-            max-width: 480px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            background: linear-gradient(180deg, var(--void-2), var(--void));
-        }
-        @media (min-width: 640px) {
-            .app-shell {
-                height: min(900px, 96vh);
-                border-radius: 32px;
-                margin-top: 2vh;
-                box-shadow: 0 0 0 8px #0a0c14, 0 0 0 9px var(--line-2), 0 50px 120px -30px rgba(0, 0, 0, 0.8);
-            }
-            body.light-mode .app-shell {
-                box-shadow: 0 0 0 8px #e2e8f0, 0 0 0 9px #cbd5e1, 0 50px 120px -30px rgba(0, 0, 0, 0.2);
-            }
-        }
-        .app-header {
-            flex: 0 0 auto;
-            padding: calc(0.8rem + var(--safe-t)) 1.2rem 0.6rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: linear-gradient(180deg, var(--void-2), transparent);
-        }
-        .app-header .brand {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-        }
-        .app-header .brand img {
-            width: 32px;
-            height: 32px;
-            border-radius: 10px;
-            object-fit: cover;
-        }
-        .app-header .brand span {
-            font-family: var(--font-display);
-            font-weight: 700;
-            font-size: 1.25rem;
-            letter-spacing: -0.02em;
-        }
-        .app-header .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-        .icon-btn-ghost {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border: none;
-            background: var(--surface-2);
-            color: var(--text-dim);
-            font-size: 0.9rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .icon-btn-ghost:hover {
-            background: var(--surface-3);
-            color: var(--text);
-            transform: scale(1.08);
-        }
-        .icon-btn-ghost.active {
-            background: var(--primary);
-            color: #fff;
-            box-shadow: 0 0 20px var(--primary-glow);
-        }
-        .header-status {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.65rem;
-            color: var(--text-faint);
-        }
-        .header-status .dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-        }
-        .header-status .dot.online {
-            background: var(--go);
-            box-shadow: 0 0 6px var(--go-glow);
-        }
-        .header-status .dot.offline {
-            background: var(--stop);
-        }
-        .header-status .dot.connecting {
-            background: var(--warn);
-            animation: blink 1.2s infinite;
-        }
-        @keyframes blink {
-            50% {
-                opacity: 0.3;
-            }
-        }
-        .search-bar {
-            margin: 0 1.2rem 0.6rem;
-            position: relative;
-        }
-        .search-bar input {
-            width: 100%;
-            padding: 0.65rem 1rem 0.65rem 2.4rem;
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--line);
-            background: var(--surface);
-            color: var(--text);
-            font-size: 0.9rem;
-            font-family: var(--font-body);
-            outline: none;
-            transition: all 0.2s;
-        }
-        .search-bar input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-glow);
-        }
-        .search-bar input::placeholder {
-            color: var(--text-faint);
-        }
-        .search-bar i {
-            position: absolute;
-            left: 0.85rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-faint);
-            font-size: 0.85rem;
-        }
-        .stories-row {
-            display: flex;
-            gap: 0.7rem;
-            padding: 0.4rem 1.2rem 0.8rem;
-            overflow-x: auto;
-            scrollbar-width: none;
-        }
-        .stories-row::-webkit-scrollbar {
-            display: none;
-        }
-        .story-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.35rem;
-            cursor: pointer;
-            flex-shrink: 0;
-            transition: transform 0.2s;
-        }
-        .story-item:hover {
-            transform: translateY(-2px);
-        }
-        .story-ring {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            padding: 3px;
-            background: linear-gradient(135deg, var(--primary), var(--accent), var(--go));
-            position: relative;
-        }
-        .story-ring.seen {
-            background: var(--surface-3);
-        }
-        .story-ring .story-avatar {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: var(--surface-2);
-            border: 2px solid var(--void);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-dim);
-            overflow: hidden;
-        }
-        .story-ring .story-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .story-add {
-            position: absolute;
-            bottom: -2px;
-            right: -2px;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: var(--primary);
-            color: #fff;
-            font-size: 0.65rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px solid var(--void);
-        }
-        .story-name {
-            font-size: 0.68rem;
-            color: var(--text-dim);
-            max-width: 64px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .content-area {
-            flex: 1;
-            min-height: 0;
-            overflow-y: auto;
-            padding: 0 1.2rem;
-            scrollbar-width: thin;
-            scrollbar-color: var(--surface-3) transparent;
-        }
-        .content-area::-webkit-scrollbar {
-            width: 3px;
-        }
-        .content-area::-webkit-scrollbar-thumb {
-            background: var(--surface-3);
-            border-radius: 10px;
-        }
-        .section-title {
-            font-family: var(--font-display);
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-faint);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin: 0.6rem 0 0.4rem;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-        .chat-item {
-            display: flex;
-            align-items: center;
-            gap: 0.85rem;
-            padding: 0.7rem 0.6rem;
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            transition: all 0.15s;
-            position: relative;
-            margin-bottom: 2px;
-        }
-        .chat-item:hover {
-            background: var(--surface-2);
-        }
-        .chat-item:active {
-            transform: scale(0.99);
-        }
-        .chat-item .chat-avatar {
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
-            flex-shrink: 0;
-            background: linear-gradient(135deg, var(--surface-3), var(--surface-2));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-dim);
-            position: relative;
-            overflow: hidden;
-        }
-        .chat-item .chat-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .chat-item .online-dot {
-            position: absolute;
-            bottom: 2px;
-            right: 2px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: var(--go);
-            border: 2px solid var(--void);
-            box-shadow: 0 0 6px var(--go-glow);
-        }
-        .chat-item .chat-body {
-            flex: 1;
-            min-width: 0;
-        }
-        .chat-item .chat-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 0.15rem;
-        }
-        .chat-item .chat-name {
-            font-weight: 600;
-            font-size: 0.92rem;
-            color: var(--text);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .chat-item .chat-time {
-            font-size: 0.68rem;
-            color: var(--text-faint);
-            flex-shrink: 0;
-        }
-        .chat-item .chat-preview {
-            font-size: 0.78rem;
-            color: var(--text-dim);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        .chat-item .chat-preview i {
-            font-size: 0.65rem;
-        }
-        .chat-item .chat-meta {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 0.25rem;
-        }
-        .chat-item .unread-badge {
-            min-width: 20px;
-            height: 20px;
-            border-radius: 10px;
-            background: var(--primary);
-            color: #fff;
-            font-size: 0.65rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 5px;
-            box-shadow: 0 2px 8px var(--primary-glow);
-        }
-        .chat-item .chat-actions {
-            position: absolute;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            display: flex;
-            align-items: center;
-            gap: 0;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s;
-            padding-right: 0.5rem;
-        }
-        .chat-item:hover .chat-actions {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .chat-item .chat-actions button {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            border: none;
-            background: var(--surface-3);
-            color: var(--text-dim);
-            font-size: 0.75rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: 0.3rem;
-            transition: all 0.15s;
-        }
-        .chat-item .chat-actions button:hover {
-            background: var(--primary);
-            color: #fff;
-            transform: scale(1.1);
-        }
-        .chat-item .chat-actions button.danger:hover {
-            background: var(--stop);
-        }
-        .call-item {
-            display: flex;
-            align-items: center;
-            gap: 0.85rem;
-            padding: 0.65rem 0.6rem;
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            transition: all 0.15s;
-            margin-bottom: 2px;
-        }
-        .call-item:hover {
-            background: var(--surface-2);
-        }
-        .call-item .call-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
-        }
-        .call-item .call-icon.incoming {
-            background: rgba(16, 185, 129, 0.12);
-            color: var(--go);
-        }
-        .call-item .call-icon.outgoing {
-            background: rgba(139, 92, 246, 0.12);
-            color: var(--primary);
-        }
-        .call-item .call-icon.missed {
-            background: rgba(244, 63, 94, 0.12);
-            color: var(--stop);
-        }
-        .call-item .call-body {
-            flex: 1;
-            min-width: 0;
-        }
-        .call-item .call-name {
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-        .call-item .call-info {
-            font-size: 0.72rem;
-            color: var(--text-faint);
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        .call-item .call-actions {
-            display: flex;
-            gap: 0.3rem;
-        }
-        .call-item .call-actions button {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
-            transition: all 0.15s;
-        }
-        .call-item .call-actions .call-back {
-            background: var(--go);
-            color: #fff;
-        }
-        .call-item .call-actions .call-back:hover {
-            box-shadow: 0 0 12px var(--go-glow);
-            transform: scale(1.08);
-        }
-        .call-item .call-actions .video-back {
-            background: var(--primary);
-            color: #fff;
-        }
-        .call-item .call-actions .video-back:hover {
-            box-shadow: 0 0 12px var(--primary-glow);
-            transform: scale(1.08);
-        }
-        .contact-item {
-            display: flex;
-            align-items: center;
-            gap: 0.85rem;
-            padding: 0.6rem;
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            transition: all 0.15s;
-            margin-bottom: 2px;
-        }
-        .contact-item:hover {
-            background: var(--surface-2);
-        }
-        .contact-item .contact-avatar {
-            width: 46px;
-            height: 46px;
-            border-radius: 50%;
-            flex-shrink: 0;
-            background: linear-gradient(135deg, var(--surface-3), var(--surface-2));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: var(--text-dim);
-        }
-        .contact-item .contact-body {
-            flex: 1;
-        }
-        .contact-item .contact-name {
-            font-weight: 600;
-            font-size: 0.88rem;
-        }
-        .contact-item .contact-number {
-            font-size: 0.72rem;
-            color: var(--text-faint);
-        }
-        .contact-item .contact-actions {
-            display: flex;
-            gap: 0.3rem;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-        .contact-item:hover .contact-actions {
-            opacity: 1;
-        }
-        .contact-item .contact-actions button {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: none;
-            background: var(--surface-3);
-            color: var(--text-dim);
-            font-size: 0.7rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.15s;
-        }
-        .contact-item .contact-actions button:hover {
-            background: var(--primary);
-            color: #fff;
-        }
-        .contact-item .contact-actions button.danger:hover {
-            background: var(--stop);
-        }
-        /* RAGina card removed – floating widget replaces it */
-        .divider {
-            height: 1px;
-            background: var(--line);
-            margin: 0.4rem 0;
-        }
-        .setting-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.7rem 0.6rem;
-            border-bottom: 1px solid var(--line);
-        }
-        .setting-row:last-child {
-            border-bottom: none;
-        }
-        .toggle {
-            width: 48px;
-            height: 26px;
-            border-radius: 13px;
-            background: var(--surface-3);
-            position: relative;
-            cursor: pointer;
-            transition: background 0.2s;
-            flex-shrink: 0;
-        }
-        .toggle::after {
-            content: '';
-            position: absolute;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: var(--text);
-            top: 2px;
-            left: 2px;
-            transition: transform 0.2s;
-        }
-        .toggle.on {
-            background: var(--primary);
-        }
-        .toggle.on::after {
-            transform: translateX(22px);
-            background: #fff;
-        }
-        .action-btn {
-            width: 100%;
-            padding: 0.7rem 1rem;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--line);
-            background: var(--surface-2);
-            color: var(--text);
-            font-size: 0.85rem;
-            font-family: var(--font-body);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            margin-bottom: 0.4rem;
-            transition: all 0.15s;
-        }
-        .action-btn:hover {
-            background: var(--surface-3);
-            transform: translateX(2px);
-        }
-        .fab {
-            position: fixed;
-            bottom: calc(5.5rem + var(--safe-b));
-            right: 1.5rem;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: #fff;
-            border: none;
-            font-size: 1.3rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 32px var(--primary-glow);
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            z-index: 100;
-        }
-        .fab:hover {
-            transform: scale(1.1) rotate(90deg);
-        }
-        .fab:active {
-            transform: scale(0.95);
-        }
-        @media (min-width: 640px) {
-            .fab {
-                right: calc(50% - 200px + 1.5rem);
-            }
-        }
-        .bottom-nav {
-            flex: 0 0 auto;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            padding: 0.5rem 0 calc(0.6rem + var(--safe-b));
-            background: linear-gradient(0deg, var(--void-2), transparent);
-            border-top: 1px solid var(--line);
-            backdrop-filter: blur(20px);
-            position: relative;
-            z-index: 50;
-        }
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.2rem;
-            padding: 0.3rem 0.8rem;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-            color: var(--text-faint);
-            background: none;
-            border: none;
-            font-family: var(--font-body);
-        }
-        .nav-item:hover {
-            color: var(--text-dim);
-        }
-        .nav-item.active {
-            color: var(--primary);
-        }
-        .nav-item i {
-            font-size: 1.1rem;
-            transition: transform 0.2s;
-        }
-        .nav-item.active i {
-            transform: translateY(-2px);
-        }
-        .nav-item span {
-            font-size: 0.6rem;
-            font-weight: 600;
-        }
-        .nav-item .nav-badge {
-            position: absolute;
-            top: 2px;
-            right: 8px;
-            min-width: 16px;
-            height: 16px;
-            border-radius: 8px;
-            background: var(--stop);
-            color: #fff;
-            font-size: 0.6rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 4px;
-        }
-        .tab-view {
-            display: none;
-            animation: fadeIn 0.25s ease;
-        }
-        .tab-view.active {
-            display: block;
-        }
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .empty-state {
-            text-align: center;
-            padding: 3rem 1rem;
-            color: var(--text-faint);
-        }
-        .empty-state i {
-            font-size: 2.5rem;
-            margin-bottom: 0.8rem;
-            display: block;
-            opacity: 0.5;
-        }
-        .empty-state p {
-            font-size: 0.85rem;
-        }
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 5000;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(12px);
-            align-items: flex-end;
-            justify-content: center;
-            animation: fadeIn 0.2s;
-        }
-        .modal-overlay.active {
-            display: flex;
-        }
-        .modal-sheet {
-            background: var(--surface);
-            border: 1px solid var(--line);
-            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-            width: 100%;
-            max-width: 480px;
-            max-height: 85vh;
-            display: flex;
-            flex-direction: column;
-            animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        @keyframes slideUp {
-            from {
-                transform: translateY(100%);
-            }
-            to {
-                transform: translateY(0);
-            }
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 1.2rem 0.6rem;
-        }
-        .modal-header span {
-            font-family: var(--font-display);
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-        .modal-close {
-            background: none;
-            border: none;
-            color: var(--text-dim);
-            font-size: 1.1rem;
-            cursor: pointer;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.15s;
-        }
-        .modal-close:hover {
-            background: var(--surface-2);
-            color: var(--stop);
-        }
-        .modal-body {
-            flex: 1;
-            min-height: 0;
-            overflow-y: auto;
-            padding: 0 1.2rem 1rem;
-        }
-        .form-row {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 0.8rem;
-        }
-        .form-row input {
-            flex: 1;
-            padding: 0.6rem 1rem;
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--line);
-            background: var(--surface-2);
-            color: var(--text);
-            font-size: 0.85rem;
-            outline: none;
-            font-family: var(--font-body);
-        }
-        .form-row input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-glow);
-        }
-        .form-row input::placeholder {
-            color: var(--text-faint);
-        }
-        .btn-primary {
-            padding: 0.6rem 1.4rem;
-            border-radius: var(--radius-lg);
-            border: none;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: #fff;
-            font-weight: 600;
-            font-size: 0.8rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 16px var(--primary-glow);
-        }
-        #toast {
-            position: fixed;
-            bottom: calc(5rem + var(--safe-b));
-            left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            background: var(--surface-3);
-            border: 1px solid var(--line-2);
-            color: var(--text);
-            padding: 0.7rem 1.4rem;
-            border-radius: 40px;
-            font-size: 0.85rem;
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.3s;
-            z-index: 6000;
-            max-width: 88%;
-            text-align: center;
-            backdrop-filter: blur(12px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        }
-        #toast.show {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-        }
-        #callScreen {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 3000;
-            flex-direction: column;
-            background: #000;
-            color: #fff;
-        }
-        #callScreen.active {
-            display: flex;
-        }
-        #callScreen .video-bg {
-            position: absolute;
-            inset: 0;
-            z-index: 1;
-        }
-        #callScreen .video-bg video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        #callScreen .local-pip {
-            position: absolute;
-            bottom: 100px;
-            right: 12px;
-            width: 100px;
-            height: 130px;
-            border-radius: 14px;
-            border: 2px solid rgba(255, 255, 255, 0.15);
-            background: #000;
-            z-index: 10;
-            overflow: hidden;
-            transition: opacity 0.3s;
-        }
-        #callScreen .local-pip video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        #callScreen .local-pip.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-        #callScreen .voice-ui {
-            position: relative;
-            z-index: 5;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            flex: 1;
-            padding: 1.5rem;
-        }
-        #callScreen .voice-ui.hidden {
-            display: none;
-        }
-        #callScreen .avatar-wrap {
-            position: relative;
-            width: 140px;
-            height: 140px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1rem;
-        }
-        #callScreen .ring {
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            border: 2px solid var(--primary);
-            opacity: 0;
-        }
-        #callScreen .avatar-wrap.ring-anim .ring {
-            animation: pulse 2.4s ease-out infinite;
-        }
-        #callScreen .avatar-wrap.ring-anim .ring:nth-child(2) {
-            animation-delay: 0.8s;
-        }
-        #callScreen .avatar-wrap.ring-anim .ring:nth-child(3) {
-            animation-delay: 1.6s;
-        }
-        @keyframes pulse {
-            0% {
-                transform: scale(0.72);
-                opacity: 0.55;
-            }
-            100% {
-                transform: scale(1.65);
-                opacity: 0;
-            }
-        }
-        #callScreen .avatar {
-            width: 110px;
-            height: 110px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--surface-3), var(--surface));
-            border: 2px solid rgba(255, 255, 255, 0.08);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            z-index: 1;
-        }
-        #callScreen .peer-name {
-            font-size: 1.5rem;
-            font-weight: 700;
-            font-family: var(--font-display);
-        }
-        #callScreen .peer-number {
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.9rem;
-        }
-        #callScreen .call-timer {
-            font-size: 1.8rem;
-            color: var(--go);
-            margin: 0.8rem 0;
-            font-family: var(--font-display);
-            font-weight: 600;
-        }
-        #callScreen .controls-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 20;
-            padding: 1rem 1.5rem calc(1.2rem + var(--safe-b));
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, transparent 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.8rem;
-        }
-        #callScreen .call-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-        }
-        #callScreen .action-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.2rem;
-        }
-        #callScreen .action-item .label {
-            font-size: 0.55rem;
-            color: rgba(255, 255, 255, 0.4);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-        #callScreen .call-actions button {
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-            background: rgba(255, 255, 255, 0.10);
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            backdrop-filter: blur(8px);
-        }
-        #callScreen .call-actions button:active {
-            transform: scale(0.90);
-        }
-        #callScreen .call-actions .mute.active {
-            background: rgba(245, 158, 11, 0.25);
-            color: var(--warn);
-        }
-        #callScreen .call-actions .speaker.active {
-            background: rgba(139, 92, 246, 0.25);
-            color: var(--primary);
-        }
-        #callScreen .call-actions .video-btn.active {
-            background: rgba(16, 185, 129, 0.25);
-            color: var(--go);
-        }
-        #callScreen .hangup {
-            width: 64px !important;
-            height: 64px !important;
-            font-size: 1.3rem !important;
-            background: linear-gradient(135deg, var(--stop), #be123c) !important;
-            box-shadow: 0 8px 30px var(--stop-glow);
-        }
-        #callScreen .net-badge {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            z-index: 15;
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-            font-size: 0.65rem;
-            padding: 0.3rem 0.7rem;
-            border-radius: 20px;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(8px);
-        }
-        #callScreen .net-badge .dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-        }
-        #callScreen .net-badge.good {
-            color: var(--go);
-        }
-        #callScreen .net-badge.good .dot {
-            background: var(--go);
-            box-shadow: 0 0 6px var(--go-glow);
-        }
-        #callScreen .net-badge.ok {
-            color: var(--warn);
-        }
-        #callScreen .net-badge.ok .dot {
-            background: var(--warn);
-        }
-        #callScreen .net-badge.bad {
-            color: var(--stop);
-        }
-        #callScreen .net-badge.bad .dot {
-            background: var(--stop);
-            box-shadow: 0 0 6px var(--stop-glow);
-        }
-        #callScreen .top-right-controls {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            z-index: 15;
-            display: flex;
-            gap: 8px;
-        }
-        #callScreen .top-right-controls button {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            font-size: 0.85rem;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(8px);
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-        #callScreen .top-right-controls button:active {
-            transform: scale(0.88);
-        }
-        #callScreen .top-right-controls button.active {
-            background: rgba(139, 92, 246, 0.3);
-            color: var(--primary);
-        }
-        #incomingOverlay {
-            display: none;
-            position: absolute;
-            inset: 0;
-            z-index: 900;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: var(--void);
-            border-radius: inherit;
-        }
-        #incomingOverlay.active {
-            display: flex;
-        }
-        #incomingOverlay .avatar {
-            width: 110px;
-            height: 110px;
-            border-radius: 50%;
-            background: var(--surface-3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            margin-bottom: 1.2rem;
-            border: 2px solid var(--line-2);
-        }
-        #incomingOverlay .peer-name {
-            font-family: var(--font-display);
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
-        #incomingOverlay .peer-number {
-            color: var(--text-dim);
-            font-size: 0.9rem;
-            margin-top: 0.2rem;
-        }
-        #incomingOverlay .hint {
-            color: var(--text-faint);
-            font-size: 0.75rem;
-            margin-top: 0.5rem;
-        }
-        #incomingOverlay .actions {
-            display: flex;
-            gap: 2.5rem;
-            margin-top: 2.5rem;
-        }
-        #incomingOverlay .actions button {
-            width: 68px;
-            height: 68px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            font-size: 1.5rem;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-        #incomingOverlay .answer {
-            background: linear-gradient(135deg, var(--go), #059669);
-            box-shadow: 0 8px 24px var(--go-glow);
-            animation: nudge 1.8s infinite;
-        }
-        #incomingOverlay .reject {
-            background: linear-gradient(135deg, var(--stop), #be123c);
-            box-shadow: 0 8px 24px var(--stop-glow);
-        }
-        @keyframes nudge {
-            50% {
-                transform: translateY(-4px);
-            }
-        }
-        #qrScannerModal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 5500;
-            background: rgba(0, 0, 0, 0.9);
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-        #qrScannerModal.active {
-            display: flex;
-        }
-        #qrScannerModal .scanner-header {
-            width: 100%;
-            max-width: 480px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem 0.5rem 1rem;
-            color: #fff;
-        }
-        #qrScannerModal .scanner-header h3 {
-            font-family: var(--font-display);
-            font-weight: 600;
-        }
-        #qrScannerModal .scanner-header button {
-            background: none;
-            border: none;
-            color: #fff;
-            font-size: 1.3rem;
-            cursor: pointer;
-            padding: 0.2rem 0.6rem;
-        }
-        #qrScannerModal #qr-reader {
-            width: 100%;
-            max-width: 400px;
-            aspect-ratio: 1/1;
-            background: #000;
-            border-radius: 16px;
-            overflow: hidden;
-        }
-        #qrScannerModal .scanner-hint {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 0.8rem;
-            margin-top: 1rem;
-            text-align: center;
-        }
-        @media (max-height: 700px) {
-            .story-ring {
-                width: 54px;
-                height: 54px;
-            }
-            .story-name {
-                max-width: 54px;
-            }
-            .chat-item .chat-avatar {
-                width: 46px;
-                height: 46px;
-            }
-        }
-    </style>
-</head>
-<body>
 
-    <div class="mesh-bg"></div>
-    <div class="app-shell" id="appShell">
+    <!-- ===== VAD Library (from CDN) ===== -->
+    <script src="https://cdn.jsdelivr.net/npm/@ricky0123/vad-web/dist/bundle.min.js">
+    </script>
 
-        <!-- HEADER -->
-        <div class="app-header">
-            <div class="brand">
-                <img src="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" alt="PremCall" />
-                <span>PremCall</span>
-            </div>
-            <div class="header-actions">
-                <div class="header-status">
-                    <span class="dot offline" id="headerStatusDot"></span>
-                    <button class="icon-btn-ghost" id="reconnectBtn" title="Reconnect"><i class="fas fa-sync"></i></button>
-                    <span id="myNumberDisplay" style="cursor:pointer; font-size:0.7rem; color:var(--text-dim);">—</span>
-                </div>
-                <button class="icon-btn-ghost" id="themeToggle" title="Toggle Theme"><i class="fas fa-moon"></i></button>
-                <button class="icon-btn-ghost" id="headerSearchBtn" title="Search"><i class="fas fa-magnifying-glass"></i></button>
-            </div>
-        </div>
+    <!-- =============================================================
+         RAGINA VOICE AGENT – Inline (same as ragina-voice.js)
+         ============================================================= -->
+    <script>
+        // ---- RAGina Voice Agent (full code) ----
+        // (This is the entire ragina-voice.js code, inlined to avoid external file issues)
+        (function() {
+            'use strict';
 
-        <!-- SEARCH BAR -->
-        <div class="search-bar" id="searchBar" style="display:none;">
-            <i class="fas fa-magnifying-glass"></i>
-            <input type="text" id="globalSearch" placeholder="Search chats, contacts, messages..." autocomplete="off" />
-        </div>
+            // ─── HARDCODED DEFAULTS ──────────────────────────────────────
+            const DEFAULT_BASE_URL = 'https://sensycilva.suryasticsai.workers.dev';
+            const DEFAULT_INDEX_URL = 'https://cdn.jsdelivr.net/gh/suryasticsai/RAGina@main/demo-index.json';
+            const DEFAULT_VOICE_ID = 'rachel';
+            const DEFAULT_VOICE_SPEED = 1.0;
+            const FALLBACK_AI_ENDPOINT = 'https://ragina-crawler-ragina.vercel.app/api/ask';
 
-        <!-- CONTENT AREA -->
-        <div class="content-area" id="contentArea">
+            const CONFIG = window.RAGINA_CONFIG || {};
+            const BASE_URL = CONFIG.apiBaseUrl || DEFAULT_BASE_URL;
+            const INDEX_URL = CONFIG.indexUrl || DEFAULT_INDEX_URL;
+            const VOICE_ID = CONFIG.voiceId || DEFAULT_VOICE_ID;
+            const VOICE_SPEED = CONFIG.voiceSpeed || DEFAULT_VOICE_SPEED;
 
-            <!-- CHATS TAB -->
-            <div class="tab-view active" id="tabChats">
-                <div class="stories-row" id="storiesRow">
-                    <div class="story-item" id="myStoryBtn">
-                        <div class="story-ring">
-                            <div class="story-avatar" style="font-size:1.4rem;">+</div>
-                            <div class="story-add"><i class="fas fa-plus" style="font-size:0.5rem;"></i></div>
+            const AI_ENDPOINT = BASE_URL + '/api/ask';
+            const YT_SEARCH_URL = BASE_URL + '/api/youtube/search?q=';
+            const VOICE_URL = BASE_URL + '/api/tts';
+
+            // ─── VAD CONFIG ──────────────────────────────────────────────
+            const VAD_CONFIG = {
+                positiveSpeechThreshold: 0.5,
+                negativeSpeechThreshold: 0.35,
+                redemptionFrames: 8,
+                preSpeechPadFrames: 10,
+                minSpeechFrames: 20,
+                onSpeechStart: () => handleBargeIn(),
+                onSpeechEnd: (audioBuffer) => handleSpeechEnd(audioBuffer),
+            };
+
+            // ─── STYLES (injected) ──────────────────────────────────────
+            const styles = `
+                /* RAGina Voice Widget styles */
+                .ragina-app {
+                    position: fixed;
+                    bottom: 30px;
+                    right: 30px;
+                    width: 380px;
+                    max-width: 95vw;
+                    z-index: 99999;
+                    transition: none;
+                }
+                .ragina-app.minimized {
+                    width: 70px;
+                    height: 70px;
+                }
+                .ragina-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    background: rgba(20, 20, 38, 0.96);
+                    border: 1px solid rgba(108, 99, 255, 0.35);
+                    border-radius: 20px 20px 0 0;
+                    padding: 10px 16px;
+                    cursor: move;
+                    flex-shrink: 0;
+                    backdrop-filter: blur(12px);
+                    user-select: none;
+                }
+                .ragina-app.minimized .ragina-header {
+                    border-radius: 50%;
+                    padding: 0;
+                    width: 70px;
+                    height: 70px;
+                    justify-content: center;
+                    border-bottom: 1px solid rgba(108, 99, 255, 0.35);
+                }
+                .ragina-header .logo {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    background: url('https://ragina-crawler-ragina.vercel.app/ragina-logo.png') center/cover;
+                    border: 2px solid #6C63FF;
+                    flex-shrink: 0;
+                    cursor: pointer;
+                }
+                .ragina-app.minimized .ragina-header .logo {
+                    width: 56px;
+                    height: 56px;
+                    margin: 0;
+                }
+                .ragina-header .title-area {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    flex: 1;
+                    margin: 0 10px;
+                    overflow: hidden;
+                }
+                .ragina-app.minimized .title-area {
+                    display: none;
+                }
+                .ragina-header .title {
+                    font-weight: 700;
+                    font-size: 16px;
+                    background: linear-gradient(90deg, #6C63FF, #FF6584);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    white-space: nowrap;
+                }
+                .ragina-header .live-transcript {
+                    font-size: 13px;
+                    color: #d0d0f0;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                    flex: 1;
+                    min-width: 0;
+                }
+                .ragina-header .live-transcript.interim {
+                    color: #b0b0e0;
+                    font-style: italic;
+                }
+                .ragina-header .actions {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }
+                .ragina-app.minimized .actions {
+                    display: none;
+                }
+                .ragina-header .btn-icon {
+                    background: none;
+                    border: none;
+                    color: #ccc;
+                    cursor: pointer;
+                    padding: 4px;
+                    transition: color 0.2s;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 28px;
+                    height: 28px;
+                }
+                .ragina-header .btn-icon:hover {
+                    color: #fff;
+                }
+                .ragina-header .btn-icon.voice-off {
+                    color: #FF6584;
+                }
+                .ragina-header .btn-icon svg {
+                    width: 18px;
+                    height: 18px;
+                    fill: currentColor;
+                }
+                .ragina-body {
+                    background: rgba(15, 15, 30, 0.97);
+                    border: 1px solid rgba(108, 99, 255, 0.3);
+                    border-top: none;
+                    border-radius: 0 0 20px 20px;
+                    display: flex;
+                    flex-direction: column;
+                    height: 440px;
+                    overflow: hidden;
+                }
+                .ragina-app.minimized .ragina-body {
+                    display: none;
+                }
+                .chat-toolbar {
+                    display: flex;
+                    gap: 8px;
+                    padding: 6px 14px;
+                    background: rgba(0, 0, 0, 0.25);
+                    border-bottom: 1px solid rgba(108, 99, 255, 0.15);
+                    flex-wrap: wrap;
+                    align-items: center;
+                }
+                .chat-toolbar button {
+                    background: rgba(108, 99, 255, 0.2);
+                    border: none;
+                    color: #ccc;
+                    padding: 4px 10px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 12px;
+                    transition: 0.2s;
+                    font-family: inherit;
+                }
+                .chat-toolbar button:hover {
+                    background: rgba(108, 99, 255, 0.4);
+                    color: #fff;
+                }
+                .chat-toolbar .status {
+                    flex: 1;
+                    text-align: right;
+                    font-size: 11px;
+                    color: #666;
+                }
+                .ragina-messages {
+                    flex: 1;
+                    overflow-y: auto;
+                    padding: 14px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                }
+                .msg {
+                    max-width: 85%;
+                    padding: 9px 13px;
+                    border-radius: 14px;
+                    font-size: 14px;
+                    line-height: 1.5;
+                    word-break: break-word;
+                }
+                .msg.user {
+                    align-self: flex-end;
+                    background: #6C63FF;
+                    color: #fff;
+                    border-bottom-right-radius: 4px;
+                }
+                .msg.bot {
+                    align-self: flex-start;
+                    background: rgba(108, 99, 255, 0.18);
+                    color: #f0f0ff;
+                    border-bottom-left-radius: 4px;
+                    border: 1px solid rgba(108, 99, 255, 0.25);
+                }
+                .msg.system {
+                    align-self: center;
+                    background: transparent;
+                    color: #9e9ec0;
+                    font-size: 12px;
+                    font-style: italic;
+                }
+                .typing-dots {
+                    align-self: flex-start;
+                    display: flex;
+                    gap: 4px;
+                    padding: 10px 13px;
+                    background: rgba(108, 99, 255, 0.12);
+                    border-radius: 14px;
+                    border-bottom-left-radius: 4px;
+                }
+                .typing-dots span {
+                    width: 6px;
+                    height: 6px;
+                    border-radius: 50%;
+                    background: #8b83ff;
+                    animation: blink 1.2s infinite;
+                }
+                .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+                .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+                @keyframes blink {
+                    0%, 80%, 100% { opacity: 0.25; }
+                    40% { opacity: 1; }
+                }
+                .music-controller {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    background: rgba(108, 99, 255, 0.15);
+                    border: 1px solid rgba(108, 99, 255, 0.35);
+                    border-radius: 12px;
+                    padding: 8px 10px;
+                    margin: 0 14px 8px;
+                }
+                .music-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                .music-controller .song-label {
+                    flex: 1;
+                    font-size: 11px;
+                    color: #ccc;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                .music-controller button {
+                    background: rgba(255, 255, 255, 0.1);
+                    border: none;
+                    color: #fff;
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                    transition: background 0.2s;
+                }
+                .music-controller button:hover {
+                    background: rgba(255, 255, 255, 0.25);
+                }
+                .music-controller button svg {
+                    width: 14px;
+                    height: 14px;
+                    fill: currentColor;
+                }
+                .progress-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }
+                .progress-bar {
+                    flex: 1;
+                    height: 4px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 2px;
+                    overflow: hidden;
+                    cursor: pointer;
+                }
+                .progress-fill {
+                    height: 100%;
+                    width: 0%;
+                    background: #6C63FF;
+                    border-radius: 2px;
+                    transition: width 0.1s linear;
+                }
+                .time-label {
+                    font-size: 10px;
+                    color: #888;
+                    min-width: 32px;
+                    text-align: center;
+                }
+                .ragina-input-row {
+                    display: flex;
+                    gap: 8px;
+                    padding: 10px;
+                    border-top: 1px solid rgba(108, 99, 255, 0.25);
+                    align-items: center;
+                }
+                .ragina-input-row input {
+                    flex: 1;
+                    background: rgba(255, 255, 255, 0.07);
+                    border: 1px solid rgba(108, 99, 255, 0.3);
+                    border-radius: 10px;
+                    padding: 9px 12px;
+                    color: #f0f0f0;
+                    font-size: 13.5px;
+                    outline: none;
+                }
+                .ragina-input-row input:focus {
+                    border-color: #6C63FF;
+                }
+                .mic-orb {
+                    width: 38px;
+                    height: 38px;
+                    border-radius: 50%;
+                    background: transparent;
+                    border: 2px solid rgba(108, 99, 255, 0.45);
+                    color: #b0a0ff;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    flex-shrink: 0;
+                    transition: all 0.2s;
+                }
+                .mic-orb svg {
+                    width: 20px;
+                    height: 20px;
+                    fill: currentColor;
+                }
+                .mic-orb.listening {
+                    background: #00d68f;
+                    border-color: #00d68f;
+                    color: #fff;
+                    animation: pulse-mic 1s infinite;
+                }
+                @keyframes pulse-mic {
+                    0%, 100% { box-shadow: 0 0 0 0 rgba(0,214,143,0.4); }
+                    50% { box-shadow: 0 0 0 14px rgba(0,214,143,0); }
+                }
+                .send-btn {
+                    background: #6C63FF;
+                    border: none;
+                    border-radius: 10px;
+                    color: #fff;
+                    padding: 0 16px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    height: 38px;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    font-size: 13.5px;
+                }
+                .send-btn:hover {
+                    background: #5a52d5;
+                }
+                .send-btn svg {
+                    width: 18px;
+                    height: 18px;
+                    fill: currentColor;
+                }
+                #youtubePlayerContainer {
+                    position: fixed;
+                    top: -9999px;
+                    left: -9999px;
+                    width: 1px;
+                    height: 1px;
+                    opacity: 0;
+                    pointer-events: none;
+                }
+                #fileInput {
+                    display: none;
+                }
+                @media (max-width: 480px) {
+                    .ragina-app {
+                        right: 8px;
+                        left: 8px;
+                        bottom: 16px;
+                        width: auto;
+                    }
+                    .ragina-app.minimized {
+                        left: auto;
+                        width: 70px;
+                    }
+                    .ragina-body {
+                        height: 360px;
+                    }
+                }
+            `;
+
+            // ─── HTML STRUCTURE ──────────────────────────────────────────
+            const appHTML = `
+                <div class="ragina-app minimized" id="raginaApp">
+                    <div class="ragina-header" id="raginaHeader">
+                        <div class="logo" id="raginaLogo"></div>
+                        <div class="title-area">
+                            <span class="title">RAGina</span>
+                            <span class="live-transcript" id="liveTranscript"></span>
                         </div>
-                        <span class="story-name">My Story</span>
+                        <div class="actions">
+                            <button class="btn-icon" id="voiceToggleBtn" title="Toggle voice">
+                                <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                            </button>
+                            <button class="btn-icon" id="minimizeBtn" title="Minimize">
+                                <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
+                            </button>
+                            <button class="btn-icon" id="closeBtn" title="Close (minimize)">
+                                <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="ragina-body" id="raginaBody">
+                        <div class="chat-toolbar">
+                            <button id="saveChatBtn">💾 Save Chat</button>
+                            <button id="loadChatBtn">📂 Load Chat</button>
+                            <button id="clearChatBtn">🗑️ Clear Chat</button>
+                            <span class="status" id="chatStatus">Auto‑saved</span>
+                        </div>
+                        <input type="file" id="fileInput" accept=".json" />
+                        <div class="ragina-messages" id="raginaMessages"></div>
+                        <div class="music-controller" id="musicController" style="display:none;">
+                            <div class="music-row">
+                                <span class="song-label" id="songLabel">🎵</span>
+                                <button id="btnPrev" title="Previous"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+                                <button id="btnPlayPause" title="Play/Pause"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+                                <button id="btnStop" title="Stop"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg></button>
+                                <button id="btnNext" title="Next"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
+                            </div>
+                            <div class="progress-row">
+                                <span class="time-label" id="timeCurrent">0:00</span>
+                                <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+                                <span class="time-label" id="timeDuration">0:00</span>
+                            </div>
+                        </div>
+                        <div class="ragina-input-row">
+                            <button class="mic-orb" id="micOrb" title="Click to speak">
+                                <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 3.91c-2.84-.48-5-2.94-5-5.91h-2c0 3.83 2.82 6.93 6.5 7.48V21h3v-3.52c3.68-.55 6.5-3.65 6.5-7.48h-2c0 2.97-2.16 5.43-5 5.91z"/></svg>
+                            </button>
+                            <input type="text" id="chatInput" placeholder="Type or speak…" autocomplete="off">
+                            <button class="send-btn" id="sendBtn">
+                                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                                Send
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <!-- RAGina card removed – floating widget replaces it -->
-                <div class="section-title"><i class="fas fa-thumbtack"></i> Pinned</div>
-                <div id="pinnedChats"></div>
-                <div class="divider"></div>
-                <div class="section-title"><i class="fas fa-comment"></i> All Messages</div>
-                <div id="chatList"></div>
-                <div class="empty-state" id="chatsEmpty" style="display:none;">
-                    <i class="fas fa-comments"></i>
-                    <p>No conversations yet.<br />Start chatting with your contacts!</p>
-                </div>
-            </div>
+                <div id="youtubePlayerContainer"></div>
+            `;
 
-            <!-- CALLS TAB -->
-            <div class="tab-view" id="tabCalls">
-                <div class="section-title"><i class="fas fa-phone"></i> Recent Calls</div>
-                <div id="callsList"></div>
-                <div class="empty-state" id="callsEmpty" style="display:none;">
-                    <i class="fas fa-phone-slash"></i>
-                    <p>No calls yet.</p>
-                </div>
-            </div>
+            // ─── INJECT ──────────────────────────────────────────────────
+            function injectApp() {
+                const styleEl = document.createElement('style');
+                styleEl.textContent = styles;
+                document.head.appendChild(styleEl);
 
-            <!-- CONTACTS TAB -->
-            <div class="tab-view" id="tabContacts">
-                <div class="search-bar" style="margin:0 0 0.6rem;">
-                    <i class="fas fa-magnifying-glass"></i>
-                    <input type="text" id="contactsSearch" placeholder="Search contacts..." />
-                </div>
-                <div class="form-row">
-                    <input type="text" id="contactNameInput" placeholder="Name" />
-                    <input type="text" id="contactNumberInput" placeholder="10-digit number" />
-                    <button class="btn-primary" id="saveContactBtn"><i class="fas fa-plus"></i></button>
-                </div>
-                <div class="section-title"><i class="fas fa-address-book"></i> Contacts</div>
-                <div id="contactsList"></div>
-                <div class="empty-state" id="contactsEmpty" style="display:none;">
-                    <i class="fas fa-user-group"></i>
-                    <p>No contacts yet.<br />Add your first contact above!</p>
-                </div>
-            </div>
+                const container = document.createElement('div');
+                container.innerHTML = appHTML;
+                while (container.firstChild) {
+                    document.body.appendChild(container.firstChild);
+                }
+            }
 
-            <!-- SETTINGS TAB -->
-            <div class="tab-view" id="tabSettings">
-                <div style="text-align:center; padding:1.5rem 0;">
-                    <div style="width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg, var(--primary), var(--accent)); margin:0 auto 0.8rem; display:flex; align-items:center; justify-content:center; font-size:2rem; box-shadow:0 8px 32px var(--primary-glow);">
-                        <i class="fas fa-user" style="color:#fff;"></i>
-                    </div>
-                    <div style="font-weight:700; font-size:1.1rem;" id="settingsName">Guest User</div>
-                    <div style="font-size:0.8rem; color:var(--text-dim); margin-top:0.2rem;" id="settingsNumber">Not registered</div>
-                    <button class="btn-primary" style="margin-top:0.8rem; padding:0.5rem 1.2rem; font-size:0.75rem;" id="registerBtn">
-                        <i class="fas fa-shield-halved"></i> Register Number
-                    </button>
-                </div>
-                <div class="divider"></div>
-                <div class="section-title">Preferences</div>
-                <div class="setting-row">
-                    <div><div style="font-weight:600; font-size:0.88rem;">Dark Mode</div><div style="font-size:0.72rem; color:var(--text-faint);">Toggle appearance</div></div>
-                    <div class="toggle on" id="toggleTheme" data-key="theme"></div>
-                </div>
-                <div class="setting-row">
-                    <div><div style="font-weight:600; font-size:0.88rem;">Auto Transcript</div><div style="font-size:0.72rem; color:var(--text-faint);">Record speech during calls</div></div>
-                    <div class="toggle on" id="toggleTranscript" data-key="transcript"></div>
-                </div>
-                <div class="setting-row">
-                    <div><div style="font-weight:600; font-size:0.88rem;">AI Summary</div><div style="font-size:0.72rem; color:var(--text-faint);">Generate recap after calls</div></div>
-                    <div class="toggle on" id="toggleSummary" data-key="summary"></div>
-                </div>
-                <div class="setting-row">
-                    <div><div style="font-weight:600; font-size:0.88rem;">Video by Default</div><div style="font-size:0.72rem; color:var(--text-faint);">Start calls with camera on</div></div>
-                    <div class="toggle" id="toggleVideoDefault" data-key="videoDefault"></div>
-                </div>
-                <div class="divider"></div>
-                <div class="section-title">Actions</div>
-                <button class="action-btn" id="showQRBtn"><i class="fas fa-qrcode"></i> My QR Code</button>
-                <button class="action-btn" id="scanQRBtn"><i class="fas fa-camera"></i> Scan QR Code</button>
-                <button class="action-btn" id="exportChatsBtn"><i class="fas fa-file-export"></i> Export Chats</button>
-                <button class="action-btn" id="clearDataBtn" style="color:var(--stop);"><i class="fas fa-trash"></i> Clear All Data</button>
-                <div style="text-align:center; padding:1.5rem 0; color:var(--text-faint); font-size:0.7rem;">PremCall v2.5 — AI Messenger</div>
-            </div>
-        </div>
+            // ─── APP LOGIC ────────────────────────────────────────────────
+            function initApp() {
+                // DOM refs
+                const app = document.getElementById('raginaApp');
+                const header = document.getElementById('raginaHeader');
+                const logo = document.getElementById('raginaLogo');
+                const liveTranscript = document.getElementById('liveTranscript');
+                const messages = document.getElementById('raginaMessages');
+                const chatInput = document.getElementById('chatInput');
+                const sendBtn = document.getElementById('sendBtn');
+                const micOrb = document.getElementById('micOrb');
+                const voiceToggleBtn = document.getElementById('voiceToggleBtn');
+                const minimizeBtn = document.getElementById('minimizeBtn');
+                const closeBtn = document.getElementById('closeBtn');
+                const musicController = document.getElementById('musicController');
+                const songLabel = document.getElementById('songLabel');
+                const btnPlayPause = document.getElementById('btnPlayPause');
+                const btnStop = document.getElementById('btnStop');
+                const progressFill = document.getElementById('progressFill');
+                const timeCurrent = document.getElementById('timeCurrent');
+                const timeDuration = document.getElementById('timeDuration');
+                const progressBar = document.getElementById('progressBar');
+                const chatStatus = document.getElementById('chatStatus');
+                const saveChatBtn = document.getElementById('saveChatBtn');
+                const loadChatBtn = document.getElementById('loadChatBtn');
+                const clearChatBtn = document.getElementById('clearChatBtn');
+                const fileInput = document.getElementById('fileInput');
 
-        <!-- FAB -->
-        <button class="fab" id="fabBtn"><i class="fas fa-pen"></i></button>
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-        <!-- BOTTOM NAV -->
-        <div class="bottom-nav">
-            <button class="nav-item active" data-tab="chats">
-                <i class="fas fa-comment"></i><span>Chats</span>
-                <span class="nav-badge" id="chatBadge" style="display:none;">0</span>
-            </button>
-            <button class="nav-item" data-tab="calls">
-                <i class="fas fa-phone"></i><span>Calls</span>
-                <span class="nav-badge" id="callBadge" style="display:none;">0</span>
-            </button>
-            <button class="nav-item" data-tab="contacts">
-                <i class="fas fa-address-book"></i><span>People</span>
-            </button>
-            <button class="nav-item" data-tab="settings">
-                <i class="fas fa-gear"></i><span>Settings</span>
-            </button>
-        </div>
+                // ─── State ──────────────────────────────────────────────
+                let engine = null;
+                let voiceActive = true;
+                let currentAudio = null;
+                let conversationActive = false;
+                let recognition = null;
+                let userName = null;
+                let awaitingName = false;
+                let history = [];
+                let isMinimized = true;
+                let musicPlaying = false;
+                let currentVideoId = null;
+                let currentSongTitle = '';
+                let musicProgressInterval = null;
+                let musicDuration = 0;
+                let musicCurrentTime = 0;
+                let wasPlayingBeforeMic = false;
+                let ttsLoading = false;
+                let youtubePlayer = null;
+                let playerReady = false;
+                let playerReadyResolve = null;
+                const playerReadyPromise = new Promise(resolve => { playerReadyResolve = resolve; });
+                let messageHistory = [];
+                let introDone = false;
 
-        <!-- INCOMING OVERLAY -->
-        <div id="incomingOverlay">
-            <div class="avatar" id="incomingAvatar">👤</div>
-            <div class="peer-name" id="incomingName">Unknown</div>
-            <div class="peer-number" id="incomingNumber"></div>
-            <div class="hint"><i class="fas fa-arrow-up"></i> Incoming call</div>
-            <div class="actions">
-                <button class="reject" id="rejectBtn"><i class="fas fa-phone-slash"></i></button>
-                <button class="answer" id="answerBtn"><i class="fas fa-phone"></i></button>
-            </div>
-        </div>
-    </div>
+                // ─── VAD State ──────────────────────────────────────────
+                let vad = null;
+                let audioContext = null;
+                let micStream = null;
+                let isSpeaking = false;
+                let silenceTimer = null;
+                let ttsAbortController = null;
+                let llmAbortController = null;
 
-    <!-- CALL SCREEN -->
-    <div id="callScreen">
-        <div class="video-bg"><video id="remoteVideo" autoplay playsinline></video></div>
-        <div class="local-pip hidden" id="localPip"><video id="localVideo" autoplay playsinline muted></video></div>
-        <div class="voice-ui" id="voiceUi">
-            <div class="avatar-wrap" id="callRingWrap">
-                <div class="ring"></div><div class="ring"></div><div class="ring"></div>
-                <div class="avatar" id="callAvatar">🤖</div>
-            </div>
-            <div class="peer-name" id="callName">RAGina</div>
-            <div class="peer-number" id="callNumber">0000000000</div>
-            <div class="call-timer" id="callTimer">00:00</div>
-        </div>
-        <div class="net-badge good" id="netBadge"><div class="dot"></div><span id="netText">Excellent</span></div>
-        <div class="top-right-controls">
-            <button id="screenShareBtn" title="Screen share"><i class="fas fa-desktop"></i></button>
-            <button id="recordBtn" title="Record call"><i class="fas fa-circle"></i></button>
-        </div>
-        <div class="controls-overlay">
-            <div class="call-actions">
-                <div class="action-item"><button id="muteBtn"><i class="fas fa-microphone"></i></button><span class="label">Mute</span></div>
-                <div class="action-item"><button id="videoToggleBtn" class="video-btn"><i class="fas fa-video"></i></button><span class="label">Video</span></div>
-                <div class="action-item"><button class="hangup" id="hangupCallBtn"><i class="fas fa-phone-slash"></i></button><span class="label">End</span></div>
-                <div class="action-item"><button id="speakerBtn"><i class="fas fa-volume-high"></i></button><span class="label">Speaker</span></div>
-                <div class="action-item"><button id="chatToggleBtn"><i class="fas fa-comment"></i></button><span class="label">Chat</span></div>
-            </div>
-        </div>
-    </div>
+                // ─── IndexedDB ──────────────────────────────────────────
+                const DB_NAME = 'RAGinaChatDB';
+                const STORE_NAME = 'chatHistory';
+                const DB_VERSION = 1;
 
-    <!-- QR SCANNER MODAL -->
-    <div id="qrScannerModal">
-        <div class="scanner-header">
-            <h3><i class="fas fa-qrcode"></i> Scan QR</h3>
-            <button id="qrScannerClose"><i class="fas fa-times"></i></button>
-        </div>
-        <div id="qr-reader"></div>
-        <div class="scanner-hint">Hold the QR code steady in front of the camera</div>
-    </div>
+                function openDB() { /* ... same as before ... */ }
+                async function saveToIndexedDB(data) { /* ... */ }
+                async function loadFromIndexedDB() { /* ... */ }
+                async function clearIndexedDB() { /* ... */ }
 
-    <!-- MODALS -->
-    <div class="modal-overlay" id="newChatModal">
-        <div class="modal-sheet">
-            <div class="modal-header"><span>New Conversation</span><button class="modal-close" id="newChatClose"><i class="fas fa-xmark"></i></button></div>
-            <div class="modal-body">
-                <div class="search-bar" style="margin:0 0 0.8rem;">
-                    <i class="fas fa-magnifying-glass"></i>
-                    <input type="text" id="newChatSearch" placeholder="Search contacts or enter number..." />
-                </div>
-                <div id="newChatList"></div>
-            </div>
-        </div>
-    </div>
+                // ─── Render messages ──────────────────────────────────
+                function renderMessages(msgs) {
+                    messages.innerHTML = '';
+                    msgs.forEach(msg => {
+                        const div = document.createElement('div');
+                        div.className = 'msg ' + (msg.role || 'system');
+                        div.innerHTML = msg.text || msg.html || '';
+                        messages.appendChild(div);
+                    });
+                    messages.scrollTop = messages.scrollHeight;
+                }
 
-    <div class="modal-overlay" id="qrModal">
-        <div class="modal-sheet" style="max-height:50vh; align-items:center; text-align:center;">
-            <div class="modal-header" style="width:100%;"><span>My QR Code</span><button class="modal-close" id="qrClose"><i class="fas fa-xmark"></i></button></div>
-            <div class="modal-body" style="display:flex; flex-direction:column; align-items:center;">
-                <div id="qrContainer" style="padding:1rem;"></div>
-                <p style="color:var(--text-dim); font-size:0.8rem; margin-top:0.5rem;">Scan to add my PremCall contact</p>
-            </div>
-        </div>
-    </div>
+                function addMessage(role, text, extraHtml = '') {
+                    const fullText = text + extraHtml;
+                    const entry = { role, text: fullText };
+                    messageHistory.push(entry);
+                    const div = document.createElement('div');
+                    div.className = 'msg ' + role;
+                    div.innerHTML = fullText;
+                    messages.appendChild(div);
+                    messages.scrollTop = messages.scrollHeight;
+                    saveToIndexedDB(messageHistory);
+                    return div;
+                }
 
-    <!-- TOAST -->
-    <div id="toast"></div>
+                async function restoreChat() {
+                    const saved = await loadFromIndexedDB();
+                    if (saved && saved.length > 0) {
+                        messageHistory = saved;
+                        renderMessages(saved);
+                        const nameMsg = saved.find(m => m.role === 'system' && m.text.includes('Welcome back'));
+                        if (nameMsg) {
+                            const match = nameMsg.text.match(/Welcome back, ([^!]+)/);
+                            if (match) userName = match[1];
+                        }
+                        introDone = true;
+                        conversationActive = true;
+                        if (userName) {
+                            try { localStorage.setItem('ragina_user_name', userName); } catch(e) {}
+                        }
+                        chatStatus.textContent = `Loaded ${saved.length} messages`;
+                        chatStatus.style.color = '#6C63FF';
+                        return true;
+                    }
+                    return false;
+                }
 
-    <!-- AUDIO -->
-    <audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
+                // ─── YouTube Player ──────────────────────────────────
+                function initYouTubePlayer() {
+                    if (window.YT && window.YT.Player) {
+                        if (youtubePlayer) return;
+                        youtubePlayer = new YT.Player('youtubePlayerContainer', {
+                            height: '0',
+                            width: '0',
+                            videoId: '',
+                            playerVars: { autoplay: 0, controls: 0, modestbranding: 1, rel: 0, showinfo: 0,
+                                iv_load_policy: 3 },
+                            events: {
+                                onReady: onPlayerReady,
+                                onStateChange: onPlayerStateChange,
+                                onError: onPlayerError
+                            }
+                        });
+                    } else {
+                        setTimeout(initYouTubePlayer, 500);
+                    }
+                }
 
-    <!-- QR LIBRARY -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js">
+                function onPlayerReady(event) {
+                    youtubePlayer = event.target;
+                    playerReady = true;
+                    if (playerReadyResolve) playerReadyResolve();
+                    if (currentVideoId) {
+                        try {
+                            youtubePlayer.loadVideoById(currentVideoId);
+                            if (musicPlaying) youtubePlayer.playVideo();
+                        } catch (e) { console.warn('Failed to load pending video:', e); }
+                    }
+                }
+
+                function onPlayerStateChange(event) {
+                    const state = event.data;
+                    if (state === YT.PlayerState.PLAYING) {
+                        musicPlaying = true;
+                        updatePlayPauseBtn(true);
+                        if (!musicProgressInterval) {
+                            musicProgressInterval = setInterval(updateProgressFromPlayer, 500);
+                        }
+                    } else if (state === YT.PlayerState.PAUSED) {
+                        musicPlaying = false;
+                        updatePlayPauseBtn(false);
+                    } else if (state === YT.PlayerState.ENDED) {
+                        stopSong();
+                        addMessage('bot', 'Song finished!');
+                        if (voiceActive && conversationActive && !currentAudio && !ttsLoading) {
+                            setTimeout(startListening, 500);
+                        }
+                    }
+                }
+
+                function onPlayerError(event) {
+                    console.warn('YouTube player error:', event.data);
+                    addMessage('bot', 'Sorry, there was an error playing that song.');
+                }
+
+                function updateProgressFromPlayer() {
+                    if (!youtubePlayer || !playerReady) return;
+                    try {
+                        const current = youtubePlayer.getCurrentTime();
+                        const duration = youtubePlayer.getDuration();
+                        if (duration && duration > 0) {
+                            musicDuration = duration;
+                            musicCurrentTime = current;
+                            updateProgressUI();
+                        }
+                    } catch (e) {}
+                }
+
+                async function loadVideo(videoId, title) {
+                    if (!playerReady) {
+                        await playerReadyPromise;
+                    }
+                    if (!youtubePlayer || typeof youtubePlayer.loadVideoById !== 'function') {
+                        console.warn('YouTube player not ready, reinitializing...');
+                        playerReady = false;
+                        initYouTubePlayer();
+                        await playerReadyPromise;
+                        if (!youtubePlayer || typeof youtubePlayer.loadVideoById !== 'function') {
+                            addMessage('bot', 'Sorry, music player unavailable.');
+                            return;
+                        }
+                    }
+                    currentVideoId = videoId;
+                    currentSongTitle = title;
+                    try {
+                        youtubePlayer.loadVideoById(videoId);
+                        youtubePlayer.playVideo();
+                        musicPlaying = true;
+                        musicDuration = 0;
+                        musicCurrentTime = 0;
+                        updatePlayPauseBtn(true);
+                        showMusicController();
+                        songLabel.textContent = '🎵 ' + title;
+                        updateProgressUI();
+                        if (musicProgressInterval) clearInterval(musicProgressInterval);
+                        musicProgressInterval = setInterval(updateProgressFromPlayer, 500);
+                    } catch (err) {
+                        console.error('loadVideo error:', err);
+                        addMessage('bot', 'Could not play that song.');
+                    }
+                }
+
+                function pauseSong() {
+                    if (youtubePlayer && playerReady) youtubePlayer.pauseVideo();
+                    musicPlaying = false;
+                    updatePlayPauseBtn(false);
+                }
+
+                function resumeSong() {
+                    if (youtubePlayer && playerReady) youtubePlayer.playVideo();
+                    musicPlaying = true;
+                    updatePlayPauseBtn(true);
+                }
+
+                function stopSong() {
+                    if (youtubePlayer && playerReady) youtubePlayer.stopVideo();
+                    musicPlaying = false;
+                    currentVideoId = null;
+                    currentSongTitle = '';
+                    updatePlayPauseBtn(false);
+                    hideMusicController();
+                    if (musicProgressInterval) {
+                        clearInterval(musicProgressInterval);
+                        musicProgressInterval = null;
+                    }
+                    musicCurrentTime = 0;
+                    musicDuration = 0;
+                    updateProgressUI();
+                }
+
+                function showMusicController() { musicController.style.display = 'flex'; }
+                function hideMusicController() { musicController.style.display = 'none'; }
+
+                function updatePlayPauseBtn(playing) {
+                    if (playing) {
+                        btnPlayPause.innerHTML =
+                        `<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+                    } else {
+                        btnPlayPause.innerHTML =
+                        `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
+                    }
+                }
+
+                function formatTime(seconds) {
+                    if (!seconds || isNaN(seconds)) return '0:00';
+                    const m = Math.floor(seconds / 60);
+                    const s = Math.floor(seconds % 60);
+                    return m + ':' + (s < 10 ? '0' : '') + s;
+                }
+
+                function updateProgressUI() {
+                    const pct = (musicDuration > 0) ? (musicCurrentTime / musicDuration) * 100 : 0;
+                    progressFill.style.width = pct + '%';
+                    timeCurrent.textContent = formatTime(musicCurrentTime);
+                    timeDuration.textContent = formatTime(musicDuration);
+                }
+
+                // ─── Music commands ──────────────────────────────────
+                function executeMusicAction(action, song) {
+                    switch (action) {
+                        case 'play':
+                            if (song) searchAndPlay(song);
+                            else addMessage('bot', "What song would you like to play?");
+                            break;
+                        case 'pause':
+                            if (musicPlaying) { pauseSong();
+                                addMessage('bot', '⏸️ Paused.'); } else addMessage('bot', 'No song playing.');
+                            break;
+                        case 'resume':
+                            if (currentVideoId && !musicPlaying) { resumeSong();
+                                addMessage('bot', '▶️ Resumed.'); } else if (musicPlaying) addMessage('bot',
+                                'Already playing.'); else addMessage('bot', 'No song paused.');
+                            break;
+                        case 'stop':
+                            stopSong();
+                            addMessage('bot', '⏹️ Stopped.');
+                            break;
+                        case 'change':
+                            if (currentVideoId) { stopSong();
+                                addMessage('bot', "⏭️ Changed. What next?"); } else addMessage('bot',
+                                'No song playing.');
+                            break;
+                        default:
+                            return false;
+                    }
+                    return true;
+                }
+
+                function handleMusicCommandFast(text) {
+                    const lower = text.toLowerCase().trim();
+                    if (/\b(?:not\s+this|some\s+other|different)\s+(?:song|music|track)\b/i.test(lower) ||
+                        /\b(?:change|skip|next)\s+(?:this|the)?\s*(?:song|music|track)\b/i.test(lower) ||
+                        lower === 'skip' || lower === 'next' || lower === 'change') {
+                        executeMusicAction('change');
+                        return true;
+                    }
+                    let playMatch = lower.match(/^(?:play|play me|can you play|put on)\s+(.+)/i);
+                    if (playMatch) {
+                        const query = playMatch[1].trim();
+                        const filler = ['not this', 'some other', 'different', 'another', 'something else'];
+                        if (query.length <= 2 || filler.some(w => query.includes(w))) {
+                            executeMusicAction('change');
+                            return true;
+                        }
+                        searchAndPlay(query);
+                        return true;
+                    }
+                    let songMatch = lower.match(/^(.+)\s+(?:song|music|track)$/i);
+                    if (songMatch) {
+                        const query = songMatch[1].trim();
+                        const filler = ['not this', 'some other', 'different', 'another', 'something else'];
+                        if (query.length <= 2 || filler.some(w => query.includes(w))) {
+                            executeMusicAction('change');
+                            return true;
+                        }
+                        searchAndPlay(query);
+                        return true;
+                    }
+                    if (/\b(?:pause|hold)\s+(?:the\s+)?(?:song|music|track)\b/i.test(lower) || lower === 'pause') {
+                        executeMusicAction('pause');
+                        return true;
+                    }
+                    if (/\b(?:resume|continue|unpause)\s+(?:the\s+)?(?:song|music|track)\b/i.test(lower) || lower ===
+                        'resume') {
+                        executeMusicAction('resume');
+                        return true;
+                    }
+                    if (/\b(?:stop|end|finish)\s+(?:the\s+)?(?:song|music|track)\b/i.test(lower) || lower === 'stop') {
+                        executeMusicAction('stop');
+                        return true;
+                    }
+                    return false;
+                }
+
+                async function parseMusicCommandWithAI(text) {
+                    const prompt =
+                        `You are a music command parser. Given the user's message, determine if they want to control music playback. If yes, respond with a JSON object containing "action" and optionally "song". Actions: "play", "pause", "resume", "stop", "change". If not a music command, respond with {"action": "none"}.
+
+            Important: Only set action to "play" if the user specifically asks for a song by name or artist. If they say things like "not this song", "some other song", "different song", "change", "skip", "next", then action should be "change". If they are just chatting, action should be "none".
+
+            User: "${text}"
+            Response:`;
+                    try {
+                        const res = await fetch(AI_ENDPOINT, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ prompt })
+                        });
+                        if (!res.ok) throw new Error(`AI ${res.status}`);
+                        const data = await res.json();
+                        const jsonMatch = data.text.match(/\{.*\}/s);
+                        if (jsonMatch) {
+                            const parsed = JSON.parse(jsonMatch[0]);
+                            if (parsed.action === 'play') {
+                                const song = (parsed.song || '').trim();
+                                const filler = ['not this', 'some other', 'different', 'another', 'something else',
+                                    'change', 'skip'
+                                ];
+                                if (!song || song.length <= 2 || filler.some(w => song.toLowerCase().includes(w))) {
+                                    return { action: 'change' };
+                                }
+                            }
+                            return parsed;
+                        }
+                        return { action: 'none' };
+                    } catch (e) {
+                        return { action: 'none' };
+                    }
+                }
+
+                // ─── Get selected text ──────────────────────────────
+                function getSelectedText() {
+                    const sel = window.getSelection();
+                    if (!sel || sel.isCollapsed) return '';
+                    const text = sel.toString().trim();
+                    console.log('📌 Selected text:', text);
+                    return text;
+                }
+
+                // ─── AI call with retry & abort ──────────────────────
+                async function callAI(prompt, signal) {
+                    let attempts = 0;
+                    const maxAttempts = 2;
+                    let lastError = null;
+                    while (attempts < maxAttempts) {
+                        attempts++;
+                        try {
+                            const res = await fetch(AI_ENDPOINT, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ prompt }),
+                                signal: signal,
+                            });
+                            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                            const data = await res.json();
+                            if (data.error || !data.text?.trim()) throw new Error(data.error || 'Empty response');
+                            return data.text.trim();
+                        } catch (err) {
+                            if (err.name === 'AbortError') throw err;
+                            lastError = err;
+                            console.warn(`AI attempt ${attempts} failed:`, err.message);
+                            if (attempts === 1 && FALLBACK_AI_ENDPOINT && FALLBACK_AI_ENDPOINT !== AI_ENDPOINT) {
+                                try {
+                                    const res = await fetch(FALLBACK_AI_ENDPOINT, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ prompt }),
+                                        signal: signal,
+                                    });
+                                    if (res.ok) {
+                                        const data = await res.json();
+                                        if (data.text?.trim()) return data.text.trim();
+                                    }
+                                } catch (e) {}
+                            }
+                            if (attempts < maxAttempts) await new Promise(r => setTimeout(r, 2000));
+                        }
+                    }
+                    throw lastError || new Error('All AI attempts failed.');
+                }
+
+                async function getAIAnswer(question, selectedText, signal) {
+                    let context = '';
+                    if (selectedText) {
+                        context = `The user has selected the following text on the page: "${selectedText}".\n\n`;
+                    }
+                    if (engine && typeof engine.retrieve === 'function') {
+                        try {
+                            const chunks = engine.retrieve(question, 5) || [];
+                            const ragContext = chunks.map((c, i) => `[${i+1}] ${c.text}`).join('\n\n');
+                            if (ragContext) {
+                                context += 'Relevant context from knowledge base:\n' + ragContext + '\n\n';
+                            }
+                        } catch (e) {}
+                    }
+                    const recentHistory = history.slice(-8)
+                        .map(h => `${h.role === 'user' ? (userName || 'User') : 'RAGina'}: ${h.text}`)
+                        .join('\n');
+                    const prompt =
+                        `You are RAGina — witty, warm, sharp-tongued AI with access to YouTube music. Talk like a real friend. You can play songs. If the user asks for music, say you'll play it. Only use context below if relevant. You're talking to ${userName || 'someone new'}.
+
+${context ? 'User provided selected text context:\n' + context : ''}
+
+Recent:
+${recentHistory}
+
+${userName || 'User'}: ${question}
+RAGina:`;
+                    return await callAI(prompt, signal);
+                }
+
+                // ─── Search and play ──────────────────────────────────
+                async function searchAndPlay(query) {
+                    if (!query || query.length < 2) {
+                        addMessage('bot', "Could you be more specific?");
+                        return;
+                    }
+                    try {
+                        const url = YT_SEARCH_URL + encodeURIComponent(query);
+                        const res = await fetch(url);
+                        if (!res.ok) throw new Error(`Worker returned ${res.status}`);
+                        const data = await res.json();
+                        if (!data.success || !data.items || data.items.length === 0) {
+                            addMessage('bot', `Couldn't find "${query}".`);
+                            const fallbackUrl =
+                                `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+                            addMessage('bot',
+                                `Open: <a href="${fallbackUrl}" target="_blank">${query} on YouTube</a>`);
+                            return;
+                        }
+                        const song = data.items[0];
+                        await loadVideo(song.id, song.title);
+                        addMessage('bot', `🎵 Playing: <strong>${escapeHTML(song.title)}</strong>`);
+                        if (voiceActive && !musicPlaying) await speakText(`Playing ${song.title}.`);
+                    } catch (err) {
+                        console.error('Search error:', err);
+                        addMessage('bot', `Oops, could not play that. Error: ${err.message || 'unknown'}`);
+                    }
+                }
+
+                function escapeHTML(str) { const d = document.createElement('div');
+                    d.textContent = str; return d.innerHTML; }
+
+                // ─── Button controls ──────────────────────────────────
+                btnPlayPause.addEventListener('click', () => {
+                    if (musicPlaying) { pauseSong();
+                        addMessage('bot', '⏸️ Paused.'); } else if (currentVideoId) { resumeSong();
+                        addMessage('bot', '▶️ Resumed.'); } else addMessage('bot', 'No song loaded.');
+                });
+                btnStop.addEventListener('click', () => { stopSong();
+                    addMessage('bot', '⏹️ Stopped.'); });
+                progressBar.addEventListener('click', (e) => {
+                    if (!youtubePlayer || !playerReady || !currentVideoId) return;
+                    const rect = progressBar.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) / rect.width;
+                    const duration = youtubePlayer.getDuration();
+                    if (duration && duration > 0) {
+                        youtubePlayer.seekTo(x * duration, true);
+                        updateProgressFromPlayer();
+                    }
+                });
+
+                // ─── Drag / Click ──────────────────────────────────────
+                let dragActive = false,
+                    dragStartX = 0,
+                    dragStartY = 0,
+                    pointerDownX = 0,
+                    pointerDownY = 0,
+                    startLeft = 0,
+                    startTop = 0,
+                    isClick = false;
+                function onPointerDown(e) {
+                    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.btn-icon')) return;
+                    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                    pointerDownX = clientX;
+                    pointerDownY = clientY;
+                    dragStartX = clientX;
+                    dragStartY = clientY;
+                    dragActive = true;
+                    isClick = true;
+                    const rect = app.getBoundingClientRect();
+                    startLeft = rect.left;
+                    startTop = rect.top;
+                    app.style.transition = 'none';
+                    e.preventDefault();
+                }
+                function onPointerMove(e) {
+                    if (!dragActive) return;
+                    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                    const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                    const dx = clientX - dragStartX,
+                        dy = clientY - dragStartY;
+                    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) isClick = false;
+                    app.style.left = (startLeft + dx) + 'px';
+                    app.style.top = (startTop + dy) + 'px';
+                    app.style.right = 'auto';
+                    app.style.bottom = 'auto';
+                }
+                function onPointerUp(e) {
+                    if (!dragActive) return;
+                    dragActive = false;
+                    if (e.target.closest('button') || e.target.closest('input') || e.target.closest('.btn-icon')) return;
+                    const clientX = e.clientX || (e.changedTouches && e.changedTouches[0].clientX);
+                    const clientY = e.clientY || (e.changedTouches && e.changedTouches[0].clientY);
+                    const dx = clientX - pointerDownX,
+                        dy = clientY - pointerDownY;
+                    if (Math.abs(dx) < 5 && Math.abs(dy) < 5 && isClick) {
+                        handleClick(e);
+                    }
+                    isClick = false;
+                }
+                function handleClick(e) {
+                    if (isMinimized) {
+                        setMinimized(false);
+                        if (!introDone) introduce();
+                    } else {
+                        const target = e.target;
+                        if (target.closest && target.closest('.logo')) {
+                            if (!introDone) introduce();
+                            e.stopPropagation();
+                        }
+                    }
+                }
+                header.addEventListener('mousedown', onPointerDown);
+                header.addEventListener('touchstart', onPointerDown, { passive: false });
+                document.addEventListener('mousemove', onPointerMove);
+                document.addEventListener('touchmove', onPointerMove, { passive: false });
+                document.addEventListener('mouseup', onPointerUp);
+                document.addEventListener('touchend', onPointerUp);
+                logo.addEventListener('click', (e) => {
+                    if (isMinimized) { setMinimized(false); if (!introDone) introduce(); } else if (!introDone)
+                        introduce();
+                    e.stopPropagation();
+                });
+
+                // ─── Minimize / Close ──────────────────────────────────
+                function setMinimized(min) {
+                    isMinimized = min;
+                    app.classList.toggle('minimized', min);
+                    if (min) {
+                        minimizeBtn.innerHTML =
+                            `<svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>`;
+                        stopVAD();
+                    } else {
+                        minimizeBtn.innerHTML =
+                            `<svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>`;
+                        if (voiceActive && conversationActive) startVAD();
+                        if (!musicPlaying) chatInput.focus();
+                    }
+                }
+                minimizeBtn.addEventListener('click', (e) => { e.stopPropagation();
+                    setMinimized(!isMinimized); });
+                closeBtn.addEventListener('click', (e) => { e.stopPropagation();
+                    setMinimized(true); });
+
+                // ─── Intro ──────────────────────────────────────────────
+                async function introduce() {
+                    if (introDone) return;
+                    introDone = true;
+                    const introText =
+                        "Hey there! I'm RAGina, your personal mentalist. I can chat, answer questions, and even play music. What's your name?";
+                    addMessage('bot', introText);
+                    awaitingName = true;
+                    conversationActive = true;
+                    if (voiceActive) {
+                        await speakText(introText);
+                        if (!isMinimized) startVAD();
+                    }
+                }
+
+                // ─── AI helpers ──────────────────────────────────────
+                function waitForEngine(timeoutMs) {
+                    return new Promise(resolve => {
+                        const start = Date.now();
+                        (function poll() {
+                            if (window.RAGina && window.RAGina.getEngine) {
+                                try { resolve(window.RAGina.getEngine()); return; } catch (e) {}
+                            }
+                            if (Date.now() - start > timeoutMs) { resolve(null); return; }
+                            setTimeout(poll, 200);
+                        })();
+                    });
+                }
+                async function loadName() { try { return localStorage.getItem('ragina_user_name'); } catch (e) { return null; } }
+                async function saveName(name) { try { localStorage.setItem('ragina_user_name', name); } catch (e) {} }
+
+                function extractName(raw) {
+                    const text = raw.trim();
+                    const m = text.match(/(?:my name is|i am|i'm|im|call me|it's|its)\s+([a-z][a-z '-]{0,24})/i);
+                    const word = m && m[1] ? m[1].trim().split(/\s+/)[0] : (text.split(/\s+/)[0] || text);
+                    const clean = word.replace(/[^a-zA-Z'-]/g, '');
+                    return clean ? clean.charAt(0).toUpperCase() + clean.slice(1).toLowerCase() : 'friend';
+                }
+
+                // ─── Core sendMessage ──────────────────────────────────
+                async function sendMessage(rawText) {
+                    const text = (rawText || '').trim();
+                    if (!text) return;
+                    chatInput.value = '';
+                    const selected = getSelectedText();
+
+                    if (awaitingName) {
+                        awaitingName = false;
+                        userName = extractName(text);
+                        await saveName(userName);
+                        addMessage('user', text);
+                        const greet = `Nice to meet you, ${userName}! What can I help you with today?`;
+                        history.push({ role: 'user', text }, { role: 'bot', text: greet });
+                        addMessage('bot', greet);
+                        if (voiceActive) await speakText(greet);
+                        if (!musicPlaying && !currentAudio && !ttsLoading) setTimeout(startListening, 500);
+                        return;
+                    }
+                    if (selected) addMessage('system', `📝 Selected: "${selected}"`);
+                    if (handleMusicCommandFast(text)) { addMessage('user', text); return; }
+
+                    const aiCommand = await parseMusicCommandWithAI(text);
+                    if (aiCommand.action && aiCommand.action !== 'none') {
+                        const executed = executeMusicAction(aiCommand.action, aiCommand.song);
+                        if (executed) { addMessage('user', text); return; }
+                    }
+
+                    addMessage('user', text);
+                    history.push({ role: 'user', text });
+                    if (history.length > 16) history = history.slice(-16);
+
+                    llmAbortController = new AbortController();
+                    showTyping();
+                    if (voiceActive) setLiveTranscript('Thinking…');
+                    try {
+                        const answer = await getAIAnswer(text, selected, llmAbortController.signal);
+                        hideTyping();
+                        setLiveTranscript('');
+                        addMessage('bot', answer);
+                        history.push({ role: 'bot', text: answer });
+                        if (voiceActive && !musicPlaying) {
+                            await speakText(answer);
+                        } else {
+                            if (conversationActive && !musicPlaying) setTimeout(startListening, 500);
+                        }
+                    } catch (err) {
+                        if (err.name === 'AbortError') {
+                            console.log('LLM fetch aborted (barge‑in)');
+                        } else {
+                            hideTyping();
+                            setLiveTranscript('');
+                            addMessage('bot',
+                            "I'm having trouble connecting. Could you try again?");
+                            console.error('sendMessage error:', err);
+                        }
+                    } finally {
+                        llmAbortController = null;
+                    }
+                }
+
+                // ─── TTS ────────────────────────────────────────────────
+                async function speakText(text) {
+                    if (!voiceActive || !text) return;
+                    const cleanText = text.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').replace(/[\u{2600}-\u{26FF}]/gu, '')
+                        .trim();
+                    if (!cleanText) return;
+
+                    if (ttsAbortController) {
+                        ttsAbortController.abort();
+                        ttsAbortController = null;
+                    }
+                    stopAudio();
+                    isSpeaking = true;
+                    ttsAbortController = new AbortController();
+
+                    try {
+                        const res = await fetch(VOICE_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ text: cleanText, language: 'en-US', voice_id: VOICE_ID,
+                                speed: VOICE_SPEED }),
+                            signal: ttsAbortController.signal,
+                        });
+                        if (!res.ok) throw new Error(`TTS ${res.status}`);
+                        const blob = await res.blob();
+                        const audioUrl = URL.createObjectURL(blob);
+                        currentAudio = new Audio(audioUrl);
+                        currentAudio.addEventListener('ended', () => {
+                            currentAudio = null;
+                            isSpeaking = false;
+                            ttsAbortController = null;
+                            if (conversationActive && !musicPlaying && !vad) {
+                                if (!vad) setTimeout(startListening, 500);
+                            }
+                        });
+                        currentAudio.addEventListener('error', () => {
+                            currentAudio = null;
+                            isSpeaking = false;
+                            ttsAbortController = null;
+                            if (conversationActive && !musicPlaying && !vad) setTimeout(startListening, 500);
+                        });
+                        currentAudio.play();
+                    } catch (err) {
+                        if (err.name === 'AbortError') {
+                            console.log('TTS aborted (barge‑in)');
+                        } else {
+                            console.warn('Voice failed:', err.message);
+                        }
+                        isSpeaking = false;
+                        ttsAbortController = null;
+                    }
+                }
+
+                function stopAudio() {
+                    if (currentAudio) {
+                        currentAudio.pause();
+                        currentAudio.currentTime = 0;
+                        currentAudio.onended = null;
+                        currentAudio.onerror = null;
+                        currentAudio = null;
+                    }
+                    if (ttsAbortController) {
+                        ttsAbortController.abort();
+                        ttsAbortController = null;
+                    }
+                    ttsLoading = false;
+                    isSpeaking = false;
+                }
+
+                // ─── VAD Handlers ──────────────────────────────────────
+                function handleBargeIn() {
+                    if (!voiceActive || !conversationActive || isMinimized) return;
+                    if (isSpeaking || ttsAbortController || llmAbortController) {
+                        console.log('🔊 Barge‑in – interrupting...');
+                        stopAudio();
+                        if (llmAbortController) {
+                            llmAbortController.abort();
+                            llmAbortController = null;
+                        }
+                        if (silenceTimer) {
+                            clearTimeout(silenceTimer);
+                            silenceTimer = null;
+                        }
+                        isSpeaking = false;
+                    }
+                }
+
+                function handleSpeechEnd(audioBuffer) {
+                    // Not used for transcription yet (we use webkitSpeechRecognition)
+                    console.log('VAD speech end – not used for transcription.');
+                }
+
+                // ─── VAD Lifecycle ──────────────────────────────────────
+                async function startVAD() {
+                    if (vad) return;
+                    if (typeof MicVAD === 'undefined') {
+                        console.warn('VAD library not loaded – barge‑in disabled.');
+                        return;
+                    }
+                    try {
+                        micStream = await navigator.mediaDevices.getUserMedia({
+                            audio: {
+                                echoCancellation: true,
+                                noiseSuppression: true,
+                                autoGainControl: true,
+                            }
+                        });
+                        audioContext = new(window.AudioContext || window.webkitAudioContext)();
+                        vad = await MicVAD.new({
+                            ...VAD_CONFIG,
+                            stream: micStream,
+                        });
+                        vad.start();
+                        console.log('✅ VAD started');
+                    } catch (e) {
+                        console.warn('VAD init failed:', e);
+                        vad = null;
+                        if (micStream) {
+                            micStream.getTracks().forEach(t => t.stop());
+                            micStream = null;
+                        }
+                        if (audioContext && audioContext.state !== 'closed') {
+                            try { audioContext.close(); } catch (e) {}
+                            audioContext = null;
+                        }
+                    }
+                }
+
+                function stopVAD() {
+                    if (vad) {
+                        try { vad.stop(); } catch (e) {}
+                        vad = null;
+                    }
+                    if (micStream) {
+                        micStream.getTracks().forEach(t => t.stop());
+                        micStream = null;
+                    }
+                    if (audioContext && audioContext.state !== 'closed') {
+                        try { audioContext.close(); } catch (e) {}
+                        audioContext = null;
+                    }
+                }
+
+                // ─── Mic ────────────────────────────────────────────────
+                function startListening() {
+                    if (!voiceActive || !SpeechRecognition) return;
+                    if (currentAudio) return;
+                    if (ttsLoading) return;
+                    if (musicPlaying) return;
+                    if (isMinimized) return;
+
+                    if (recognition) {
+                        try { recognition.stop(); } catch (e) {}
+                        recognition = null;
+                    }
+
+                    recognition = new SpeechRecognition();
+                    recognition.continuous = false;
+                    recognition.interimResults = true;
+                    recognition.lang = 'en-US';
+
+                    let finalTranscript = '';
+
+                    recognition.addEventListener('result', (e) => {
+                        let interim = '';
+                        for (let i = e.resultIndex; i < e.results.length; i++) {
+                            const r = e.results[i];
+                            if (r.isFinal) {
+                                finalTranscript += r[0].transcript;
+                            } else {
+                                interim += r[0].transcript;
+                            }
+                        }
+                        chatInput.value = finalTranscript + interim;
+                        setLiveTranscript(interim || finalTranscript, !!interim);
+                    });
+
+                    recognition.addEventListener('end', () => {
+                        micOrb.classList.remove('listening');
+                        const text = finalTranscript.trim();
+                        finalTranscript = '';
+                        recognition = null;
+                        setLiveTranscript('');
+
+                        if (text) {
+                            chatInput.value = text;
+                            sendMessage(text);
+                        } else {
+                            if (wasPlayingBeforeMic && currentVideoId) {
+                                wasPlayingBeforeMic = false;
+                                resumeSong();
+                            }
+                        }
+                    });
+
+                    recognition.addEventListener('error', (e) => {
+                        micOrb.classList.remove('listening');
+                        setLiveTranscript('');
+                        recognition = null;
+                        if (e.error === 'not-allowed') {
+                            setLiveTranscript('Mic denied');
+                            setTimeout(() => setLiveTranscript(''), 4000);
+                        }
+                        if (wasPlayingBeforeMic && currentVideoId) {
+                            wasPlayingBeforeMic = false;
+                            resumeSong();
+                        }
+                    });
+
+                    try {
+                        recognition.start();
+                        micOrb.classList.add('listening');
+                        setLiveTranscript('🎤 Listening…', true);
+                    } catch (e) {
+                        recognition = null;
+                    }
+                }
+
+                function stopListening() {
+                    if (recognition) {
+                        try { recognition.stop(); } catch (e) {}
+                        recognition = null;
+                    }
+                    micOrb.classList.remove('listening');
+                    setLiveTranscript('');
+                    if (wasPlayingBeforeMic && currentVideoId) {
+                        wasPlayingBeforeMic = false;
+                        resumeSong();
+                    }
+                }
+
+                micOrb.addEventListener('click', () => {
+                    if (!voiceActive) return;
+                    if (currentAudio) {
+                        stopAudio();
+                        if (musicPlaying) { wasPlayingBeforeMic = true;
+                            pauseSong(); }
+                        if (!conversationActive) conversationActive = true;
+                        setTimeout(startListening, 100);
+                        return;
+                    }
+                    if (micOrb.classList.contains('listening')) {
+                        stopListening();
+                        return;
+                    }
+                    if (musicPlaying) { wasPlayingBeforeMic = true;
+                        pauseSong(); }
+                    if (!conversationActive) conversationActive = true;
+                    startListening();
+                });
+
+                voiceToggleBtn.addEventListener('click', () => {
+                    voiceActive = !voiceActive;
+                    if (voiceActive) {
+                        voiceToggleBtn.innerHTML =
+                            `<svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>`;
+                        voiceToggleBtn.classList.remove('voice-off');
+                        if (!isMinimized && conversationActive) startVAD();
+                    } else {
+                        voiceToggleBtn.innerHTML =
+                            `<svg viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>`;
+                        voiceToggleBtn.classList.add('voice-off');
+                        stopListening();
+                        stopSong();
+                        stopAudio();
+                        stopVAD();
+                    }
+                });
+
+                sendBtn.addEventListener('click', () => sendMessage(chatInput.value));
+                chatInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') sendMessage(chatInput.value);
+                });
+
+                // ─── Export / Import / Clear ──────────────────────────
+                saveChatBtn.addEventListener('click', () => {
+                    const data = JSON.stringify(messageHistory, null, 2);
+                    const blob = new Blob([data], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `ragina-chat-${new Date().toISOString().slice(0,10)}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    chatStatus.textContent = 'Exported ✓';
+                    chatStatus.style.color = '#6C63FF';
+                    setTimeout(() => { chatStatus.textContent = 'Auto‑saved';
+                        chatStatus.style.color = '#666'; }, 3000);
+                });
+                loadChatBtn.addEventListener('click', () => fileInput.click());
+                fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        try {
+                            const data = JSON.parse(ev.target.result);
+                            if (Array.isArray(data)) {
+                                messageHistory = data;
+                                renderMessages(data);
+                                saveToIndexedDB(data);
+                                chatStatus.textContent = `Loaded ${data.length} messages`;
+                                chatStatus.style.color = '#6C63FF';
+                                const nameMsg = data.find(m => m.role === 'system' && m.text.includes(
+                                'Welcome back'));
+                                if (nameMsg) {
+                                    const match = nameMsg.text.match(/Welcome back, ([^!]+)/);
+                                    if (match) {
+                                        userName = match[1];
+                                        try { localStorage.setItem('ragina_user_name', userName); } catch (e) {}
+                                    }
+                                }
+                                history = data.filter(m => m.role === 'user' || m.role === 'bot')
+                                    .map(m => ({ role: m.role, text: m.text }));
+                                introDone = true;
+                                conversationActive = true;
+                                if (userName) {
+                                    setTimeout(() => {
+                                        if (voiceActive && !musicPlaying && !currentAudio && !ttsLoading) {
+                                            startListening();
+                                        }
+                                    }, 1000);
+                                }
+                            } else {
+                                throw new Error('Invalid format');
+                            }
+                        } catch (err) {
+                            alert('Failed to load chat file.');
+                            console.error(err);
+                        }
+                    };
+                    reader.readAsText(file);
+                    fileInput.value = '';
+                });
+                clearChatBtn.addEventListener('click', async () => {
+                    if (confirm('Clear all chat history?')) {
+                        messageHistory = [];
+                        messages.innerHTML = '';
+                        history = [];
+                        userName = null;
+                        introDone = false;
+                        conversationActive = false;
+                        awaitingName = false;
+                        try { localStorage.removeItem('ragina_user_name'); } catch (e) {}
+                        await clearIndexedDB();
+                        chatStatus.textContent = 'Cleared';
+                        chatStatus.style.color = '#FF6584';
+                        setTimeout(() => { chatStatus.textContent = 'Auto‑saved';
+                            chatStatus.style.color = '#666'; }, 3000);
+                    }
+                });
+
+                // ─── Typing / transcript ──────────────────────────────
+                function setLiveTranscript(text, interim = false) {
+                    liveTranscript.textContent = text || '';
+                    liveTranscript.classList.toggle('interim', interim);
+                }
+                let typingEl = null;
+
+                function showTyping() {
+                    typingEl = document.createElement('div');
+                    typingEl.className = 'typing-dots';
+                    typingEl.innerHTML = '<span></span><span></span><span></span>';
+                    messages.appendChild(typingEl);
+                    messages.scrollTop = messages.scrollHeight;
+                }
+
+                function hideTyping() {
+                    if (typingEl) { typingEl.remove();
+                        typingEl = null; }
+                }
+
+                // ─── Boot ──────────────────────────────────────────────
+                (async function init() {
+                    // Load YouTube API if not present
+                    if (!window.YT || !window.YT.Player) {
+                        const script = document.createElement('script');
+                        script.src = 'https://www.youtube.com/iframe_api';
+                        script.async = true;
+                        document.head.appendChild(script);
+                        await new Promise(resolve => {
+                            const check = () => {
+                                if (window.YT && window.YT.Player) resolve();
+                                else setTimeout(check, 200);
+                            };
+                            check();
+                        });
+                    }
+                    initYouTubePlayer();
+
+                    engine = await waitForEngine(5000);
+
+                    const hasHistory = await restoreChat();
+                    if (!hasHistory) {
+                        // No history – just show orb
+                    } else {
+                        if (userName) conversationActive = true;
+                    }
+                    setMinimized(true);
+                })();
+
+                // ─── Expose YouTube callback ──────────────────────────
+                window.onYouTubeIframeAPIReady = function() {
+                    if (!youtubePlayer && window.YT && window.YT.Player) {
+                        initYouTubePlayer();
+                    }
+                };
+            }
+
+            // ─── Execute ──────────────────────────────────────────────────
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => {
+                    injectApp();
+                    initApp();
+                });
+            } else {
+                injectApp();
+                initApp();
+            }
+
+        })();
     </script>
 
     <!-- ============================================================
@@ -1580,7 +1673,7 @@
             // ============================================================
             //  CONSTANTS
             // ============================================================
-            const RAGINA_NUMBER = '0000000000'; // kept for compatibility, not used
+            const RAGINA_NUMBER = '0000000000'; // kept for compatibility
 
             // ============================================================
             //  STATE
@@ -1755,8 +1848,7 @@
                         convos.push({ number: c.number, lastMsg: null, unread: 0 });
                     }
                 });
-                // RAGina contact is now handled by the floating widget, not in chat list
-                // We still keep it for message history but no card.
+                // Keep RAGina in chat list for message history
                 if (!blocked.includes(RAGINA_NUMBER) && !convos.find(x => x.number === RAGINA_NUMBER)) {
                     convos.push({ number: RAGINA_NUMBER, lastMsg: null, unread: 0 });
                 }
@@ -2571,11 +2663,11 @@
                         if (btn.dataset.video) {
                             localStorage.setItem('premCallPendingCall', JSON.stringify({ number: num, video: true }));
                             if (num === RAGINA_NUMBER) {
-                                // RAGina AI chat is handled by the floating widget – we can open it via PremCall.openAiChat()
+                                // Open RAGina AI via floating widget
                                 if (window.PremCall && typeof PremCall.openAiChat === 'function') {
                                     PremCall.openAiChat();
                                 } else {
-                                    showToast('RAGina AI widget not loaded.');
+                                    showToast('RAGina AI not available.');
                                 }
                                 return;
                             }
@@ -2600,7 +2692,7 @@
                         if (window.PremCall && typeof PremCall.openAiChat === 'function') {
                             PremCall.openAiChat();
                         } else {
-                            showToast('RAGina AI widget not loaded.');
+                            showToast('RAGina AI not available.');
                         }
                         return;
                     }
@@ -2608,8 +2700,6 @@
                 }
                 $('chatList').addEventListener('click', handleChatClick);
                 $('pinnedChats').addEventListener('click', handleChatClick);
-
-                // ---- RAGina card removed, so no event binding ----
 
                 // ---- Calls list ----
                 $('callsList').addEventListener('click', (e) => {
@@ -2663,7 +2753,7 @@
                             if (window.PremCall && typeof PremCall.openAiChat === 'function') {
                                 PremCall.openAiChat();
                             } else {
-                                showToast('RAGina AI widget not loaded.');
+                                showToast('RAGina AI not available.');
                             }
                             return;
                         }
@@ -2772,7 +2862,7 @@
 
                 // ---- Call controls ----
                 $('hangupCallBtn').addEventListener('click', () => {
-                    // Check if RAGina voice call is active via PremCall API
+                    // Try to end RAGina call first
                     if (window.PremCall && typeof PremCall.endRAGinaCall === 'function') {
                         PremCall.endRAGinaCall();
                     } else {
@@ -2892,7 +2982,7 @@
                             if (window.PremCall && typeof PremCall.openAiChat === 'function') {
                                 PremCall.openAiChat();
                             } else {
-                                showToast('RAGina AI widget not loaded.');
+                                showToast('RAGina AI not available.');
                             }
                             return;
                         }
@@ -2915,7 +3005,6 @@
                 document.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape') {
                         if ($('callScreen').classList.contains('active')) {
-                            // Try to end RAGina call first, else end peer call
                             if (window.PremCall && typeof PremCall.endRAGinaCall === 'function') {
                                 PremCall.endRAGinaCall();
                             } else {
@@ -2932,11 +3021,10 @@
                     }
                     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
                         e.preventDefault();
-                        // Open RAGina AI chat via widget
                         if (window.PremCall && typeof PremCall.openAiChat === 'function') {
                             PremCall.openAiChat();
                         } else {
-                            showToast('RAGina AI widget not loaded.');
+                            showToast('RAGina AI not available.');
                         }
                     }
                 });
@@ -2952,7 +3040,7 @@
                     initPeer('temp-' + Date.now());
                 }
 
-                // ---- TTS voices (for system messages only) ----
+                // ---- TTS voices ----
                 if (window.speechSynthesis) {
                     ttsVoices = window.speechSynthesis.getVoices();
                     window.speechSynthesis.onvoiceschanged = () => {
@@ -2972,7 +3060,7 @@
                 syncSettings();
                 document.addEventListener('click', () => unlockSpeech(), { once: true });
 
-                // ---- Handle pending call from messages ----
+                // ---- Handle pending call ----
                 const pending = localStorage.getItem('premCallPendingCall');
                 if (pending) {
                     try {
@@ -3002,7 +3090,7 @@
                     showToast('📸 Story feature coming soon!');
                 });
 
-                // ---- Account modal (click on number) ----
+                // ---- Account modal ----
                 $('myNumberDisplay').addEventListener('click', () => {
                     const num = localStorage.getItem('premCallNumber');
                     if (num && localStorage.getItem('premCallVerified') === 'true') {
