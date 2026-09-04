@@ -19,6 +19,11 @@
     </script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js">
     </script>
+
+    <!-- ===== RAGina Voice Widget dependencies ===== -->
+    <script src="vad-web.js"></script>
+    <script src="ragina-voice.js"></script>
+
     <style>
         /* ===== CSS Variables & Reset ===== */
         :root {
@@ -625,82 +630,7 @@
         .contact-item .contact-actions button.danger:hover {
             background: var(--stop);
         }
-        .ragina-card {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(6, 182, 212, 0.06));
-            border: 1px solid var(--line);
-            border-radius: var(--radius-lg);
-            padding: 0.8rem 1rem;
-            margin-bottom: 0.6rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            transition: all 0.2s;
-        }
-        .ragina-card:hover {
-            border-color: var(--primary);
-            transform: translateX(4px);
-        }
-        .ragina-card .ragina-avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
-            flex-shrink: 0;
-        }
-        .ragina-card .ragina-body {
-            flex: 1;
-        }
-        .ragina-card .ragina-name {
-            font-weight: 700;
-            font-size: 0.95rem;
-        }
-        .ragina-card .ragina-desc {
-            font-size: 0.75rem;
-            color: var(--text-dim);
-        }
-        .ragina-card .ragina-badge {
-            padding: 0.25rem 0.6rem;
-            border-radius: 20px;
-            background: var(--primary);
-            color: #fff;
-            font-size: 0.65rem;
-            font-weight: 600;
-        }
-        .typing-dots {
-            display: flex;
-            gap: 3px;
-            align-items: center;
-        }
-        .typing-dots span {
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-            background: var(--primary);
-            animation: typingBounce 1.4s infinite ease-in-out both;
-        }
-        .typing-dots span:nth-child(1) {
-            animation-delay: -0.32s;
-        }
-        .typing-dots span:nth-child(2) {
-            animation-delay: -0.16s;
-        }
-        @keyframes typingBounce {
-            0%,
-            80%,
-            100% {
-                transform: scale(0.6);
-                opacity: 0.4;
-            }
-            40% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
+        /* RAGina card removed – floating widget replaces it */
         .divider {
             height: 1px;
             background: var(--line);
@@ -1348,220 +1278,6 @@
                 transform: translateY(-4px);
             }
         }
-        #aiChatPanel {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 4500;
-            flex-direction: column;
-            background: var(--surface);
-            max-width: 480px;
-            margin: 0 auto;
-            height: 100%;
-            animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        #aiChatPanel.active {
-            display: flex;
-        }
-        #aiChatPanel .panel-header {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            padding: 0.8rem 1rem;
-            border-bottom: 1px solid var(--line);
-            flex: 0 0 auto;
-            background: var(--surface-2);
-        }
-        #aiChatPanel .panel-header .back-btn {
-            background: none;
-            border: none;
-            color: var(--text-dim);
-            font-size: 1.2rem;
-            cursor: pointer;
-            padding: 0.2rem 0.4rem;
-        }
-        #aiChatPanel .panel-header .back-btn:hover {
-            color: var(--text);
-        }
-        #aiChatPanel .panel-header .title {
-            flex: 1;
-            font-family: var(--font-display);
-            font-weight: 700;
-            font-size: 1rem;
-        }
-        #aiChatPanel .panel-header .status {
-            font-size: 0.65rem;
-            color: var(--go);
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        #aiChatPanel .panel-header .status .dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--go);
-            display: inline-block;
-        }
-        #aiChatPanel .panel-body {
-            flex: 1;
-            min-height: 0;
-            overflow-y: auto;
-            padding: 0.8rem 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            scrollbar-width: thin;
-            scrollbar-color: var(--surface-3) transparent;
-        }
-        #aiChatPanel .panel-body::-webkit-scrollbar {
-            width: 3px;
-        }
-        #aiChatPanel .panel-body::-webkit-scrollbar-thumb {
-            background: var(--surface-3);
-            border-radius: 10px;
-        }
-        #aiChatPanel .msg {
-            max-width: 85%;
-            padding: 0.6rem 0.9rem;
-            border-radius: var(--radius-md);
-            font-size: 0.85rem;
-            line-height: 1.5;
-            animation: fadeIn 0.25s ease;
-            word-wrap: break-word;
-        }
-        #aiChatPanel .msg.user {
-            align-self: flex-end;
-            background: var(--primary);
-            color: #fff;
-            border-bottom-right-radius: 4px;
-        }
-        #aiChatPanel .msg.ragina {
-            align-self: flex-start;
-            background: var(--surface-2);
-            color: var(--text);
-            border-bottom-left-radius: 4px;
-            border: 1px solid var(--line);
-        }
-        #aiChatPanel .msg .time {
-            font-size: 0.55rem;
-            color: var(--text-faint);
-            margin-top: 0.2rem;
-            display: block;
-            opacity: 0.6;
-        }
-        #aiChatPanel .msg.user .time {
-            color: rgba(255, 255, 255, 0.5);
-        }
-        #aiChatPanel .msg.ragina .ragina-label {
-            font-size: 0.6rem;
-            font-weight: 600;
-            color: var(--accent);
-            display: block;
-            margin-bottom: 0.2rem;
-        }
-        #aiChatPanel .typing-indicator {
-            align-self: flex-start;
-            background: var(--surface-2);
-            padding: 0.5rem 0.9rem;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--line);
-            display: none;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.8rem;
-            color: var(--text-dim);
-        }
-        #aiChatPanel .typing-indicator.active {
-            display: flex;
-        }
-        #aiChatPanel .typing-indicator .dots span {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--primary);
-            animation: typingBounce 1.4s infinite ease-in-out both;
-            margin: 0 2px;
-        }
-        #aiChatPanel .typing-indicator .dots span:nth-child(1) {
-            animation-delay: -0.32s;
-        }
-        #aiChatPanel .typing-indicator .dots span:nth-child(2) {
-            animation-delay: -0.16s;
-        }
-        #aiChatPanel .panel-footer {
-            display: flex;
-            gap: 0.5rem;
-            padding: 0.6rem 1rem;
-            border-top: 1px solid var(--line);
-            flex: 0 0 auto;
-            background: var(--surface-2);
-            align-items: center;
-        }
-        #aiChatPanel .panel-footer input {
-            flex: 1;
-            padding: 0.6rem 1rem;
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--line);
-            background: var(--surface);
-            color: var(--text);
-            font-size: 0.85rem;
-            font-family: var(--font-body);
-            outline: none;
-        }
-        #aiChatPanel .panel-footer input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px var(--primary-glow);
-        }
-        #aiChatPanel .panel-footer input::placeholder {
-            color: var(--text-faint);
-        }
-        #aiChatPanel .panel-footer .send-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            border: none;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: #fff;
-            font-size: 1.1rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.15s;
-            flex-shrink: 0;
-        }
-        #aiChatPanel .panel-footer .send-btn:hover {
-            transform: scale(1.05);
-        }
-        #aiChatPanel .panel-footer .send-btn:active {
-            transform: scale(0.92);
-        }
-        #aiChatPanel .panel-footer .voice-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            border: none;
-            background: var(--surface-3);
-            color: var(--text-dim);
-            font-size: 1rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.15s;
-            flex-shrink: 0;
-        }
-        #aiChatPanel .panel-footer .voice-btn:hover {
-            background: var(--surface);
-            color: var(--text);
-        }
-        #aiChatPanel .panel-footer .voice-btn.active {
-            background: var(--stop);
-            color: #fff;
-            animation: pulse 1.2s infinite;
-        }
         #qrScannerModal {
             display: none;
             position: fixed;
@@ -1668,14 +1384,7 @@
                         <span class="story-name">My Story</span>
                     </div>
                 </div>
-                <div class="ragina-card" id="raginaCard">
-                    <div class="ragina-avatar">🤖</div>
-                    <div class="ragina-body">
-                        <div class="ragina-name">RAGina AI</div>
-                        <div class="ragina-desc">Your cognitive assistant — ask anything</div>
-                    </div>
-                    <span class="ragina-badge">AI</span>
-                </div>
+                <!-- RAGina card removed – floating widget replaces it -->
                 <div class="section-title"><i class="fas fa-thumbtack"></i> Pinned</div>
                 <div id="pinnedChats"></div>
                 <div class="divider"></div>
@@ -1752,7 +1461,7 @@
                 <button class="action-btn" id="scanQRBtn"><i class="fas fa-camera"></i> Scan QR Code</button>
                 <button class="action-btn" id="exportChatsBtn"><i class="fas fa-file-export"></i> Export Chats</button>
                 <button class="action-btn" id="clearDataBtn" style="color:var(--stop);"><i class="fas fa-trash"></i> Clear All Data</button>
-                <div style="text-align:center; padding:1.5rem 0; color:var(--text-faint); font-size:0.7rem;">PremCall v2.4 — AI Messenger</div>
+                <div style="text-align:center; padding:1.5rem 0; color:var(--text-faint); font-size:0.7rem;">PremCall v2.5 — AI Messenger</div>
             </div>
         </div>
 
@@ -1819,31 +1528,6 @@
         </div>
     </div>
 
-    <!-- AI CHAT PANEL -->
-    <div id="aiChatPanel">
-        <div class="panel-header">
-            <button class="back-btn" id="aiChatBack"><i class="fas fa-arrow-left"></i></button>
-            <div class="title">🤖 RAGina AI</div>
-            <div class="status"><span class="dot"></span> Online</div>
-        </div>
-        <div class="panel-body" id="aiChatBody">
-            <div class="msg ragina">
-                <span class="ragina-label">🤖 RAGina</span>
-                Hello! I'm RAGina, your cognitive assistant. Ask me anything — I'm here to help! 😊
-                <span class="time">Just now</span>
-            </div>
-        </div>
-        <div class="typing-indicator" id="aiTyping">
-            <span>RAGina is thinking</span>
-            <span class="dots"><span></span><span></span><span></span></span>
-        </div>
-        <div class="panel-footer">
-            <button class="voice-btn" id="aiVoiceBtn" title="Voice input"><i class="fas fa-microphone"></i></button>
-            <input type="text" id="aiChatInput" placeholder="Ask RAGina anything…" autocomplete="off" />
-            <button class="send-btn" id="aiSendBtn"><i class="fas fa-paper-plane"></i></button>
-        </div>
-    </div>
-
     <!-- QR SCANNER MODAL -->
     <div id="qrScannerModal">
         <div class="scanner-header">
@@ -1888,6 +1572,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js">
     </script>
 
+    <!-- ============================================================
+         PREMCALL CORE SCRIPT (without RAGina AI chat/voice)
+         ============================================================ -->
     <script>
         (function(global) {
             'use strict';
@@ -1895,8 +1582,7 @@
             // ============================================================
             //  CONSTANTS
             // ============================================================
-            const RAGINA_NUMBER = '0000000000';
-            const API_URL = 'https://ragina-crawler-ragina.vercel.app/api/ask';
+            const RAGINA_NUMBER = '0000000000'; // kept for compatibility, not used
 
             // ============================================================
             //  STATE
@@ -1918,8 +1604,7 @@
                 videoDefault = false,
                 reactionsEnabled = true;
             let ttsVoices = [],
-                speechUnlocked = false,
-                raginaCallActive = false;
+                speechUnlocked = false;
             let currentLog = null,
                 lastLog = null,
                 isLightMode = false;
@@ -1928,10 +1613,6 @@
                 isRecording = false;
             let activeTyping = {},
                 typingTimeouts = {};
-            let aiChatHistory = [];
-            let isAiResponding = false;
-            let voiceRecognition = null;
-            let isVoiceListening = false;
             let qrScanner = null;
 
             // ============================================================
@@ -2076,6 +1757,8 @@
                         convos.push({ number: c.number, lastMsg: null, unread: 0 });
                     }
                 });
+                // RAGina contact is now handled by the floating widget, not in chat list
+                // We still keep it for message history but no card.
                 if (!blocked.includes(RAGINA_NUMBER) && !convos.find(x => x.number === RAGINA_NUMBER)) {
                     convos.push({ number: RAGINA_NUMBER, lastMsg: null, unread: 0 });
                 }
@@ -2223,7 +1906,6 @@
                 $('toggleTranscript').classList.toggle('on', transcriptEnabled);
                 $('toggleSummary').classList.toggle('on', aiSummaryEnabled);
                 $('toggleVideoDefault').classList.toggle('on', videoDefault);
-                $('toggleReactions').classList.toggle('on', reactionsEnabled);
                 $('toggleTheme').classList.toggle('on', !isLightMode);
             }
 
@@ -2237,7 +1919,7 @@
             }
 
             // ============================================================
-            //  ENHANCED PEERJS INIT (with auto‑reconnect)
+            //  PEERJS INIT
             // ============================================================
             function initPeer(id) {
                 myId = id;
@@ -2307,7 +1989,6 @@
                         });
 
                         peer.on('call', call => {
-                            if (raginaCallActive) { call.close(); return; }
                             const blocked = getBlocked();
                             if (blocked.includes(call.peer)) {
                                 call.close();
@@ -2338,7 +2019,7 @@
             }
 
             // ============================================================
-            //  WEBRTC HELPERS (calls)
+            //  WEBRTC HELPERS
             // ============================================================
             async function getLocalStream(requestVideo) {
                 const constraints = {
@@ -2612,251 +2293,6 @@
                         renderChats();
                     }
                 }
-            }
-
-            // ============================================================
-            //  RAGINA AI CHAT
-            // ============================================================
-            const aiChatBody = $('aiChatBody');
-            const aiChatInput = $('aiChatInput');
-            const aiSendBtn = $('aiSendBtn');
-            const aiVoiceBtn = $('aiVoiceBtn');
-            const aiTyping = $('aiTyping');
-            const aiChatPanel = $('aiChatPanel');
-            const aiChatBack = $('aiChatBack');
-
-            function openAiChat() {
-                aiChatPanel.classList.add('active');
-                aiChatInput.focus();
-                if (aiChatHistory.length === 0) {
-                    addAiMessage('ragina', "Hello! I'm RAGina, your cognitive assistant. Ask me anything — I'm here to help! 😊");
-                }
-            }
-
-            function closeAiChat() {
-                aiChatPanel.classList.remove('active');
-                stopVoiceListening();
-            }
-
-            function addAiMessage(role, text) {
-                const div = document.createElement('div');
-                div.className = 'msg ' + role;
-                const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                if (role === 'ragina') {
-                    div.innerHTML = `<span class="ragina-label">🤖 RAGina</span>${text}<span class="time">${time}</span>`;
-                } else {
-                    div.innerHTML = `${text}<span class="time">${time}</span>`;
-                }
-                aiChatBody.appendChild(div);
-                aiChatBody.scrollTop = aiChatBody.scrollHeight;
-                aiChatHistory.push({ role, text, time: Date.now() });
-                try {
-                    localStorage.setItem('premCallAiChat', JSON.stringify(aiChatHistory));
-                } catch (e) {}
-            }
-
-            function setAiTyping(show) {
-                aiTyping.classList.toggle('active', show);
-                if (show) {
-                    aiChatBody.scrollTop = aiChatBody.scrollHeight;
-                }
-            }
-
-            async function sendAiMessage(text) {
-                if (!text.trim() || isAiResponding) return;
-                const userMsg = text.trim();
-                addAiMessage('user', userMsg);
-                aiChatInput.value = '';
-                isAiResponding = true;
-                setAiTyping(true);
-
-                try {
-                    const resp = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            prompt: 'You are RAGina, a friendly and helpful cognitive assistant. Respond naturally and concisely to: ' +
-                                userMsg
-                        })
-                    });
-                    if (!resp.ok) throw new Error('API error');
-                    const data = await resp.json();
-                    const reply = data.text || "I'm not sure how to respond to that. Can you rephrase?";
-                    setAiTyping(false);
-                    addAiMessage('ragina', reply);
-                    speakText(reply);
-                } catch (e) {
-                    setAiTyping(false);
-                    addAiMessage('ragina', "I'm having trouble connecting right now. Please try again in a moment.");
-                }
-                isAiResponding = false;
-            }
-
-            function startVoiceListening() {
-                if (isVoiceListening) {
-                    stopVoiceListening();
-                    return;
-                }
-                const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (!SR) {
-                    showToast('Voice input not supported in this browser.');
-                    return;
-                }
-                unlockSpeech();
-                const rec = new SR();
-                rec.continuous = false;
-                rec.interimResults = false;
-                rec.lang = 'en-US';
-                rec.onresult = (e) => {
-                    const text = e.results[0][0].transcript.trim();
-                    if (text) {
-                        aiChatInput.value = text;
-                        sendAiMessage(text);
-                    }
-                    stopVoiceListening();
-                };
-                rec.onend = () => {
-                    isVoiceListening = false;
-                    aiVoiceBtn.classList.remove('active');
-                    aiVoiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-                };
-                rec.onerror = () => {
-                    isVoiceListening = false;
-                    aiVoiceBtn.classList.remove('active');
-                    aiVoiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-                    showToast('Voice recognition error. Try again.');
-                };
-                voiceRecognition = rec;
-                isVoiceListening = true;
-                aiVoiceBtn.classList.add('active');
-                aiVoiceBtn.innerHTML = '<i class="fas fa-circle"></i>';
-                try { rec.start(); } catch (e) {
-                    isVoiceListening = false;
-                    aiVoiceBtn.classList.remove('active');
-                    aiVoiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-                    showToast('Could not start voice input.');
-                }
-            }
-
-            function stopVoiceListening() {
-                if (voiceRecognition) {
-                    try { voiceRecognition.stop(); } catch (e) {}
-                    voiceRecognition = null;
-                }
-                isVoiceListening = false;
-                aiVoiceBtn.classList.remove('active');
-                aiVoiceBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-            }
-
-            // ============================================================
-            //  TTS
-            // ============================================================
-            function speakText(text) {
-                if (!window.speechSynthesis) return;
-                const clean = String(text).replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
-                if (!clean) return;
-                if (!speechUnlocked) {
-                    unlockSpeech();
-                    setTimeout(() => speakText(clean), 300);
-                    return;
-                }
-                if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
-                const u = new SpeechSynthesisUtterance(clean);
-                u.lang = 'en-US';
-                u.volume = 0.9;
-                u.voice = ttsVoices.find(v => v.lang.startsWith('en') && /female|zira|samantha|google/i.test(v.name)) ||
-                    ttsVoices.find(v => v.lang.startsWith('en')) ||
-                    ttsVoices[0] || null;
-                try { window.speechSynthesis.speak(u); } catch (e) {}
-            }
-
-            // ============================================================
-            //  RAGINA VOICE CALL
-            // ============================================================
-            function startRAGinaCall() {
-                if (raginaCallActive || inCall) {
-                    showToast('Already in a call.');
-                    return;
-                }
-                const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (!SR) {
-                    showToast('Voice calls not supported in this browser.');
-                    return;
-                }
-                unlockSpeech();
-                raginaCallActive = true;
-                startLog(RAGINA_NUMBER, 'ragina', 'outgoing');
-                $('callAvatar').textContent = '🤖';
-                $('callName').textContent = 'RAGina';
-                $('callNumber').textContent = RAGINA_NUMBER;
-                $('callScreen').classList.add('active');
-                $('callRingWrap').classList.add('ring-anim');
-                startTimer();
-                setTimeout(() => {
-                    if (!raginaCallActive) return;
-                    $('callRingWrap').classList.remove('ring-anim');
-                    const g = "Hello! I'm RAGina. What can I help you with today?";
-                    speakText(g);
-                    sendMessage(RAGINA_NUMBER, g, 'text');
-                    startRAGinaListening();
-                }, 1200);
-            }
-
-            function startRAGinaListening() {
-                if (!raginaCallActive) return;
-                const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (!SR) return;
-                const rec = new SR();
-                rec.continuous = false;
-                rec.interimResults = false;
-                rec.lang = 'en-US';
-                rec.onresult = e => {
-                    const text = e.results[0][0].transcript.trim();
-                    if (text) processRAGinaQuery(text);
-                };
-                rec.onend = () => {
-                    if (raginaCallActive) setTimeout(startRAGinaListening, 400);
-                };
-                rec.onerror = () => {
-                    if (raginaCallActive) setTimeout(startRAGinaListening, 800);
-                };
-                try { rec.start(); } catch (e) { setTimeout(startRAGinaListening, 500); }
-            }
-
-            async function processRAGinaQuery(text) {
-                if (!raginaCallActive) return;
-                sendMessage(RAGINA_NUMBER, text, 'text');
-                const ans = await askRAGina(text);
-                if (!raginaCallActive) return;
-                sendMessage(RAGINA_NUMBER, ans, 'text');
-                speakText(ans);
-            }
-
-            async function askRAGina(query) {
-                try {
-                    const resp = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prompt: 'You are RAGina, a friendly assistant. Answer concisely:\n' +
-                                query })
-                    });
-                    if (!resp.ok) throw 0;
-                    return (await resp.json()).text || 'No response.';
-                } catch (e) {
-                    return "I'm having trouble answering right now. Please try again.";
-                }
-            }
-
-            function endRAGinaCall() {
-                if (!raginaCallActive) return;
-                raginaCallActive = false;
-                if (window.speechSynthesis) window.speechSynthesis.cancel();
-                const dur = stopTimer();
-                const log = endLog(dur);
-                $('callScreen').classList.remove('active');
-                $('callRingWrap').classList.remove('ring-anim');
-                if (log) addHistoryEntry(log.number, log.direction, dur);
-                showToast('Call with RAGina ended');
             }
 
             // ============================================================
@@ -3136,52 +2572,46 @@
                         if (btn.classList.contains('del-btn')) { deleteChat(num); return; }
                         if (btn.dataset.video) {
                             localStorage.setItem('premCallPendingCall', JSON.stringify({ number: num, video: true }));
-                            if (num === RAGINA_NUMBER) { openAiChat(); return; }
+                            if (num === RAGINA_NUMBER) {
+                                // RAGina AI chat is handled by the floating widget – we can open it via PremCall.openAiChat()
+                                if (window.PremCall && typeof PremCall.openAiChat === 'function') {
+                                    PremCall.openAiChat();
+                                } else {
+                                    showToast('RAGina AI widget not loaded.');
+                                }
+                                return;
+                            }
                             window.location.href = 'messages.html?to=' + num + '&video=1';
                             return;
                         }
                         if (btn.classList.contains('call-btn')) {
-                            if (num === RAGINA_NUMBER) { startRAGinaCall(); return; }
+                            if (num === RAGINA_NUMBER) {
+                                if (window.PremCall && typeof PremCall.startRAGinaCall === 'function') {
+                                    PremCall.startRAGinaCall();
+                                } else {
+                                    showToast('RAGina voice call not available.');
+                                }
+                                return;
+                            }
                             PremCall.call(num);
                             return;
                         }
                     }
                     markRead(num);
-                    if (num === RAGINA_NUMBER) { openAiChat(); return; }
+                    if (num === RAGINA_NUMBER) {
+                        if (window.PremCall && typeof PremCall.openAiChat === 'function') {
+                            PremCall.openAiChat();
+                        } else {
+                            showToast('RAGina AI widget not loaded.');
+                        }
+                        return;
+                    }
                     window.location.href = 'messages.html?to=' + num;
                 }
                 $('chatList').addEventListener('click', handleChatClick);
                 $('pinnedChats').addEventListener('click', handleChatClick);
 
-                // ---- RAGina card ----
-                $('raginaCard').addEventListener('click', () => {
-                    openAiChat();
-                });
-
-                // ---- AI Chat Panel events ----
-                aiChatBack.addEventListener('click', closeAiChat);
-                aiSendBtn.addEventListener('click', () => {
-                    const text = aiChatInput.value.trim();
-                    if (text) sendAiMessage(text);
-                });
-                aiChatInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const text = aiChatInput.value.trim();
-                        if (text) sendAiMessage(text);
-                    }
-                });
-                aiVoiceBtn.addEventListener('click', startVoiceListening);
-
-                // ---- Close AI chat with Escape ----
-                document.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape') {
-                        if (aiChatPanel.classList.contains('active')) {
-                            closeAiChat();
-                            return;
-                        }
-                    }
-                });
+                // ---- RAGina card removed, so no event binding ----
 
                 // ---- Calls list ----
                 $('callsList').addEventListener('click', (e) => {
@@ -3231,18 +2661,39 @@
                         return;
                     }
                     if (btn.dataset.msg || btn.dataset.msg === '1') {
-                        if (num === RAGINA_NUMBER) { openAiChat(); return; }
+                        if (num === RAGINA_NUMBER) {
+                            if (window.PremCall && typeof PremCall.openAiChat === 'function') {
+                                PremCall.openAiChat();
+                            } else {
+                                showToast('RAGina AI widget not loaded.');
+                            }
+                            return;
+                        }
                         window.location.href = 'messages.html?to=' + num;
                         return;
                     }
                     if (btn.dataset.video) {
-                        if (num === RAGINA_NUMBER) { startRAGinaCall(); return; }
+                        if (num === RAGINA_NUMBER) {
+                            if (window.PremCall && typeof PremCall.startRAGinaCall === 'function') {
+                                PremCall.startRAGinaCall();
+                            } else {
+                                showToast('RAGina voice call not available.');
+                            }
+                            return;
+                        }
                         localStorage.setItem('premCallPendingCall', JSON.stringify({ number: num, video: true }));
                         window.location.href = 'messages.html?to=' + num + '&video=1';
                         return;
                     }
                     if (btn.dataset.call) {
-                        if (num === RAGINA_NUMBER) { startRAGinaCall(); return; }
+                        if (num === RAGINA_NUMBER) {
+                            if (window.PremCall && typeof PremCall.startRAGinaCall === 'function') {
+                                PremCall.startRAGinaCall();
+                            } else {
+                                showToast('RAGina voice call not available.');
+                            }
+                            return;
+                        }
                         PremCall.call(num);
                         return;
                     }
@@ -3312,23 +2763,23 @@
                     if (!confirm('Clear ALL data? This cannot be undone.')) return;
                     ['premCallContacts', 'premCallMessages', 'premCallLogs', 'premCallHistory',
                         'premCallSettings', 'premCallNumber', 'premCallId', 'premCallVerified',
-                        'premCallBlocked', 'premCallReactions', 'premCallTyping', 'premCallAiChat'
+                        'premCallBlocked', 'premCallReactions', 'premCallTyping'
                     ].forEach(k => localStorage.removeItem(k));
                     showToast('All data cleared');
                     renderChats();
                     renderCalls();
                     renderContacts();
                     syncSettings();
-                    aiChatHistory = [];
-                    aiChatBody.innerHTML = '';
-                    addAiMessage('ragina',
-                        "Hello! I'm RAGina, your cognitive assistant. Ask me anything — I'm here to help! 😊");
                 });
 
                 // ---- Call controls ----
                 $('hangupCallBtn').addEventListener('click', () => {
-                    if (raginaCallActive) endRAGinaCall();
-                    else endPeerCall();
+                    // Check if RAGina voice call is active via PremCall API
+                    if (window.PremCall && typeof PremCall.endRAGinaCall === 'function') {
+                        PremCall.endRAGinaCall();
+                    } else {
+                        endPeerCall();
+                    }
                     vibrate(15);
                 });
 
@@ -3439,7 +2890,14 @@
                 $('chatToggleBtn').addEventListener('click', () => {
                     const num = $('callNumber')?.textContent;
                     if (num) {
-                        if (num === RAGINA_NUMBER) { openAiChat(); return; }
+                        if (num === RAGINA_NUMBER) {
+                            if (window.PremCall && typeof PremCall.openAiChat === 'function') {
+                                PremCall.openAiChat();
+                            } else {
+                                showToast('RAGina AI widget not loaded.');
+                            }
+                            return;
+                        }
                         window.open('messages.html?to=' + num, '_blank');
                     }
                 });
@@ -3459,12 +2917,12 @@
                 document.addEventListener('keydown', (e) => {
                     if (e.key === 'Escape') {
                         if ($('callScreen').classList.contains('active')) {
-                            if (raginaCallActive) endRAGinaCall();
-                            else endPeerCall();
-                            return;
-                        }
-                        if (aiChatPanel.classList.contains('active')) {
-                            closeAiChat();
+                            // Try to end RAGina call first, else end peer call
+                            if (window.PremCall && typeof PremCall.endRAGinaCall === 'function') {
+                                PremCall.endRAGinaCall();
+                            } else {
+                                endPeerCall();
+                            }
                             return;
                         }
                         if ($('qrScannerModal').classList.contains('active')) {
@@ -3476,8 +2934,12 @@
                     }
                     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
                         e.preventDefault();
-                        if (aiChatPanel.classList.contains('active')) closeAiChat();
-                        else openAiChat();
+                        // Open RAGina AI chat via widget
+                        if (window.PremCall && typeof PremCall.openAiChat === 'function') {
+                            PremCall.openAiChat();
+                        } else {
+                            showToast('RAGina AI widget not loaded.');
+                        }
                     }
                 });
 
@@ -3492,7 +2954,7 @@
                     initPeer('temp-' + Date.now());
                 }
 
-                // ---- TTS voices ----
+                // ---- TTS voices (for system messages only) ----
                 if (window.speechSynthesis) {
                     ttsVoices = window.speechSynthesis.getVoices();
                     window.speechSynthesis.onvoiceschanged = () => {
@@ -3504,32 +2966,6 @@
                 if ('Notification' in window && Notification.permission === 'default') {
                     Notification.requestPermission();
                 }
-
-                // ---- Load AI chat history ----
-                try {
-                    const saved = localStorage.getItem('premCallAiChat');
-                    if (saved) {
-                        const parsed = JSON.parse(saved);
-                        if (parsed && parsed.length) {
-                            aiChatHistory = parsed;
-                            aiChatBody.innerHTML = '';
-                            parsed.forEach(msg => {
-                                const div = document.createElement('div');
-                                div.className = 'msg ' + msg.role;
-                                const time = new Date(msg.time).toLocaleTimeString([], { hour: '2-digit',
-                                    minute: '2-digit' });
-                                if (msg.role === 'ragina') {
-                                    div.innerHTML =
-                                        `<span class="ragina-label">🤖 RAGina</span>${msg.text}<span class="time">${time}</span>`;
-                                } else {
-                                    div.innerHTML = `${msg.text}<span class="time">${time}</span>`;
-                                }
-                                aiChatBody.appendChild(div);
-                            });
-                            aiChatBody.scrollTop = aiChatBody.scrollHeight;
-                        }
-                    }
-                } catch (e) {}
 
                 // ---- Initial renders ----
                 renderChats();
@@ -3545,7 +2981,11 @@
                         const { number, video } = JSON.parse(pending);
                         localStorage.removeItem('premCallPendingCall');
                         if (number === RAGINA_NUMBER) {
-                            setTimeout(startRAGinaCall, 800);
+                            if (window.PremCall && typeof PremCall.startRAGinaCall === 'function') {
+                                setTimeout(PremCall.startRAGinaCall, 800);
+                            } else {
+                                showToast('RAGina voice call not available.');
+                            }
                         } else {
                             setTimeout(() => PremCall.call(number, video), 800);
                         }
@@ -3585,7 +3025,7 @@
                     }
                 });
 
-                console.log('💡 Press Cmd/Ctrl + K to open RAGina AI chat');
+                console.log('💡 Press Cmd/Ctrl + K to open RAGina AI chat (floating widget)');
                 console.log('📷 QR Scanner ready — tap "Scan QR Code"');
 
             });
@@ -3597,7 +3037,14 @@
                 RAGINA_NUMBER,
                 init: initPeer,
                 call: function(t, withVideo) {
-                    if (t === RAGINA_NUMBER) { startRAGinaCall(); return; }
+                    if (t === RAGINA_NUMBER) {
+                        if (window.PremCall && typeof window.PremCall.startRAGinaCall === 'function') {
+                            window.PremCall.startRAGinaCall();
+                        } else {
+                            showToast('RAGina voice call not available.');
+                        }
+                        return;
+                    }
                     if (!peer) { showToast('Register to call real numbers.'); return; }
                     if (isBlocked(t)) { showToast('This contact is blocked.'); return; }
                     const useVideo = withVideo || videoDefault;
@@ -3619,11 +3066,6 @@
                 showToast: showToast,
                 getMyNumber: getMyNumber,
                 isBlocked: isBlocked,
-                openAiChat: openAiChat,
-                closeAiChat: closeAiChat,
-                startRAGinaCall: startRAGinaCall,
-                endRAGinaCall: endRAGinaCall,
-                speakText: speakText,
                 startQrScanner: startQrScanner,
                 stopQrScanner: stopQrScanner
             };
