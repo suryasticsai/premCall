@@ -1,24 +1,11 @@
-// premcall-core.js
-// Core call engine for PremCall – works with PeerJS and RAGina AI
-// Usage:
-//   const core = new PremCallCore({
-//     onIncomingCall: (peerId) => { /* show incoming UI */ },
-//     onCallStarted: (type, peerId) => { /* update UI */ },
-//     onCallEnded: (log) => { /* show post‑call UI */ },
-//     onTranscript: (role, text) => { /* append message */ },
-//     onTimerUpdate: (seconds) => { /* update timer display */ },
-//     onStatusChange: (online) => { /* update status dot */ },
-//     onError: (msg) => { /* show toast */ }
-//   });
-//   core.init('myNumber');
-
+// premcall-core.js - fixed: isSpeaking ReferenceError + TTS-end-gated mic restart
 (function(global) {
     'use strict';
 
     const RAGINA_NUMBER = '0000000000';
     const API_URL = 'https://ragina-crawler-ragina.vercel.app/api/ask';
 
-    // ---------- audio utilities (no DOM) ----------
+    // ---------- audio utilities ----------
     let actx = null;
     function audioCtx() {
         if (!actx) {
@@ -89,16 +76,31 @@
         setTimeout(() => speechUnlocked = true, 500);
     }
 
-    function speakText(text) {
-        if (!window.speechSynthesis) return;
+    // FIXED: speakText now takes { onStart, onEnd } callbacks instead of
+    // touching an undeclared bare `isSpeaking` variable. onEnd is guaranteed
+    // to fire exactly once (natural end, error, OR a 12s watchdog) so the
+    // conversation can never get stuck waiting forever.
+    function speakText(text, { onStart, onEnd } = {}) {
+        const finish = () => { if (onEnd) onEnd(); };
+
+        if (!window.speechSynthesis) { finish(); return; }
         const clean = String(text).replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
-        if (!clean) return;
+        if (!clean) { finish(); return; }
+
         if (!speechUnlocked) {
             unlockSpeech();
-            setTimeout(() => speakText(clean), 300);
+            setTimeout(() => speakText(clean, { onStart, onEnd }), 300);
             return;
         }
+
         speechQueue = speechQueue.then(() => new Promise(resolve => {
+            let done = false;
+            const settle = () => {
+                if (done) return;
+                done = true;
+                finish();
+                resolve();
+            };
             if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
             setTimeout(() => {
                 const u = new SpeechSynthesisUtterance(clean);
@@ -108,11 +110,11 @@
                     || ttsVoices.find(v => v.lang.startsWith('en'))
                     || ttsVoices[0]
                     || null;
-                u.onstart = () => { isSpeaking = true; };
-                u.onend = () => { isSpeaking = false; resolve(); };
-                u.onerror = () => { isSpeaking = false; resolve(); };
-                setTimeout(() => resolve(), 12000);
-                try { window.speechSynthesis.speak(u); } catch(e) { resolve(); }
+                u.onstart = () => { if (onStart) onStart(); };
+                u.onend = settle;
+                u.onerror = settle;
+                setTimeout(settle, 12000); // watchdog: never hang forever
+                try { window.speechSynthesis.speak(u); } catch(e) { settle(); }
             }, 60);
         }));
     }
@@ -155,7 +157,7 @@
         return null;
     }
 
-    // ---------- call logs (localStorage) ----------
+    // ---------- call logs ----------
     function getLogs() {
         try { return JSON.parse(localStorage.getItem('premCallLogs')) || []; }
         catch(e) { return []; }
@@ -173,7 +175,6 @@
     // ---------- core class ----------
     class PremCallCore {
         constructor(options = {}) {
-            // Callbacks
             this.onIncomingCall = options.onIncomingCall || (() => {});
             this.onCallStarted = options.onCallStarted || (() => {});
             this.onCallEnded = options.onCallEnded || (() => {});
@@ -182,7 +183,6 @@
             this.onStatusChange = options.onStatusChange || (() => {});
             this.onError = options.onError || (() => {});
 
-            // State
             this.peer = null;
             this.myNumber = null;
             this.activeCall = null;
@@ -204,34 +204,39 @@
             this.userName = '';
         }
 
-        // ---------- public methods ----------
         init(number) {
+            console.log('[PremCallCore] init() called with number:', number);
             this.myNumber = number;
             if (typeof global.Peer !== 'undefined' && number && number !== RAGINA_NUMBER) {
+                console.log('[PremCallCore] Creating Peer with ID:', number);
                 try {
-                    this.peer = new global.Peer(number, { debug: 0 });
+                    this.peer = new global.Peer(number, { debug: 2 });  // verbose logging
+                    console.log('[PremCallCore] Peer instance created:', this.peer);
                     this._attachPeerHandlers();
                     this.onStatusChange('connecting');
                 } catch(e) {
+                    console.error('[PremCallCore] Peer creation error:', e);
                     this.onError('Peer init failed: ' + e.message);
                 }
             } else {
-                // RAGina-only mode
+                console.log('[PremCallCore] RAGina-only mode (no Peer)');
                 this.onStatusChange('online');
             }
-            // Recover interrupted log
             this._recoverLog();
         }
 
         call(number) {
+            console.log('[PremCallCore] call() called with number:', number);
             if (number === RAGINA_NUMBER) {
                 this._startRAGinaCall();
                 return;
             }
             if (!this.peer) {
+                console.warn('[PremCallCore] No peer object – registration required');
                 this.onError('Register to call real numbers.');
                 return;
             }
+            console.log('[PremCallCore] Peer exists, attempting call...');
             this._getLocalStream().then(stream => {
                 const call = this.peer.call(number, stream);
                 if (!call) {
@@ -241,7 +246,8 @@
                 this._startLog(number, 'peer', 'outgoing');
                 this._showCallScreenPeer(number, true);
                 this._wireCallEvents(call);
-            }).catch(() => {
+            }).catch(err => {
+                console.error('[PremCallCore] Microphone error:', err);
                 this.onError('Microphone denied.');
             });
         }
@@ -297,7 +303,6 @@
 
         speaker() {
             this.speakerOn = !this.speakerOn;
-            // The UI can adjust volume based on this flag; we don't have a remote audio element here.
             return this.speakerOn;
         }
 
@@ -368,21 +373,14 @@
             return out;
         }
 
-        // utilities
         playDtmf(d) {
             const t = DTMF[d];
             if (t) beep(t[0], t[1], 0.08);
         }
+        vibrate(pattern) { vibrate(pattern); }
+        unlockSpeech() { unlockSpeech(); }
 
-        vibrate(pattern) {
-            vibrate(pattern);
-        }
-
-        unlockSpeech() {
-            unlockSpeech();
-        }
-
-        // ---------- private methods ----------
+        // ---------- private ----------
         _getLocalStream() {
             if (this.localStream && this.localStream.getAudioTracks().length) {
                 return Promise.resolve(this.localStream);
@@ -397,8 +395,12 @@
 
         _attachPeerHandlers() {
             if (!this.peer) return;
-            this.peer.on('open', () => this.onStatusChange('online'));
+            this.peer.on('open', (id) => {
+                console.log('[PremCallCore] Peer open with id:', id);
+                this.onStatusChange('online');
+            });
             this.peer.on('disconnected', () => {
+                console.warn('[PremCallCore] Peer disconnected');
                 this.onStatusChange('offline');
                 setTimeout(() => {
                     if (this.peer && !this.peer.destroyed) {
@@ -406,8 +408,12 @@
                     }
                 }, 3000);
             });
-            this.peer.on('error', err => this.onError('Network: ' + err.type));
+            this.peer.on('error', (err) => {
+                console.error('[PremCallCore] Peer error:', err);
+                this.onError('Network: ' + err.type);
+            });
             this.peer.on('call', call => {
+                console.log('[PremCallCore] Incoming call from:', call.peer);
                 if (this.isInCall()) { call.close(); return; }
                 this.incomingCall = call;
                 this._startRingtone();
@@ -419,16 +425,21 @@
             this.activeCall = call;
             this.inCall = true;
             call.on('stream', stream => {
-                // UI can attach remote audio to an <audio> element
+                console.log('[PremCallCore] Call stream received');
                 this._onCallConnected();
             });
-            call.on('close', () => this._endPeerCall());
-            call.on('error', () => this._endPeerCall());
+            call.on('close', () => {
+                console.log('[PremCallCore] Call closed');
+                this._endPeerCall();
+            });
+            call.on('error', (err) => {
+                console.error('[PremCallCore] Call error:', err);
+                this._endPeerCall();
+            });
         }
 
         _showCallScreenPeer(peerId, isCaller) {
             this.onCallStarted('peer', peerId, isCaller);
-            // start timer
             this._startTimer();
         }
 
@@ -451,22 +462,14 @@
             return out;
         }
 
-        _startRingtone() {
-            startRingtone();
-            vibrate([300,200,300]);
-        }
+        _startRingtone() { startRingtone(); vibrate([300,200,300]); }
+        _stopRingtone() { stopRingtone(); }
 
-        _stopRingtone() {
-            stopRingtone();
-        }
-
-        // ---------- log management ----------
+        // ---------- logs ----------
         _startLog(number, type, direction) {
             this.currentLog = {
                 id: Date.now(),
-                number,
-                type,
-                direction,
+                number, type, direction,
                 started: Date.now(),
                 ended: null,
                 duration: '',
@@ -477,14 +480,9 @@
         }
 
         _persistActiveLog() {
-            try {
-                localStorage.setItem('premCallActiveLog', JSON.stringify(this.currentLog));
-            } catch(e) {}
+            try { localStorage.setItem('premCallActiveLog', JSON.stringify(this.currentLog)); } catch(e) {}
         }
-
-        _clearActiveLog() {
-            try { localStorage.removeItem('premCallActiveLog'); } catch(e) {}
-        }
+        _clearActiveLog() { try { localStorage.removeItem('premCallActiveLog'); } catch(e) {} }
 
         _logMsg(role, text) {
             if (!this.currentLog) return;
@@ -510,8 +508,6 @@
         }
 
         _addHistoryEntry(number, direction, duration, logId) {
-            // history is stored separately for UI – we keep it here but UI can also manage.
-            // We'll just store it in localStorage for the UI to read.
             try {
                 let h = JSON.parse(localStorage.getItem('premCallHistory')) || [];
                 h.unshift({ number, direction, duration: duration || '—', timestamp: Date.now(), logId: logId || null });
@@ -556,7 +552,7 @@
             };
         }
 
-        // ---------- RAGina call logic ----------
+        // ---------- RAGina ----------
         _startRAGinaCall() {
             if (this.raginaCallActive || this.inCall) {
                 this.onError('Already in a call.');
@@ -574,14 +570,18 @@
             this._startLog(RAGINA_NUMBER, 'ragina', 'outgoing');
             this._startTimer();
             this.onCallStarted('ragina', RAGINA_NUMBER, true);
-
-            // After a short delay, start the conversation
             setTimeout(() => {
                 if (!this.raginaCallActive) return;
                 const greet = "Hello! I'm RAGina. What is your name?";
                 this._logMsg('ragina', greet);
-                speakText(greet);
-                setTimeout(() => this._listenToRAGina(), 800);
+                this.isSpeaking = true;
+                speakText(greet, {
+                    onEnd: () => {
+                        this.isSpeaking = false;
+                        // FIXED: wait for TTS to actually finish, not a guessed timeout
+                        setTimeout(() => this._listenToRAGina(), 400);
+                    }
+                });
             }, 1200);
         }
 
@@ -594,19 +594,16 @@
             }
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SR) return;
-
             const rec = new SR();
             rec.continuous = false;
             rec.interimResults = false;
             rec.lang = 'en-US';
             rec.maxAlternatives = 1;
-
             rec.onresult = async (e) => {
                 if (this.isSpeaking) return;
                 const text = e.results[0][0].transcript;
                 if (!text.trim()) return;
                 this._logMsg('user', text.trim());
-
                 if (this.conversationState === 0) {
                     let name = text.trim();
                     const stopWords = ['um','uh','my name is','i am',"i'm"];
@@ -620,19 +617,26 @@
                     this.conversationState = 1;
                     const r = 'Nice to meet you, ' + this.userName + '. What can I help you with today?';
                     this._logMsg('ragina', r);
-                    speakText(r);
-                    setTimeout(() => this._listenToRAGina(), 800);
+                    this.isSpeaking = true;
+                    speakText(r, {
+                        onEnd: () => {
+                            this.isSpeaking = false;
+                            setTimeout(() => this._listenToRAGina(), 400);
+                        }
+                    });
                 } else {
-                    // normal query
-                    this.onCallStarted('ragina', RAGINA_NUMBER, true); // keep alive
                     const ans = await askRAGina(text);
                     if (!this.raginaCallActive) return;
                     this._logMsg('ragina', ans);
-                    speakText(ans);
-                    setTimeout(() => this._listenToRAGina(), 800);
+                    this.isSpeaking = true;
+                    speakText(ans, {
+                        onEnd: () => {
+                            this.isSpeaking = false;
+                            setTimeout(() => this._listenToRAGina(), 400);
+                        }
+                    });
                 }
             };
-
             rec.onerror = (e) => {
                 if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
                     this.onError('Microphone denied. Ending call.');
@@ -644,18 +648,14 @@
                     setTimeout(() => this._listenToRAGina(), 600);
                 }
             };
-
             rec.onend = () => {
                 this.raginaRecognition = null;
                 if (this.raginaCallActive && !this.raginaIsMuted && !this.isSpeaking) {
                     setTimeout(() => this._listenToRAGina(), 500);
                 }
             };
-
             this.raginaRecognition = rec;
-            try {
-                rec.start();
-            } catch(e) {
+            try { rec.start(); } catch(e) {
                 this.raginaRecognition = null;
                 if (this.raginaCallActive && !this.raginaIsMuted) {
                     setTimeout(() => this._listenToRAGina(), 600);
@@ -675,10 +675,9 @@
             const dur = this._stopTimer();
             const log = this._endLog(dur);
             this.onCallEnded(log);
-            // generate summary async
             if (log && log.messages.length) {
                 generateSummary(log).then(sum => {
-                    if (sum) this.onCallEnded(log); // update
+                    if (sum) this.onCallEnded(log);
                 });
             }
         }
@@ -693,13 +692,10 @@
             this._stopLiveTranscription();
             const dur = this._stopTimer();
             const log = this._endLog(dur);
-            const peerId = this.myNumber; // not exactly – we need to know the peer we called
-            // We'll capture the peer number from the call log or from the UI callback.
             if (log) {
                 this._addHistoryEntry(log.number, log.direction, dur, log.id);
             }
             this.onCallEnded(log);
-            // generate summary
             if (log && log.messages.length) {
                 generateSummary(log).then(sum => {
                     if (sum) this.onCallEnded(log);
@@ -708,12 +704,10 @@
         }
 
         _onCallConnected() {
-            // For real calls, we start live transcription
             this._startLiveTranscription();
             this.onCallStarted('peer', this.activeCall ? this.activeCall.peer : '', false);
         }
 
-        // ---------- live transcription for real calls ----------
         _startLiveTranscription() {
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SR) return;
@@ -723,9 +717,7 @@
             rec.interimResults = false;
             rec.lang = 'en-US';
             this.liveRecognition = rec;
-            rec.onresult = e => {
-                this._logMsg('user', e.results[0][0].transcript);
-            };
+            rec.onresult = e => { this._logMsg('user', e.results[0][0].transcript); };
             rec.onend = () => {
                 this.liveRecognition = null;
                 if (this.inCall) setTimeout(() => this._startLiveTranscription(), 700);
@@ -741,7 +733,6 @@
             }
         }
 
-        // ---------- clean up ----------
         destroy() {
             this._stopTimer();
             this._stopRingtone();
