@@ -2,7 +2,7 @@
   "name": "PremCall — RAGina AI Call",
   "short_name": "PremCall",
   "description": "Make AI and peer-to-peer voice calls directly from your device.",
-  "start_url": "./index1.html",
+  "start_url": "./v0/index.html",
   "display": "standalone",
   "background_color": "#05070d",
   "theme_color": "#070a12",
