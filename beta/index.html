@@ -184,7 +184,7 @@
     .account-card .info-row { display:flex; justify-content:space-between; padding:.5rem 0; border-bottom:1px solid var(--surface-2); font-size:.85rem; }
     .account-card .close-btn { margin-top:1.2rem; width:100%; padding:.6rem; border-radius:40px; border:1px solid var(--line); background:transparent; color:var(--text-dim); cursor:pointer; }
 
-    /* small screen adjustments (unchanged) */
+    /* small screen adjustments */
     @media (max-height: 780px) {
         .dialer-pad { gap:.45rem; max-width:min(230px, 26vh); }
         .dialer-pad .key { font-size:1.15rem; }
@@ -431,12 +431,10 @@ document.addEventListener('DOMContentLoaded', function() {
             $('incomingName').textContent = peerId;
             $('incomingNumber').textContent = peerId;
             $('incomingOverlay').classList.add('active');
-            core.vibrate([300,200,300]); // ringtone is started inside core
+            core.vibrate([300,200,300]);
         },
         onCallStarted: (type, peerId, isCaller) => {
-            // Hide incoming overlay if shown
             $('incomingOverlay').classList.remove('active');
-            // Update call screen
             const avatarEl = $('callAvatar');
             if (type === 'ragina') {
                 avatarEl.innerHTML = '<img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" alt="RAGina" onerror="this.outerHTML=\'🤖\'">';
@@ -454,29 +452,23 @@ document.addEventListener('DOMContentLoaded', function() {
             dialCallBtn.classList.add('disabled');
             callTranscript.innerHTML = '<div class="empty-hint">Live transcript will appear here…</div>';
             dimMain(true);
-            // Clear post‑call export
             postCallExport.classList.remove('active');
             callSummary.classList.add('hidden');
         },
         onCallEnded: (log) => {
-            // hide call screen
             $('callScreen').classList.remove('active');
             $('callRingWrap').classList.remove('ring-anim');
             dialCallBtn.classList.remove('disabled');
             dimMain(false);
-            // show post‑call if transcript exists
             if (log && log.messages && log.messages.length) {
                 postCallExport.classList.add('active');
                 if (log.summary) {
                     callSummary.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i><b>AI Recap:</b> ' + log.summary;
                     callSummary.classList.remove('hidden');
                 }
-                // update history with this log
                 addHistoryEntry(log.number, log.direction, log.duration, log.id);
             }
-            // also store last log in a variable for export
             window._lastCallLog = log;
-            // clear remote audio
             $('remoteAudio').srcObject = null;
         },
         onTranscript: (role, text) => {
@@ -505,7 +497,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // expose core globally for debug
     window.core = core;
 
     // ---------- dialer UI ----------
@@ -759,15 +750,31 @@ document.addEventListener('DOMContentLoaded', function() {
         showToast(light ? 'Bright mode' : 'Dark mode');
     });
 
-    // ---------- init core ----------
-    const stored = localStorage.getItem('premCallNumber');
-    if (stored && localStorage.getItem('premCallVerified') === 'true') {
-        $('myNumberDisplay').textContent = stored;
-        $('registerLink').classList.add('hidden');
+    // ---------- init core with registration fix ----------
+    let stored = localStorage.getItem('premCallNumber');
+    if (stored) {
+        // Auto-verify if not already
+        if (localStorage.getItem('premCallVerified') !== 'true') {
+            localStorage.setItem('premCallVerified', 'true');
+            localStorage.setItem('premCallRegisteredAt', Date.now().toString());
+        }
+        document.getElementById('myNumberDisplay').textContent = stored;
+        document.getElementById('registerLink').classList.add('hidden');
         core.init(stored);
     } else {
-        $('myNumberDisplay').textContent = 'Not registered';
-        core.init('0000000000'); // RAGina-only mode
+        // No number, ask for one
+        const num = prompt('Enter your 10-digit number to register:');
+        if (num && /^\d{10}$/.test(num)) {
+            localStorage.setItem('premCallNumber', num);
+            localStorage.setItem('premCallVerified', 'true');
+            localStorage.setItem('premCallRegisteredAt', Date.now().toString());
+            document.getElementById('myNumberDisplay').textContent = num;
+            document.getElementById('registerLink').classList.add('hidden');
+            core.init(num);
+        } else {
+            document.getElementById('myNumberDisplay').textContent = 'Not registered';
+            core.init('0000000000'); // RAGina-only mode
+        }
     }
 
     // ---------- render history ----------
