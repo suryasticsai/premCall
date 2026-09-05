@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#070a12" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="PremCall" />
+<title>PremCall — RAGina AI Call</title>
+<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" />
+<link rel="apple-touch-icon" href="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+<style>
+    :root {
+        --bg-0:#05070d; --bg-1:#0a0e18; --surface:#0e1424; --surface-2:#141c30; --surface-3:#1b2540;
+        --line:#1e2a42; --text:#eef2fb; --text-dim:#8891ab; --text-faint:#525d78;
+        --signal:#4f8cf7; --signal-soft:#2f5fc4; --go:#2fd992; --stop:#ff5470; --warn:#ffb648;
+        --radius-lg:22px;
+        --font-display:'Space Grotesk',sans-serif; --font-body:'Inter',sans-serif;
+        --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+    }
+    body.light-mode {
+        --bg-0:#f0f2f5; --bg-1:#ffffff; --surface:#ffffff; --surface-2:#f8fafc; --surface-3:#f1f5f9;
+        --line:#d1d5db; --text:#111827; --text-dim:#4b5563; --text-faint:#9ca3af;
+        --signal:#2563eb; --go:#10b981; --stop:#ef4444; --warn:#f59e0b;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+    html, body { height:100%; overflow:hidden; font-family:var(--font-body); color:var(--text); background:radial-gradient(1100px 700px at 15% -10%, var(--bg-1) 0%, transparent 55%), var(--bg-0); }
+    .stage { height:100%; display:flex; justify-content:center; }
+    .phone-frame { position:relative; width:100%; max-width:428px; height:100%; display:flex; flex-direction:column; padding:calc(0.9rem + var(--safe-t)) 1.1rem calc(0.8rem + var(--safe-b)); background:linear-gradient(180deg,var(--bg-1),var(--bg-0)); overflow:hidden; }
+    @media (min-width:620px) {
+        .phone-frame { height:min(860px,92vh); border-radius:44px; box-shadow:0 0 0 10px #050810,0 0 0 11px #23304e,0 40px 100px -20px rgba(0,0,0,.75); }
+        body.light-mode .phone-frame { box-shadow:0 0 0 10px #d1d5db,0 0 0 11px #9ca3af,0 40px 100px -20px rgba(0,0,0,.2); }
+    }
+
+    .header { display:flex; justify-content:space-between; align-items:center; padding-bottom:.6rem; border-bottom:1px solid var(--line); flex:0 0 auto; }
+    .brand { display:flex; align-items:center; gap:.55rem; }
+    .brand img { height:30px; width:30px; border-radius:9px; object-fit:cover; }
+    .brand span { font-family:var(--font-display); font-weight:700; font-size:1.1rem; }
+    .header-right { display:flex; align-items:center; gap:.6rem; font-size:.72rem; color:var(--text-dim); }
+    .theme-toggle { background:none; border:none; color:var(--text-dim); font-size:.95rem; cursor:pointer; padding:.2rem; transition:color .2s, transform .3s; }
+    .theme-toggle:hover { color:var(--warn); transform:rotate(20deg); }
+    .status-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .status-dot.online { background:var(--go); box-shadow:0 0 0 3px rgba(47,217,146,.18); }
+    .status-dot.offline { background:var(--stop); box-shadow:0 0 0 3px rgba(255,84,112,.18); }
+    .status-dot.connecting { background:var(--warn); animation:blink 1.1s infinite; }
+    @keyframes blink { 50% { opacity:.35; } }
+
+    .settings-link { background:var(--surface-2); border:1px solid var(--line); color:var(--text-dim); text-decoration:none; font-size:.74rem; font-weight:500; padding:.38rem .9rem; border-radius:40px; margin:.6rem 0 .5rem; display:inline-flex; align-items:center; gap:.4rem; align-self:flex-start; flex:0 0 auto; }
+    .settings-link.hidden { display:none; }
+
+    .dialer-section { flex:0 0 auto; display:flex; flex-direction:column; }
+    .dialer-display { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); padding:.7rem 1rem; min-height:3.6rem; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:600; font-size:1.55rem; letter-spacing:.06em; margin-bottom:.7rem; position:relative; flex:0 0 auto; }
+    .dialer-display .hint { font-size:.82rem; font-weight:400; color:var(--text-faint); font-family:var(--font-body); display:flex; gap:.5rem; align-items:center; }
+    .dialer-display .cursor { display:inline-block; width:2px; height:1.4rem; background:var(--signal); margin-left:2px; animation:caret 1s steps(1) infinite; }
+    @keyframes caret { 50% { opacity:0; } }
+    .dialer-display .right-btn { position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-faint); font-size:1.1rem; cursor:pointer; }
+
+    .dialer-pad { display:grid; grid-template-columns:repeat(3,1fr); gap:.55rem; width:100%; max-width:min(270px, 32vh); margin:0 auto .55rem; flex:0 0 auto; }
+    .dialer-pad .key { position:relative; overflow:hidden; background:var(--surface); border:1px solid var(--line); border-radius:50%; aspect-ratio:1/1; display:flex; flex-direction:column; align-items:center; justify-content:center; font-family:var(--font-display); font-size:1.3rem; font-weight:600; color:var(--text); cursor:pointer; user-select:none; transition:transform .08s, background .12s; }
+    .dialer-pad .key .sub { font-size:.42rem; letter-spacing:.12em; color:var(--text-faint); font-family:var(--font-body); }
+    .dialer-pad .key:active { transform:scale(.92); background:var(--surface-3); }
+    .dialer-pad .key.call { background:linear-gradient(160deg,var(--go),#17a06a); border-color:transparent; color:#04140c; box-shadow:0 8px 20px -6px rgba(47,217,146,.55); }
+    .dialer-pad .key.call.disabled { opacity:.35; pointer-events:none; }
+    .dialer-pad .key.ghost { background:transparent; border-color:transparent; color:var(--text-dim); }
+    .dialer-pad .key i { font-size:1.1rem; }
+    @media (max-height:660px) { .dialer-pad .key .sub { display:none; } .dialer-display { min-height:3rem; } }
+
+    .action-row { display:flex; justify-content:center; align-items:center; gap:.6rem; margin-bottom:.5rem; flex:0 0 auto; }
+    .btn { padding:.42rem 1rem; border-radius:40px; font-weight:600; font-size:.75rem; cursor:pointer; background:transparent; border:1px solid var(--line); color:var(--text); display:inline-flex; align-items:center; gap:.4rem; transition:background .15s; }
+    .btn:hover { background:var(--surface-2); }
+    .btn.share { border-color:var(--signal-soft); color:var(--signal); }
+    .status-badge { font-size:.75rem; color:var(--text-dim); }
+
+    #historySection { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; border-top:1px solid var(--line); padding-top:.45rem; }
+    #historySection h3 { font-size:.78rem; color:var(--text-dim); margin-bottom:.35rem; display:flex; justify-content:space-between; align-items:center; flex:0 0 auto; }
+    #historyList { list-style:none; flex:1 1 auto; min-height:0; overflow-y:auto; font-size:.8rem; scrollbar-width:thin; scrollbar-color:var(--surface-3) transparent; }
+    #historyList::-webkit-scrollbar { width:4px; }
+    #historyList::-webkit-scrollbar-track { background:transparent; }
+    #historyList::-webkit-scrollbar-thumb { background:var(--surface-3); border-radius:10px; }
+    #historyList li { display:flex; align-items:center; gap:.5rem; padding:.42rem .1rem; border-bottom:1px solid rgba(128,128,128,.08); }
+    #historyList li .chip { width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.58rem; flex-shrink:0; }
+    .chip.incoming { background:rgba(47,217,146,.15); color:var(--go); }
+    .chip.outgoing { background:rgba(79,140,247,.15); color:var(--signal); }
+    .chip.missed { background:rgba(255,84,112,.15); color:var(--stop); }
+    #historyList li .num { flex:1; color:var(--text); font-weight:500; font-size:.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+    #historyList li .num:hover { color:var(--signal); }
+    #historyList li .time { color:var(--text-faint); font-size:.62rem; text-align:right; min-width:44px; }
+    #historyList li.empty { justify-content:center; color:var(--text-faint); border:none; padding:1rem; }
+    .clear-history { background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:.68rem; }
+    .clear-history:hover { color:var(--stop); }
+    .history-actions { display:flex; gap:.3rem; }
+    .history-actions button { width:24px; height:24px; border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:.58rem; transition:transform .1s; }
+    .history-actions button:active { transform:scale(.9); }
+    .hist-call { background:var(--go); color:#04140c; }
+    .hist-msg { background:var(--signal); color:#fff; }
+    .hist-delete { background:transparent; color:var(--text-faint); }
+    .hist-delete:hover { color:var(--stop); }
+
+    #postCallExport { flex:0 0 auto; display:none; margin-top:.5rem; }
+    #postCallExport.active { display:block; }
+    .summary-card { background:linear-gradient(140deg, rgba(79,140,247,.12), rgba(47,217,146,.10)); border:1px solid var(--line); border-radius:14px; padding:.55rem .8rem; font-size:.72rem; color:var(--text-dim); margin-bottom:.5rem; line-height:1.5; }
+    .summary-card i { color:var(--warn); margin-right:.35rem; }
+    .export-row { display:flex; gap:.5rem; justify-content:center; flex-wrap:wrap; }
+
+    .log-area { display:none !important; }
+
+    #incomingOverlay { display:none; position:absolute; inset:0; z-index:900; flex-direction:column; justify-content:center; align-items:center; background:var(--bg-0); border-radius:inherit; }
+    #incomingOverlay.active { display:flex; }
+    #incomingOverlay .avatar { width:96px; height:96px; border-radius:50%; background:var(--surface-3); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:700; margin-bottom:1rem; }
+    #incomingOverlay .peer-name { font-family:var(--font-display); font-size:1.4rem; font-weight:700; }
+    #incomingOverlay .peer-number { color:var(--text-dim); font-size:.9rem; margin-top:.15rem; }
+    #incomingOverlay .hint { color:var(--text-faint); font-size:.72rem; margin-top:.4rem; }
+    #incomingOverlay .actions { display:flex; gap:2.6rem; margin-top:2rem; }
+    #incomingOverlay .actions button { width:64px; height:64px; border-radius:50%; border:none; cursor:pointer; font-size:1.6rem; color:#fff; display:flex; align-items:center; justify-content:center; }
+    #incomingOverlay .answer { background:linear-gradient(160deg,var(--go),#17a06a); animation:nudge 1.8s infinite; }
+    #incomingOverlay .reject { background:linear-gradient(160deg,var(--stop),#c2213f); }
+    @keyframes nudge { 50% { transform:translateY(-4px); } }
+
+    #callScreen { display:none; position:fixed; inset:0; z-index:2000; flex-direction:column; justify-content:center; align-items:center; background:radial-gradient(800px 600px at 50% 30%, rgba(20,30,60,.92), #05070d 95%); backdrop-filter:blur(20px); color:#fff; font-family:var(--font-display); padding:1.5rem; }
+    #callScreen.active { display:flex; }
+    #callScreen .avatar-wrap { position:relative; width:150px; height:150px; display:flex; align-items:center; justify-content:center; margin-bottom:.7rem; }
+    #callScreen .ring { position:absolute; inset:0; border-radius:50%; border:1.5px solid var(--signal); opacity:0; }
+    #callScreen .avatar-wrap.ring-anim .ring { animation:pulse 2.4s ease-out infinite; }
+    #callScreen .avatar-wrap.ring-anim .ring:nth-child(2) { animation-delay:.8s; }
+    #callScreen .avatar-wrap.ring-anim .ring:nth-child(3) { animation-delay:1.6s; }
+    @keyframes pulse { 0% { transform:scale(.72); opacity:.55; } 100% { transform:scale(1.65); opacity:0; } }
+    #callScreen .avatar { width:115px; height:115px; border-radius:50%; background:linear-gradient(155deg,var(--surface-3),var(--surface)); border:2px solid rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; font-size:2.8rem; overflow:hidden; z-index:1; }
+    #callScreen .avatar img { width:100%; height:100%; object-fit:cover; }
+    #callScreen .peer-name { font-size:1.7rem; font-weight:700; }
+    #callScreen .peer-number { color:rgba(255,255,255,.5); font-size:.95rem; font-family:var(--font-body); }
+    #callScreen .substatus { color:var(--warn); font-size:.82rem; min-height:1.2rem; margin-top:.3rem; font-family:var(--font-body); }
+    #callScreen .call-timer { font-size:2.1rem; color:var(--go); margin:1rem 0 1.5rem; }
+    #callScreen .call-actions { display:flex; gap:1.8rem; }
+    #callScreen .action-item { display:flex; flex-direction:column; align-items:center; gap:.3rem; }
+    #callScreen .action-item .label { font-size:.58rem; color:rgba(255,255,255,.35); text-transform:uppercase; font-family:var(--font-body); }
+    #callScreen .call-actions button { width:58px; height:58px; border-radius:50%; border:none; cursor:pointer; font-size:1.25rem; background:rgba(255,255,255,.06); color:#fff; display:flex; align-items:center; justify-content:center; }
+    #callScreen .call-actions .mute.active { background:rgba(255,182,72,.2); color:var(--warn); }
+    #callScreen .call-actions .speaker.active { background:rgba(79,140,247,.2); color:var(--signal); }
+    #callScreen .hangup { width:70px !important; height:70px !important; font-size:1.5rem !important; background:linear-gradient(160deg,var(--stop),#c2213f) !important; box-shadow:0 8px 30px -6px rgba(255,84,112,.55); }
+    #callTranscript { width:100%; max-width:400px; max-height:130px; overflow-y:auto; background:rgba(0,0,0,.35); border-radius:16px; padding:.6rem .8rem; margin-top:.9rem; font-size:.74rem; color:rgba(255,255,255,.75); font-family:var(--font-body); }
+    #callTranscript .msg { display:flex; gap:.5rem; padding:.25rem 0; border-bottom:1px solid rgba(255,255,255,.04); }
+    #callTranscript .who { font-weight:600; min-width:2.8rem; font-size:.68rem; text-transform:uppercase; flex-shrink:0; }
+    #callTranscript .who.user { color:var(--signal); }
+    #callTranscript .who.ragina { color:var(--go); }
+    #callTranscript .empty-hint { text-align:center; color:rgba(255,255,255,.2); font-size:.7rem; }
+
+    #callDetailsModal { display:none; position:fixed; inset:0; z-index:5200; background:rgba(0,0,0,.6); backdrop-filter:blur(8px); align-items:center; justify-content:center; }
+    #callDetailsModal.active { display:flex; }
+    .details-card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); width:92%; max-width:400px; max-height:82vh; display:flex; flex-direction:column; padding:1.1rem 1.2rem; }
+    .details-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:.35rem; }
+    .details-header span { font-family:var(--font-display); font-weight:700; font-size:1.05rem; }
+    .details-close { background:none; border:none; color:var(--text-dim); font-size:1.05rem; cursor:pointer; padding:.2rem .4rem; }
+    .details-close:hover { color:var(--stop); }
+    .details-status { font-size:.72rem; margin-bottom:.4rem; color:var(--text-faint); }
+    .details-status.online { color:var(--go); }
+    .details-status.offline { color:var(--stop); }
+    .details-meta { font-size:.72rem; color:var(--text-dim); margin-bottom:.6rem; line-height:1.7; }
+    .details-transcript { flex:1 1 auto; min-height:0; overflow-y:auto; background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:.6rem .8rem; font-size:.75rem; line-height:1.5; margin-bottom:.7rem; scrollbar-width:thin; scrollbar-color:var(--surface-3) transparent; }
+    .details-transcript::-webkit-scrollbar { width:4px; }
+    .details-transcript::-webkit-scrollbar-thumb { background:var(--surface-3); border-radius:10px; }
+    .details-transcript .recap { background:linear-gradient(140deg, rgba(79,140,247,.12), rgba(47,217,146,.10)); border:1px solid var(--line); border-radius:10px; padding:.45rem .6rem; font-size:.7rem; color:var(--text-dim); margin-bottom:.5rem; }
+    .details-transcript .recap i { color:var(--warn); margin-right:.3rem; }
+    .details-transcript .msg { display:flex; gap:.5rem; padding:.28rem 0; border-bottom:1px solid rgba(128,128,128,.08); }
+    .details-transcript .msg:last-child { border-bottom:none; }
+    .details-transcript .who { font-weight:600; min-width:2.8rem; font-size:.66rem; text-transform:uppercase; color:var(--signal); flex-shrink:0; }
+    .details-transcript .who.ragina { color:var(--go); }
+    .details-transcript .no-data { text-align:center; color:var(--text-faint); font-size:.7rem; padding:.8rem 0; }
+    .details-actions { display:flex; gap:.45rem; flex-wrap:wrap; justify-content:center; }
+
+    #toast { position:fixed; bottom:calc(28px + var(--safe-b)); left:50%; transform:translateX(-50%) translateY(20px); background:var(--surface-3); border:1px solid var(--line); color:var(--text); padding:.65rem 1.3rem; border-radius:40px; font-size:.83rem; opacity:0; pointer-events:none; transition:.25s; z-index:6000; max-width:88%; text-align:center; }
+    #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+    .hidden { display:none !important; }
+    .dimmed { opacity:.15 !important; pointer-events:none !important; }
+
+    #accountModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(8px); align-items:center; justify-content:center; z-index:5000; }
+    #accountModal.active { display:flex; }
+    .account-card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); padding:2rem 1.5rem; width:90%; max-width:360px; text-align:center; }
+    .account-card h2 { font-family:var(--font-display); margin-bottom:1rem; }
+    .account-card .info-row { display:flex; justify-content:space-between; padding:.5rem 0; border-bottom:1px solid var(--surface-2); font-size:.85rem; }
+    .account-card .close-btn { margin-top:1.2rem; width:100%; padding:.6rem; border-radius:40px; border:1px solid var(--line); background:transparent; color:var(--text-dim); cursor:pointer; }
+
+    /* small screen adjustments (unchanged) */
+    @media (max-height: 780px) {
+        .dialer-pad { gap:.45rem; max-width:min(230px, 26vh); }
+        .dialer-pad .key { font-size:1.15rem; }
+        .dialer-pad .key .sub { font-size:.4rem; }
+        .dialer-display { min-height:3rem; font-size:1.4rem; }
+    }
+    @media (max-height: 680px) {
+        .dialer-pad { gap:.3rem; max-width:min(200px, 23vh); }
+        .dialer-pad .key { font-size:1rem; }
+        .dialer-pad .key .sub { font-size:.35rem; }
+        .dialer-display { min-height:2.8rem; font-size:1.25rem; margin-bottom:.4rem; }
+        .header { padding-bottom:.4rem; }
+        .settings-link { margin:.3rem 0 .2rem; font-size:.7rem; padding:.25rem .6rem; }
+    }
+    @media (max-height: 580px) {
+        .dialer-pad { gap:.2rem; max-width:min(170px, 20vh); }
+        .dialer-pad .key { font-size:.85rem; }
+        .dialer-pad .key .sub { display:none; }
+        .dialer-display { min-height:2.4rem; font-size:1.1rem; margin-bottom:.3rem; }
+        .action-row { gap:.4rem; margin-bottom:.2rem; }
+        #historySection h3 { font-size:.7rem; margin-bottom:.15rem; }
+    }
+</style>
+<link rel="manifest" href="manifest.json" />
+</head>
+<body>
+
+<div class="stage">
+    <div class="phone-frame" id="phoneFrame">
+
+        <div class="header" id="mainHeader">
+            <div class="brand">
+                <img src="https://raw.githubusercontent.com/suryasticsai/premCall/main/premCall-logo.png" alt="PremCall" />
+                <span>PremCall</span>
+            </div>
+            <div class="header-right">
+                <button class="theme-toggle" id="themeToggle" title="Toggle Theme"><i class="fas fa-moon"></i></button>
+                <span id="myNumberDisplay" style="cursor:pointer;">—</span>
+                <span class="status-dot offline" id="headerStatusDot"></span>
+            </div>
+        </div>
+
+        <a href="settings.html" class="settings-link" id="registerLink"><i class="fas fa-shield-halved"></i> <span>Register</span></a>
+
+        <div class="dialer-section" id="dialerSection">
+            <div class="dialer-display">
+                <span id="dialText"><span class="hint"><i class="fas fa-phone"></i> Enter a 10-digit number</span></span>
+                <button class="right-btn" id="backspaceBtn" style="display:none;"><i class="fas fa-delete-left"></i></button>
+            </div>
+
+            <div class="dialer-pad" id="dialPad">
+                <button class="key" data-digit="1">1</button>
+                <button class="key" data-digit="2">2<span class="sub">ABC</span></button>
+                <button class="key" data-digit="3">3<span class="sub">DEF</span></button>
+                <button class="key" data-digit="4">4<span class="sub">GHI</span></button>
+                <button class="key" data-digit="5">5<span class="sub">JKL</span></button>
+                <button class="key" data-digit="6">6<span class="sub">MNO</span></button>
+                <button class="key" data-digit="7">7<span class="sub">PQRS</span></button>
+                <button class="key" data-digit="8">8<span class="sub">TUV</span></button>
+                <button class="key" data-digit="9">9<span class="sub">WXYZ</span></button>
+                <button class="key" data-digit="*">*</button>
+                <button class="key" data-digit="0">0<span class="sub">+</span></button>
+                <button class="key" data-digit="#">#</button>
+                <button class="key ghost" onclick="window.location.href='messages.html'"><i class="fas fa-comment"></i></button>
+                <button class="key call" id="dialCallBtn" data-action="call"><i class="fas fa-phone"></i></button>
+                <button class="key ghost" onclick="window.location.href='raginagent.html'"><i class="fas fa-robot"></i></button>
+            </div>
+
+            <div class="action-row">
+                <button class="btn" id="checkStatusBtn"><i class="fas fa-circle-check"></i> Check status</button>
+                <span class="status-badge" id="statusResult"></span>
+            </div>
+        </div>
+
+        <div id="historySection">
+            <h3>
+                <span><i class="fas fa-clock-rotate-left"></i> Recent <em style="font-style:normal;font-size:.62rem;color:var(--text-faint);">(tap number for details)</em></span>
+                <button class="clear-history" id="clearHistoryBtn">Clear All</button>
+            </h3>
+            <ul id="historyList"></ul>
+        </div>
+
+        <div id="postCallExport">
+            <div class="summary-card hidden" id="callSummary"></div>
+            <div class="export-row">
+                <button id="postSaveTxtBtn" class="btn"><i class="fas fa-file-lines"></i> TXT</button>
+                <button id="postSaveJsonBtn" class="btn"><i class="fas fa-file-code"></i> JSON</button>
+                <button id="shareBtn" class="btn share"><i class="fas fa-share-nodes"></i> Share</button>
+            </div>
+        </div>
+
+        <div class="log-area" id="logArea"></div>
+
+        <div id="incomingOverlay">
+            <div class="avatar" id="incomingAvatar">👤</div>
+            <div class="peer-name" id="incomingName">Unknown</div>
+            <div class="peer-number" id="incomingNumber"></div>
+            <div class="hint"><i class="fas fa-arrow-up"></i> Incoming call</div>
+            <div class="actions">
+                <button class="reject" id="rejectBtn"><i class="fas fa-phone-slash"></i></button>
+                <button class="answer" id="answerBtn"><i class="fas fa-phone"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="callScreen">
+    <div class="avatar-wrap" id="callRingWrap">
+        <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+        <div class="avatar" id="callAvatar">🤖</div>
+    </div>
+    <div class="peer-name" id="callName">RAGina</div>
+    <div class="peer-number" id="callNumber">0000000000</div>
+    <div class="substatus" id="callSubstatus"></div>
+    <div class="call-timer" id="callTimer">00:00</div>
+    <div class="call-actions">
+        <div class="action-item"><button id="muteBtn"><i class="fas fa-microphone"></i></button><span class="label">Mute</span></div>
+        <div class="action-item"><button class="hangup" id="hangupCallBtn"><i class="fas fa-phone-slash"></i></button><span class="label">End</span></div>
+        <div class="action-item"><button id="speakerBtn"><i class="fas fa-volume-high"></i></button><span class="label">Speaker</span></div>
+    </div>
+    <div id="callTranscript"><div class="empty-hint">Live transcript will appear here…</div></div>
+</div>
+
+<!-- CALL DETAILS MODAL -->
+<div id="callDetailsModal">
+    <div class="details-card">
+        <div class="details-header">
+            <span id="detailsNumber">—</span>
+            <button class="details-close" id="detailsClose"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="details-status" id="detailsStatus">Checking status…</div>
+        <div class="details-meta" id="detailsMeta"></div>
+        <div class="details-transcript" id="detailsTranscript"></div>
+        <div class="details-actions">
+            <button id="detailsCallBtn" class="btn"><i class="fas fa-phone"></i> Call</button>
+            <button id="detailsMsgBtn" class="btn"><i class="fas fa-comment"></i> Msg</button>
+            <button id="detailsTxtBtn" class="btn"><i class="fas fa-file-lines"></i> TXT</button>
+            <button id="detailsJsonBtn" class="btn"><i class="fas fa-file-code"></i> JSON</button>
+            <button id="detailsShareBtn" class="btn share"><i class="fas fa-share-nodes"></i> Share</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+<audio id="remoteAudio" autoplay playsinline style="display:none;"></audio>
+
+<div id="accountModal">
+    <div class="account-card">
+        <h2>Account Info</h2>
+        <div class="info-row"><span>Number</span><span id="accountNumber">—</span></div>
+        <div class="info-row"><span>Registered</span><span id="accountDate">—</span></div>
+        <button class="close-btn" id="closeAccountModalBtn">Close</button>
+    </div>
+</div>
+
+<!-- ========== Core library ========== -->
+<script src="premcall-core.js"></script>
+
+<!-- ========== UI Controller ========== -->
+<script>
+// Wait for core to be defined
+document.addEventListener('DOMContentLoaded', function() {
+    'use strict';
+
+    // ---------- DOM refs ----------
+    const $ = id => document.getElementById(id);
+    const dialText = $('dialText'), backspaceBtn = $('backspaceBtn'), dialPad = $('dialPad'), dialCallBtn = $('dialCallBtn');
+    const historyList = $('historyList'), toast = $('toast'), themeToggle = $('themeToggle'), themeIcon = themeToggle.querySelector('i');
+    const detailsModal = $('callDetailsModal');
+    const statusDot = $('headerStatusDot');
+    const postCallExport = $('postCallExport');
+    const callSummary = $('callSummary');
+    const callTranscript = $('callTranscript');
+
+    let dialedNumber = '', toastTimeout = null;
+    let openLog = null, openEntry = null;
+
+    // ---------- helpers ----------
+    function showToast(msg) {
+        toast.textContent = msg;
+        toast.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => toast.classList.remove('show'), 2200);
+    }
+    window.showToast = showToast;
+
+    function initials(label) {
+        if (!label) return '👤';
+        if (/^[\d+\s-]+$/.test(label)) return label.replace(/\D/g,'').slice(-2) || '👤';
+        return label.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase();
+    }
+
+    function dimMain(on) {
+        ['dialerSection','historySection','mainHeader','registerLink','postCallExport'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.classList.toggle('dimmed', on);
+        });
+    }
+
+    function formatTime(sec) {
+        return String(Math.floor(sec/60)).padStart(2,'0') + ':' + String(sec%60).padStart(2,'0');
+    }
+
+    // ---------- history (stored separately) ----------
+    function getHistory() {
+        try { return JSON.parse(localStorage.getItem('premCallHistory')) || []; }
+        catch(e) { return []; }
+    }
+    function saveHistory(h) {
+        localStorage.setItem('premCallHistory', JSON.stringify(h));
+    }
+    function addHistoryEntry(number, direction, duration, logId) {
+        const h = getHistory();
+        h.unshift({ number, direction, duration: duration || '—', timestamp: Date.now(), logId: logId || null });
+        if (h.length > 50) h.length = 50;
+        saveHistory(h);
+        renderHistory();
+    }
+    window.addHistoryEntry = addHistoryEntry;
+
+    function renderHistory() {
+        historyList.innerHTML = '';
+        const h = getHistory();
+        if (!h.length) { historyList.innerHTML = '<li class="empty">No calls yet</li>'; return; }
+        h.forEach(en => {
+            const li = document.createElement('li');
+            li.dataset.ts = en.timestamp;
+            const icon = en.direction === 'incoming' ? 'fa-arrow-down' : en.direction === 'outgoing' ? 'fa-arrow-up' : 'fa-phone-slash';
+            const cls = en.direction === 'incoming' ? 'incoming' : en.direction === 'outgoing' ? 'outgoing' : 'missed';
+            const t = new Date(en.timestamp).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+            li.innerHTML = '<span class="chip ' + cls + '"><i class="fas ' + icon + '"></i></span><span class="num" title="View details">' + en.number + '</span><span class="time">' + en.duration + '<br>' + t + '</span>' +
+                '<span class="history-actions">' +
+                '<button class="hist-call" data-num="' + en.number + '"><i class="fas fa-phone"></i></button>' +
+                '<button class="hist-msg" data-num="' + en.number + '"><i class="fas fa-comment"></i></button>' +
+                '<button class="hist-delete" data-ts="' + en.timestamp + '"><i class="fas fa-trash"></i></button>' +
+                '</span>';
+            historyList.appendChild(li);
+        });
+    }
+
+    // ---------- Core instance ----------
+    const core = new PremCallCore({
+        onIncomingCall: (peerId) => {
+            $('incomingAvatar').textContent = initials(peerId);
+            $('incomingName').textContent = peerId;
+            $('incomingNumber').textContent = peerId;
+            $('incomingOverlay').classList.add('active');
+            core.vibrate([300,200,300]); // ringtone is started inside core
+        },
+        onCallStarted: (type, peerId, isCaller) => {
+            // Hide incoming overlay if shown
+            $('incomingOverlay').classList.remove('active');
+            // Update call screen
+            const avatarEl = $('callAvatar');
+            if (type === 'ragina') {
+                avatarEl.innerHTML = '<img src="https://ragina-crawler-ragina.vercel.app/ragina-logo.png" alt="RAGina" onerror="this.outerHTML=\'🤖\'">';
+                $('callName').textContent = 'RAGina';
+                $('callNumber').textContent = '0000000000';
+            } else {
+                avatarEl.textContent = initials(peerId);
+                $('callName').textContent = peerId;
+                $('callNumber').textContent = peerId;
+            }
+            $('callSubstatus').textContent = isCaller ? 'Ringing…' : 'Connecting…';
+            $('callTimer').textContent = '00:00';
+            $('callRingWrap').classList.add('ring-anim');
+            $('callScreen').classList.add('active');
+            dialCallBtn.classList.add('disabled');
+            callTranscript.innerHTML = '<div class="empty-hint">Live transcript will appear here…</div>';
+            dimMain(true);
+            // Clear post‑call export
+            postCallExport.classList.remove('active');
+            callSummary.classList.add('hidden');
+        },
+        onCallEnded: (log) => {
+            // hide call screen
+            $('callScreen').classList.remove('active');
+            $('callRingWrap').classList.remove('ring-anim');
+            dialCallBtn.classList.remove('disabled');
+            dimMain(false);
+            // show post‑call if transcript exists
+            if (log && log.messages && log.messages.length) {
+                postCallExport.classList.add('active');
+                if (log.summary) {
+                    callSummary.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i><b>AI Recap:</b> ' + log.summary;
+                    callSummary.classList.remove('hidden');
+                }
+                // update history with this log
+                addHistoryEntry(log.number, log.direction, log.duration, log.id);
+            }
+            // also store last log in a variable for export
+            window._lastCallLog = log;
+            // clear remote audio
+            $('remoteAudio').srcObject = null;
+        },
+        onTranscript: (role, text) => {
+            const c = callTranscript;
+            const hint = c.querySelector('.empty-hint');
+            if (hint) hint.remove();
+            const d = document.createElement('div');
+            d.className = 'msg';
+            const w = document.createElement('span');
+            w.className = 'who ' + role;
+            w.textContent = role === 'user' ? 'You' : 'RAGina';
+            const t = document.createElement('span');
+            t.textContent = text;
+            d.appendChild(w); d.appendChild(t);
+            c.appendChild(d);
+            c.scrollTop = c.scrollHeight;
+        },
+        onTimerUpdate: (seconds) => {
+            $('callTimer').textContent = formatTime(seconds);
+        },
+        onStatusChange: (status) => {
+            statusDot.className = 'status-dot ' + status;
+        },
+        onError: (msg) => {
+            showToast(msg);
+        }
+    });
+
+    // expose core globally for debug
+    window.core = core;
+
+    // ---------- dialer UI ----------
+    function updateDisplay() {
+        if (dialedNumber) {
+            dialText.innerHTML = dialedNumber + '<span class="cursor"></span>';
+            backspaceBtn.style.display = 'block';
+        } else {
+            dialText.innerHTML = '<span class="hint"><i class="fas fa-phone"></i> Enter a 10-digit number</span>';
+            backspaceBtn.style.display = 'none';
+        }
+    }
+
+    backspaceBtn.addEventListener('click', () => {
+        dialedNumber = dialedNumber.slice(0, -1);
+        updateDisplay();
+        core.vibrate(8);
+    });
+
+    function pressDigit(d) {
+        if (dialedNumber.length < 15) {
+            dialedNumber += d;
+            updateDisplay();
+        }
+        core.playDtmf(d);
+        core.vibrate(10);
+    }
+
+    dialPad.addEventListener('click', e => {
+        const key = e.target.closest('.key');
+        if (!key) return;
+        const d = key.dataset.digit;
+        if (d) pressDigit(d);
+        else if (key.dataset.action === 'call') {
+            if (!/^\d{10}$/.test(dialedNumber)) {
+                showToast('Enter exactly 10 digits');
+                core.vibrate([40,40,40]);
+                return;
+            }
+            core.unlockSpeech();
+            core.call(dialedNumber);
+        }
+    });
+
+    document.addEventListener('keydown', e => {
+        if (e.key >= '0' && e.key <= '9') pressDigit(e.key);
+        else if (e.key === 'Backspace') {
+            dialedNumber = dialedNumber.slice(0, -1);
+            updateDisplay();
+        }
+        else if (e.key === 'Enter' && /^\d{10}$/.test(dialedNumber)) core.call(dialedNumber);
+    });
+
+    // ---------- call screen controls ----------
+    $('hangupCallBtn').addEventListener('click', () => {
+        core.hangup();
+        core.vibrate(15);
+    });
+
+    $('muteBtn').addEventListener('click', e => {
+        const muted = core.mute();
+        e.currentTarget.classList.toggle('active', muted);
+        e.currentTarget.innerHTML = muted ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>';
+        showToast(muted ? 'Muted' : 'Unmuted');
+    });
+
+    $('speakerBtn').addEventListener('click', e => {
+        const on = core.speaker();
+        e.currentTarget.classList.toggle('active', on);
+        showToast(on ? 'Speaker on' : 'Speaker off');
+    });
+
+    // ---------- incoming call ----------
+    $('answerBtn').addEventListener('click', () => core.answer());
+    $('rejectBtn').addEventListener('click', () => { core.reject(); showToast('Call declined'); });
+
+    // ---------- check status ----------
+    $('checkStatusBtn').addEventListener('click', async () => {
+        const num = dialedNumber || prompt('Enter 10-digit number to check:');
+        if (!num || !/^\d{10}$/.test(num)) {
+            $('statusResult').textContent = 'Invalid number';
+            return;
+        }
+        $('statusResult').textContent = 'Checking…';
+        const online = await core.checkStatus(num);
+        $('statusResult').textContent = online ? '✅ Online' : '❌ Offline';
+    });
+
+    // ---------- history interactions ----------
+    historyList.addEventListener('click', e => {
+        const c = e.target.closest('.hist-call'), m = e.target.closest('.hist-msg'), d = e.target.closest('.hist-delete'), num = e.target.closest('.num');
+        if (c) {
+            dialedNumber = c.dataset.num;
+            updateDisplay();
+            core.call(dialedNumber);
+            return;
+        }
+        if (m) {
+            window.location.href = 'messages.html?to=' + m.dataset.num;
+            return;
+        }
+        if (d) {
+            saveHistory(getHistory().filter(x => x.timestamp !== Number(d.dataset.ts)));
+            renderHistory();
+            showToast('Entry removed');
+            return;
+        }
+        if (num) {
+            const li = num.closest('li');
+            const entry = getHistory().find(x => x.timestamp === Number(li.dataset.ts));
+            if (entry) openDetails(entry);
+        }
+    });
+
+    $('clearHistoryBtn').addEventListener('click', () => {
+        saveHistory([]);
+        renderHistory();
+        showToast('History cleared');
+    });
+
+    // ---------- call details modal ----------
+    function openDetails(entry) {
+        openEntry = entry;
+        openLog = entry.logId ? core.getLogs().find(l => l.id === entry.logId) : null;
+        $('detailsNumber').textContent = entry.number;
+        const st = $('detailsStatus');
+        st.className = 'details-status';
+        if (entry.number === '0000000000') {
+            st.textContent = '✅ Always online (AI assistant)';
+            st.classList.add('online');
+        } else {
+            st.textContent = 'Checking status…';
+            core.checkStatus(entry.number).then(on => {
+                st.textContent = on ? '✅ Online now' : '❌ Offline';
+                st.classList.add(on ? 'online' : 'offline');
+            });
+        }
+        const dirLabel = entry.direction === 'incoming' ? 'Incoming' : entry.direction === 'outgoing' ? 'Outgoing' : 'Missed';
+        const typeLabel = entry.number === '0000000000' ? 'RAGina AI Call' : 'Voice Call';
+        $('detailsMeta').innerHTML =
+            '<i class="fas fa-arrow-' + (entry.direction === 'incoming' ? 'down' : 'up') + '"></i> ' + dirLabel + ' &nbsp;•&nbsp; ' + typeLabel + '<br>' +
+            '<i class="fas fa-calendar"></i> ' + new Date(entry.timestamp).toLocaleString() + ' &nbsp;•&nbsp; <i class="fas fa-stopwatch"></i> ' + entry.duration;
+        const tr = $('detailsTranscript');
+        tr.innerHTML = '';
+        if (openLog && openLog.messages && openLog.messages.length) {
+            if (openLog.summary) {
+                const r = document.createElement('div');
+                r.className = 'recap';
+                r.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i><b>AI Recap:</b> ';
+                r.appendChild(document.createTextNode(openLog.summary));
+                tr.appendChild(r);
+            }
+            openLog.messages.forEach(m => {
+                const d = document.createElement('div');
+                d.className = 'msg';
+                const w = document.createElement('span');
+                w.className = 'who ' + m.role;
+                w.textContent = m.role === 'user' ? 'You' : (openLog.type === 'ragina' ? 'RAGina' : 'Live');
+                const t = document.createElement('span');
+                t.textContent = m.text;
+                d.appendChild(w);
+                d.appendChild(t);
+                tr.appendChild(d);
+            });
+        } else {
+            tr.innerHTML = '<div class="no-data">No transcript recorded for this call.</div>';
+        }
+        detailsModal.classList.add('active');
+    }
+
+    $('detailsClose').addEventListener('click', () => detailsModal.classList.remove('active'));
+    detailsModal.addEventListener('click', e => { if (e.target === detailsModal) detailsModal.classList.remove('active'); });
+
+    $('detailsCallBtn').addEventListener('click', () => {
+        if (openEntry) {
+            detailsModal.classList.remove('active');
+            dialedNumber = openEntry.number;
+            updateDisplay();
+            core.call(openEntry.number);
+        }
+    });
+    $('detailsMsgBtn').addEventListener('click', () => {
+        if (openEntry) window.location.href = 'messages.html?to=' + openEntry.number;
+    });
+    $('detailsTxtBtn').addEventListener('click', () => core.exportLog(openLog, 'txt'));
+    $('detailsJsonBtn').addEventListener('click', () => core.exportLog(openLog, 'json'));
+    $('detailsShareBtn').addEventListener('click', async () => {
+        if (!openLog) { showToast('No transcript to share.'); return; }
+        const text = core.logText(openLog);
+        if (navigator.share) {
+            try { await navigator.share({ title: 'PremCall Transcript', text }); return; }
+            catch(e) { if (e.name === 'AbortError') return; }
+        }
+        try {
+            await navigator.clipboard.writeText(text);
+            showToast('Copied — paste anywhere!');
+        } catch(e) {
+            window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+        }
+    });
+
+    // ---------- post-call export ----------
+    $('postSaveTxtBtn').addEventListener('click', () => {
+        const log = window._lastCallLog || core.getLastLog();
+        if (log) core.exportLog(log, 'txt');
+        else showToast('No conversation to export.');
+    });
+    $('postSaveJsonBtn').addEventListener('click', () => {
+        const log = window._lastCallLog || core.getLastLog();
+        if (log) core.exportLog(log, 'json');
+        else showToast('No conversation to export.');
+    });
+    $('shareBtn').addEventListener('click', async () => {
+        const log = window._lastCallLog || core.getLastLog();
+        if (!log) { showToast('No conversation to share.'); return; }
+        const text = core.logText(log);
+        if (navigator.share) {
+            try { await navigator.share({ title: 'PremCall Transcript', text }); return; }
+            catch(e) { if (e.name === 'AbortError') return; }
+        }
+        try {
+            await navigator.clipboard.writeText(text);
+            showToast('Copied — paste anywhere!');
+        } catch(e) {
+            window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+        }
+    });
+
+    // ---------- account info ----------
+    $('myNumberDisplay').addEventListener('click', () => {
+        const num = localStorage.getItem('premCallNumber');
+        if (num && localStorage.getItem('premCallVerified') === 'true') {
+            $('accountNumber').textContent = num;
+            const since = localStorage.getItem('premCallRegisteredAt');
+            $('accountDate').textContent = since ? new Date(Number(since)).toLocaleDateString() : new Date().toLocaleDateString();
+            $('accountModal').classList.add('active');
+        }
+    });
+    $('closeAccountModalBtn').addEventListener('click', () => $('accountModal').classList.remove('active'));
+
+    // ---------- theme ----------
+    if (localStorage.getItem('premCallTheme') === 'light') {
+        document.body.classList.add('light-mode');
+        themeIcon.classList.replace('fa-moon','fa-sun');
+    }
+    themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('light-mode');
+        const light = document.body.classList.contains('light-mode');
+        localStorage.setItem('premCallTheme', light ? 'light' : 'dark');
+        themeIcon.classList.replace(light ? 'fa-moon' : 'fa-sun', light ? 'fa-sun' : 'fa-moon');
+        showToast(light ? 'Bright mode' : 'Dark mode');
+    });
+
+    // ---------- init core ----------
+    const stored = localStorage.getItem('premCallNumber');
+    if (stored && localStorage.getItem('premCallVerified') === 'true') {
+        $('myNumberDisplay').textContent = stored;
+        $('registerLink').classList.add('hidden');
+        core.init(stored);
+    } else {
+        $('myNumberDisplay').textContent = 'Not registered';
+        core.init('0000000000'); // RAGina-only mode
+    }
+
+    // ---------- render history ----------
+    renderHistory();
+    updateDisplay();
+
+    // ---------- service worker (optional) ----------
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('Service Worker Registered'))
+                .catch(err => console.log('SW Failed:', err));
+        });
+    }
+
+    // ---------- keyboard shortcut: Escape to close modals ----------
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            detailsModal.classList.remove('active');
+            $('accountModal').classList.remove('active');
+        }
+    });
+
+    // ---------- beforeunload ----------
+    window.addEventListener('beforeunload', e => {
+        if (core.isInCall()) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+
+}); // end DOMContentLoaded
+</script>
+</body>
+</html>
