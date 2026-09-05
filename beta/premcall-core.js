@@ -1,4 +1,5 @@
-// premcall-core.js - fixed: isSpeaking ReferenceError + TTS-end-gated mic restart
+// premcall-core.js - fixed: isSpeaking ReferenceError, TTS-end-gated mic restart,
+// PeerJS load-race retry, clearer "not registered" vs "not connected yet" errors
 (function(global) {
     'use strict';
 
@@ -202,25 +203,45 @@
             this.lastLog = null;
             this.conversationState = 0;
             this.userName = '';
+            this._peerLoadRetries = 0;
         }
 
+        // FIXED: retries briefly if PeerJS hasn't finished loading yet instead
+        // of silently falling into RAGina-only mode with this.peer left null.
         init(number) {
             console.log('[PremCallCore] init() called with number:', number);
             this.myNumber = number;
-            if (typeof global.Peer !== 'undefined' && number && number !== RAGINA_NUMBER) {
-                console.log('[PremCallCore] Creating Peer with ID:', number);
-                try {
-                    this.peer = new global.Peer(number, { debug: 2 });  // verbose logging
-                    console.log('[PremCallCore] Peer instance created:', this.peer);
-                    this._attachPeerHandlers();
-                    this.onStatusChange('connecting');
-                } catch(e) {
-                    console.error('[PremCallCore] Peer creation error:', e);
-                    this.onError('Peer init failed: ' + e.message);
-                }
-            } else {
+
+            if (!number || number === RAGINA_NUMBER) {
                 console.log('[PremCallCore] RAGina-only mode (no Peer)');
                 this.onStatusChange('online');
+                this._recoverLog();
+                return;
+            }
+
+            if (typeof global.Peer === 'undefined') {
+                this._peerLoadRetries++;
+                if (this._peerLoadRetries <= 10) {
+                    console.warn('[PremCallCore] PeerJS not loaded yet, retrying... (' + this._peerLoadRetries + '/10)');
+                    setTimeout(() => this.init(number), 300);
+                    return;
+                }
+                console.error('[PremCallCore] PeerJS never became available.');
+                this.onError('PeerJS library failed to load — check your connection and reload.');
+                this.onStatusChange('offline');
+                this._recoverLog();
+                return;
+            }
+
+            console.log('[PremCallCore] Creating Peer with ID:', number);
+            try {
+                this.peer = new global.Peer(number, { debug: 2 });  // verbose logging
+                console.log('[PremCallCore] Peer instance created:', this.peer);
+                this._attachPeerHandlers();
+                this.onStatusChange('connecting');
+            } catch(e) {
+                console.error('[PremCallCore] Peer creation error:', e);
+                this.onError('Peer init failed: ' + e.message);
             }
             this._recoverLog();
         }
@@ -232,8 +253,15 @@
                 return;
             }
             if (!this.peer) {
-                console.warn('[PremCallCore] No peer object – registration required');
-                this.onError('Register to call real numbers.');
+                console.warn('[PremCallCore] No peer object at call time');
+                // FIXED: distinguish "never registered" from "registered but
+                // Peer isn't ready/connected yet" so this stops looking like
+                // registration silently failed.
+                this.onError(
+                    this.myNumber && this.myNumber !== RAGINA_NUMBER
+                        ? 'Not connected yet — wait a moment or reload the page.'
+                        : 'Register to call real numbers.'
+                );
                 return;
             }
             console.log('[PremCallCore] Peer exists, attempting call...');
@@ -759,6 +787,7 @@
             this.raginaCallActive = false;
             this.inCall = false;
             this.isSpeaking = false;
+            this._peerLoadRetries = 0;
             if (window.speechSynthesis) window.speechSynthesis.cancel();
         }
     }
