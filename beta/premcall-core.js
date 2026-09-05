@@ -1,5 +1,4 @@
-// premcall-core.js - fixed: isSpeaking ReferenceError, TTS-end-gated mic restart,
-// PeerJS load-race retry, clearer "not registered" vs "not connected yet" errors
+// premcall-core.js - fully fixed: TTS-end-gated mic restart, PeerJS retry, clear errors
 (function(global) {
     'use strict';
 
@@ -77,10 +76,8 @@
         setTimeout(() => speechUnlocked = true, 500);
     }
 
-    // FIXED: speakText now takes { onStart, onEnd } callbacks instead of
-    // touching an undeclared bare `isSpeaking` variable. onEnd is guaranteed
-    // to fire exactly once (natural end, error, OR a 12s watchdog) so the
-    // conversation can never get stuck waiting forever.
+    // FIXED: speakText now takes { onStart, onEnd } callbacks.
+    // onEnd is guaranteed to fire (natural end, error, or 12s watchdog).
     function speakText(text, { onStart, onEnd } = {}) {
         const finish = () => { if (onEnd) onEnd(); };
 
@@ -195,7 +192,7 @@
             this.raginaCallActive = false;
             this.raginaRecognition = null;
             this.raginaIsMuted = false;
-            this.isSpeaking = false;
+            this.isSpeaking = false;          // fixed: now a class property
             this.liveRecognition = null;
             this.timerInterval = null;
             this.timerSeconds = 0;
@@ -206,14 +203,11 @@
             this._peerLoadRetries = 0;
         }
 
-        // FIXED: retries briefly if PeerJS hasn't finished loading yet instead
-        // of silently falling into RAGina-only mode with this.peer left null.
+        // FIXED: retries if PeerJS not loaded yet, up to 10 times.
         init(number) {
-            console.log('[PremCallCore] init() called with number:', number);
             this.myNumber = number;
 
             if (!number || number === RAGINA_NUMBER) {
-                console.log('[PremCallCore] RAGina-only mode (no Peer)');
                 this.onStatusChange('online');
                 this._recoverLog();
                 return;
@@ -222,41 +216,32 @@
             if (typeof global.Peer === 'undefined') {
                 this._peerLoadRetries++;
                 if (this._peerLoadRetries <= 10) {
-                    console.warn('[PremCallCore] PeerJS not loaded yet, retrying... (' + this._peerLoadRetries + '/10)');
                     setTimeout(() => this.init(number), 300);
                     return;
                 }
-                console.error('[PremCallCore] PeerJS never became available.');
                 this.onError('PeerJS library failed to load — check your connection and reload.');
                 this.onStatusChange('offline');
                 this._recoverLog();
                 return;
             }
 
-            console.log('[PremCallCore] Creating Peer with ID:', number);
             try {
-                this.peer = new global.Peer(number, { debug: 2 });  // verbose logging
-                console.log('[PremCallCore] Peer instance created:', this.peer);
+                this.peer = new global.Peer(number, { debug: 2 });
                 this._attachPeerHandlers();
                 this.onStatusChange('connecting');
             } catch(e) {
-                console.error('[PremCallCore] Peer creation error:', e);
                 this.onError('Peer init failed: ' + e.message);
             }
             this._recoverLog();
         }
 
         call(number) {
-            console.log('[PremCallCore] call() called with number:', number);
             if (number === RAGINA_NUMBER) {
                 this._startRAGinaCall();
                 return;
             }
             if (!this.peer) {
-                console.warn('[PremCallCore] No peer object at call time');
-                // FIXED: distinguish "never registered" from "registered but
-                // Peer isn't ready/connected yet" so this stops looking like
-                // registration silently failed.
+                // FIXED: distinguish between "not registered" and "registered but not connected yet"
                 this.onError(
                     this.myNumber && this.myNumber !== RAGINA_NUMBER
                         ? 'Not connected yet — wait a moment or reload the page.'
@@ -264,7 +249,6 @@
                 );
                 return;
             }
-            console.log('[PremCallCore] Peer exists, attempting call...');
             this._getLocalStream().then(stream => {
                 const call = this.peer.call(number, stream);
                 if (!call) {
@@ -275,7 +259,6 @@
                 this._showCallScreenPeer(number, true);
                 this._wireCallEvents(call);
             }).catch(err => {
-                console.error('[PremCallCore] Microphone error:', err);
                 this.onError('Microphone denied.');
             });
         }
@@ -424,11 +407,9 @@
         _attachPeerHandlers() {
             if (!this.peer) return;
             this.peer.on('open', (id) => {
-                console.log('[PremCallCore] Peer open with id:', id);
                 this.onStatusChange('online');
             });
             this.peer.on('disconnected', () => {
-                console.warn('[PremCallCore] Peer disconnected');
                 this.onStatusChange('offline');
                 setTimeout(() => {
                     if (this.peer && !this.peer.destroyed) {
@@ -437,11 +418,9 @@
                 }, 3000);
             });
             this.peer.on('error', (err) => {
-                console.error('[PremCallCore] Peer error:', err);
                 this.onError('Network: ' + err.type);
             });
             this.peer.on('call', call => {
-                console.log('[PremCallCore] Incoming call from:', call.peer);
                 if (this.isInCall()) { call.close(); return; }
                 this.incomingCall = call;
                 this._startRingtone();
@@ -453,15 +432,12 @@
             this.activeCall = call;
             this.inCall = true;
             call.on('stream', stream => {
-                console.log('[PremCallCore] Call stream received');
                 this._onCallConnected();
             });
             call.on('close', () => {
-                console.log('[PremCallCore] Call closed');
                 this._endPeerCall();
             });
             call.on('error', (err) => {
-                console.error('[PremCallCore] Call error:', err);
                 this._endPeerCall();
             });
         }
@@ -602,11 +578,13 @@
                 if (!this.raginaCallActive) return;
                 const greet = "Hello! I'm RAGina. What is your name?";
                 this._logMsg('ragina', greet);
+                // FIXED: use callbacks to control isSpeaking
                 this.isSpeaking = true;
                 speakText(greet, {
+                    onStart: () => { this.isSpeaking = true; },
                     onEnd: () => {
                         this.isSpeaking = false;
-                        // FIXED: wait for TTS to actually finish, not a guessed timeout
+                        // Only listen after TTS finishes
                         setTimeout(() => this._listenToRAGina(), 400);
                     }
                 });
@@ -647,6 +625,7 @@
                     this._logMsg('ragina', r);
                     this.isSpeaking = true;
                     speakText(r, {
+                        onStart: () => { this.isSpeaking = true; },
                         onEnd: () => {
                             this.isSpeaking = false;
                             setTimeout(() => this._listenToRAGina(), 400);
@@ -658,6 +637,7 @@
                     this._logMsg('ragina', ans);
                     this.isSpeaking = true;
                     speakText(ans, {
+                        onStart: () => { this.isSpeaking = true; },
                         onEnd: () => {
                             this.isSpeaking = false;
                             setTimeout(() => this._listenToRAGina(), 400);
